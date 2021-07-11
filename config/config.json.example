@@ -1,0 +1,47 @@
+{
+  "mysql": {
+    "host": "127.0.0.1",
+    "port": 3306,
+    "user": "",
+    "pass": "",
+    "database": ""
+  },
+  "redis": {
+    "host": "127.0.0.1",
+    "port": 6379,
+    "database": 0
+  },
+  "pixiv": {
+    "cookie": ""
+  },
+  "telegram": {
+    "token": "",
+    "channel": {
+      "SFW": {
+        "name": "",
+        "char_id": 
+      },
+      "NSFW": {
+        "name": "",
+        "char_id": 
+      },
+      "R18": {
+        "name": "",
+        "char_id": 
+      }
+    }
+  },
+  "administrators":
+    [
+      {
+        "username": "",
+        "userid": ,
+        "type": 0
+      },
+      {
+        "username": "",
+        "userid": ,
+        "type": 1
+      }
+    ]
+}

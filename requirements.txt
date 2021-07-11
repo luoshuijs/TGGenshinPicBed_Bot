@@ -1,0 +1,8 @@
+colorlog==5.0.1
+mysql-connector-python==8.0.25
+python-telegram-bot==13.6
+redis==3.5.3
+requests~=2.20.0
+httpx~=0.18.1
+ujson~=4.0.2
+aiomysql~=0.0.21
