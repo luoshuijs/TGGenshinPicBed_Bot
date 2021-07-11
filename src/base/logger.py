@@ -1,9 +1,7 @@
 import logging
 from logging.handlers import RotatingFileHandler  # 按文件大小滚动备份
 import colorlog  # 控制台日志输入颜色
-import time
 import os
-import sys
 
 cur_path = os.path.dirname(os.path.realpath(__file__))  # log_path是存放日志的路径
 log_path = os.path.join(cur_path, 'logs')

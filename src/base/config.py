@@ -5,9 +5,9 @@ import os
 class Config(object):
     def __init__(self):
         project_path = os.path.dirname(__file__)
-        config_file = os.path.join(project_path, 'config', 'config.json')
+        config_file = os.path.join(project_path, '../../config', 'config.json')
         if not os.path.exists(config_file):
-            config_file = os.path.join(project_path, 'config', 'config.example.json')
+            config_file = os.path.join(project_path, '../../config', 'config.example.json')
 
         with open(config_file, 'r', encoding='utf-8') as f:
             self.config_json = json.load(f)

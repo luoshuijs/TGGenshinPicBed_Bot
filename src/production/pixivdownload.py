@@ -5,8 +5,8 @@ import asyncio
 import aiomysql
 from telegram.ext import Updater
 import time
-from src.httprequests import HttpRequests
-from src.logger import Log
+from src.base.httprequests import HttpRequests
+from src.base.logger import Log
 
 search_url = "https://www.pixiv.net/ajax/search/artworks/%s?word=%s&p=%s&order=date_d&mode=all&s_mode" \
              "=s_tag_full"
@@ -300,7 +300,7 @@ class Pixiv:
 
 # 测试使用
 if __name__ == "__main__":
-    from config import config
+    from src.base.config import config
 
     loop = asyncio.get_event_loop()
 

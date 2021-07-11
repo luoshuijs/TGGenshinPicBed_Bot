@@ -2,7 +2,7 @@ import re
 import requests
 from mysql import connector
 from mysql.connector.pooling import MySQLConnectionPool
-from src..logger import Log
+from src.base.logger import Log
 
 
 class Rsp:

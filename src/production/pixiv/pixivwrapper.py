@@ -1,12 +1,11 @@
 import requests
-import threading
 import redis
 import json
 import pathlib
 from mysql import connector
 from mysql.connector.pooling import MySQLConnectionPool
-from src.namemap import NameMap, tag_split
-from src.logger import Log
+from src.production.namemap import NameMap, tag_split
+from src.base.logger import Log
 
 
 class Rsp:
@@ -86,7 +85,7 @@ class Pixiv:
         self.image_cache = "tgbot:imagecache"
         self.image_cache_ttl = pixiv_cache_ttl
 
-        self.name_map_file = pathlib.Path(__file__).parent.joinpath("../data/namemap.json").resolve()
+        self.name_map_file = pathlib.Path(__file__).parent.joinpath("../../../data/namemap.json").resolve()
         self.name_map = NameMap(self.name_map_file)
 
         self.audit_type = AuditType.SFW

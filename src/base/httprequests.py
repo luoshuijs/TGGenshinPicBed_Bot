@@ -2,7 +2,7 @@ import httpx
 import asyncio
 import ujson
 import time
-from src.logger import Log
+from src.base.logger import Log
 
 
 class Rsp:
