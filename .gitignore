@@ -17,7 +17,7 @@
 
 .idea
 venv
-src/logs
+**/logs
 config/config.json
 *.swp
 *.swo

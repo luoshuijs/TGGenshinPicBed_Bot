@@ -4,16 +4,16 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 
 from src.base.config import config
 from plugins.contribute import StartContribute, contribute_command, ContributeInfo
-from plugins.examine import examine, ExamineInfo, ExamineStart, ExamineResult, ExamineReason
-from plugins.push import push, PushInfo, StartPush, EndPush
+from plugins.examine import ExamineHandler
+from plugins.push import PushHandler
 from plugins.start import start, help_command, test
+from src.production.pixiv import PixivService
 from src.base.logger import Log
 from src.base.utils import Utils
 
 utils = Utils(config)
 logger = Log.getLogger()
 
-EXAMINE, EXAMINE_START, EXAMINE_RESULT, EXAMINE_REASON = range(4)
 ONE, TWO, THREE, FOUR = range(4)
 
 logger = Log.getLogger()  # 必须初始化log，不然卡死机
@@ -33,36 +33,57 @@ def main() -> None:
 
     dispatcher = updater.dispatcher
 
-    conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('examine', examine)],
-        states={
-            EXAMINE: [MessageHandler(Filters.text, ExamineInfo),
-                      CommandHandler('skip', cancel)],
-            EXAMINE_START: [MessageHandler(Filters.text, ExamineStart),
-                            CommandHandler('skip', cancel)],
-            EXAMINE_RESULT: [MessageHandler(Filters.text, ExamineResult),
-                             CommandHandler('skip', cancel)],
-            EXAMINE_REASON: [MessageHandler(Filters.text, ExamineReason),
-                             CommandHandler('skip', cancel)],
+    pixiv = PixivService(
+        sql_config={
+            "host": config.MYSQL["host"],
+            "port": config.MYSQL["port"],
+            "user": config.MYSQL["user"],
+            "password": config.MYSQL["pass"],
+            "database": config.MYSQL["database"],
         },
-        fallbacks=[CommandHandler('cancel', cancel)],
+        redis_config={
+            "host": config.REDIS["host"],
+            "port": config.REDIS["port"],
+        },
+        px_config={
+            "cookie": config.PIXIV["cookie"],
+        },
     )
 
-    push_handler = ConversationHandler(
-        entry_points=[CommandHandler('push', push)],
+    examine = ExamineHandler(pixiv=pixiv)
+    conv_handler = ConversationHandler(
+        entry_points=[CommandHandler('examine', examine.command_handler)],
         states={
-            ONE: [
-                CallbackQueryHandler(PushInfo)
+            examine.EXAMINE: [MessageHandler(Filters.text, examine.setup_handler),
+                              CommandHandler('skip', examine.cancel_handler)],
+            examine.EXAMINE_START: [MessageHandler(Filters.text, examine.start_handler),
+                                    CommandHandler('skip', examine.cancel_handler)],
+            examine.EXAMINE_RESULT: [MessageHandler(Filters.text, examine.result_handler),
+                                     CommandHandler('skip', examine.cancel_handler)],
+            examine.EXAMINE_REASON: [MessageHandler(Filters.text, examine.reason_handler),
+                                     CommandHandler('skip', examine.cancel_handler)],
+        },
+        fallbacks=[CommandHandler('cancel', examine.cancel_handler)],
+    )
+
+    push = PushHandler(pixiv=pixiv)
+    push_handler = ConversationHandler(
+        entry_points=[CommandHandler('push', push.command_handler)],
+        states={
+            push.ONE: [
+                CallbackQueryHandler(push.setup_handler)
             ],
-            TWO: [
-                CallbackQueryHandler(StartPush)
+            push.TWO: [
+                CallbackQueryHandler(push.start_handler)
             ],
-            THREE: [
-                CallbackQueryHandler(EndPush)
+            push.THREE: [
+                CallbackQueryHandler(push.end_handler)
             ]
         },
         fallbacks=[CommandHandler('cancel', cancel)],
     )
+
+    # TODO: match the OOP (面对对象) design with ExamineHandler and PushHandler...
     contribute_handler = ConversationHandler(
         entry_points=[CommandHandler('contribute', contribute_command)],
         states={

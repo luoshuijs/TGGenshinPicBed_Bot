@@ -4,7 +4,7 @@
 
 import unittest
 import pathlib
-from namemap import NameMap, tag_split
+from src.production.namemap import NameMap, tag_split
 
 
 class TestTag(unittest.TestCase):
