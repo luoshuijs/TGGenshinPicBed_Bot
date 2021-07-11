@@ -3,7 +3,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
     CallbackQueryHandler
 
 from src.base.config import config
-from plugins.contribute import StartContribute, contribute, ContributeInfo
+from plugins.contribute import StartContribute, contribute_command, ContributeInfo
 from plugins.examine import examine, ExamineInfo, ExamineStart, ExamineResult, ExamineReason
 from plugins.push import push, PushInfo, StartPush, EndPush
 from plugins.start import start, help_command, test
@@ -16,7 +16,6 @@ logger = Log.getLogger()
 EXAMINE, EXAMINE_START, EXAMINE_RESULT, EXAMINE_REASON = range(4)
 ONE, TWO, THREE, FOUR = range(4)
 
-
 logger = Log.getLogger()  # 必须初始化log，不然卡死机
 
 
@@ -25,6 +24,7 @@ def cancel(update: Update, _: CallbackContext) -> int:
     logger.info("User %s canceled the conversation.", user.first_name)
     update.message.reply_text('命令取消.', reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
+
 
 def main() -> None:
     """Start the bot."""
@@ -64,13 +64,15 @@ def main() -> None:
         fallbacks=[CommandHandler('cancel', cancel)],
     )
     contribute_handler = ConversationHandler(
-        entry_points=[CommandHandler('contribute', contribute)],
+        entry_points=[CommandHandler('contribute', contribute_command)],
         states={
             ONE: [
-                CallbackQueryHandler(ContributeInfo)
+                MessageHandler(Filters.text, ContributeInfo),
+                CommandHandler('skip', cancel)
             ],
             TWO: [
-                CallbackQueryHandler(StartContribute)
+                MessageHandler(Filters.text, StartContribute),
+                CommandHandler('skip', cancel)
             ]
         },
         fallbacks=[CommandHandler('cancel', cancel)],

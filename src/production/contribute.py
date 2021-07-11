@@ -69,7 +69,7 @@ class Contribute:
         except connector.PoolError:
             return connector.connect(**self.sql_config)
 
-    def GetInfo(self, data) -> Rsp:
+    def GetIllustsInfo(self, data: str = "") -> Rsp:
         rsp = Rsp()
         try:
             url = data
