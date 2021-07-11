@@ -1,12 +1,8 @@
 *
 
-!venv
-!.idea
 !*.py
 !config
 !config/**
-!audio
-!audio/**
 !data
 !data/**
 !tests
@@ -14,10 +10,11 @@
 !src
 !src/**
 !requirements.txt
-!tg_bot.sql
 !.gitignore
 !README.md
 
+.idea
+venv
 src/logs
 config/config.json
 *.swp

@@ -1,14 +1,13 @@
-from datetime import timedelta, timezone
-from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, Bot, InlineKeyboardButton, InlineKeyboardMarkup, \
+from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup, \
     ParseMode, InputMediaPhoto
-from telegram.error import RetryAfter, BadRequest
+from telegram.error import BadRequest
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler, \
-    CallbackQueryHandler, run_async
+    CallbackQueryHandler
 import time
 
 from config import config
 from src.logger import Log
-from src.utils import Utils
+from src.base.utils import Utils
 from src.pixiv import PixivWrapper
 from src.markdown import markdown_escape
 
@@ -241,9 +240,9 @@ def ExamineResult(update: Update, context: CallbackContext) -> int:
         message = "你选择了：%s，已经确认。请选择退出还是下一个。" % update.message.text
         update.message.reply_text(message, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
         return EXAMINE_START
-    reply_keyboard = [["质量差", "类型错误"], ["一般", "暂定"], ["NSFW", "R18"], ["退出"]]
+    reply_keyboard = [["质量差", "类型错误"], ["一般"], ["NSFW", "R18"], ["退出"]]
     if audit_type == "NSFW":
-        reply_keyboard = [["质量差", "R18", ], ["类型错误", "退出"]]
+        reply_keyboard = [["质量差", "类型错误"], ["一般"], ["R18", "退出"]]
     if audit_type == "R18":
         reply_keyboard = [["质量差", "类型错误"], ["XP兼容性低", "退出"]]
     message = "你选择了：%s，已经确认。请选撤销择原因或者输入原因。" % update.message.text
@@ -389,7 +388,7 @@ def StartPush(update: Update, context: CallbackContext) -> int:
                     Log.error("encountered error with image caption\n%s" % caption)
                     Log.error(TError)
                     update.message.reply_text("图片发送出错")
-                    return ConverationHandler.END
+                    return ConversationHandler.END
                 if audit_type == "NSFW" and not sendReq is None:
                     channel_name = config.TELEGRAM["channel"]["NSFW"]["name"]
                     channel_id = config.TELEGRAM["channel"]["SFW"]["char_id"]
@@ -511,11 +510,7 @@ def main() -> None:
 
     dispatcher.add_handler(CommandHandler("start", start))
     dispatcher.add_handler(CommandHandler("help", help_command))
-    dispatcher.add_handler(CommandHandler("prpr", prpr))
-    dispatcher.add_handler(CommandHandler("hutao", hutao))
     dispatcher.add_handler(CommandHandler("test", test))
-    dispatcher.add_handler(CommandHandler("hello", hello))
-    dispatcher.add_handler(CommandHandler("sleep", sleep))
     dispatcher.add_handler(conv_handler)
     dispatcher.add_handler(push_handler)
     dispatcher.add_handler(contribute_handler)
