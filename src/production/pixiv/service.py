@@ -81,7 +81,7 @@ class PixivService:
             raise ValueError(f"art not found: art id {art_id} when approving artwork")
         # 3. Audit
         art = artwork_audit_list[0]
-        update = Auditor.audit(art.audit_info, new_status=AuditStatus.PASS)
+        update = Auditor.audit(art.audit_info, AuditStatus.PASS, new_type=audit_type)
         # 4. Save to database
         self.pixivrepo.apply_update(update)
 
@@ -96,7 +96,7 @@ class PixivService:
             raise ValueError(f"art not found: art id {art_id} when rejecting artwork")
         # 3. Audit
         art = artwork_audit_list[0]
-        update = Auditor.audit(art.audit_info, new_status=AuditStatus.REJECT, new_reason=reason)
+        update = Auditor.audit(art.audit_info, AuditStatus.REJECT, new_type=audit_type, new_reason=reason)
         # 4. Save to database
         self.pixivrepo.apply_update(update)
 

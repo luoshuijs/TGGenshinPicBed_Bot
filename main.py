@@ -3,7 +3,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
     CallbackQueryHandler
 
 from src.base.config import config
-from plugins.contribute import StartContribute, contribute_command, ContributeInfo
+from plugins.contribute import ContributeHandler
 from plugins.examine import ExamineHandler
 from plugins.push import PushHandler
 from plugins.start import start, help_command, test
@@ -12,10 +12,6 @@ from src.base.logger import Log
 from src.base.utils import Utils
 
 utils = Utils(config)
-logger = Log.getLogger()
-
-ONE, TWO, THREE, FOUR = range(4)
-
 logger = Log.getLogger()  # 必须初始化log，不然卡死机
 
 
@@ -84,16 +80,16 @@ def main() -> None:
         fallbacks=[CommandHandler('cancel', cancel)],
     )
 
-    # TODO: match the OOP (面对对象) design with ExamineHandler and PushHandler...
+    contribute = ContributeHandler()
     contribute_handler = ConversationHandler(
-        entry_points=[CommandHandler('contribute', contribute_command)],
+        entry_points=[CommandHandler('contribute', contribute.contribute_command)],
         states={
-            ONE: [
-                MessageHandler(Filters.text, ContributeInfo),
+            contribute.ONE: [
+                MessageHandler(Filters.text, contribute.ContributeInfo),
                 CommandHandler('skip', cancel)
             ],
-            TWO: [
-                MessageHandler(Filters.text, StartContribute),
+            contribute.TWO: [
+                MessageHandler(Filters.text, contribute.StartContribute),
                 CommandHandler('skip', cancel)
             ]
         },

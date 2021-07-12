@@ -38,6 +38,8 @@ class Auditor:
     ):
         if new_type is None:
             new_type = audit_info.audit_type
+        if new_type == AuditType.SFW and new_reason == AuditType.NSFW.value:
+            new_type = AuditType.NSFW
         if new_reason is None:
             new_reason = audit_info.audit_reason
         return ArtworkStatusUpdate(audit_info, new_status, new_type, new_reason)
