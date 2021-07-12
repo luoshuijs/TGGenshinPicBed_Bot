@@ -37,9 +37,11 @@ class PixivService:
         tags = self.name_map.filter_character_tags(artwork_info.tags)
         artwork_info.tags = tags
         # 2. Download image(s)
-        images = self.pixivcache.get_images_by_artid(artwork_info.art_id)
+        art_id = artwork_info.art_id
+        images = self.pixivcache.get_images_by_artid(art_id)
         if images is None:
-            images = self.pixivdownloader.download_images(artwork_info.art_id)
+            images = self.pixivdownloader.download_images(art_id)
+            self.pixivcache.save_images_by_artid(art_id, images)
         return artwork_info, images
 
     def audit_approve(self, audit_type: AuditType, art_id: int):
@@ -95,9 +97,11 @@ class PixivService:
         tags = self.name_map.filter_character_tags(artwork_info.tags)
         artwork_info.tags = tags
         # 2. Download image(s)
-        images = self.pixivcache.get_images_by_artid(artwork_info.art_id)
+        art_id = artwork_info.art_id
+        images = self.pixivcache.get_images_by_artid(art_id)
         if images is None:
-            images = self.pixivdownloader.download_images(artwork_info.art_id)
+            images = self.pixivdownloader.download_images(art_id)
+            self.pixivcache.save_images_by_artid(art_id, images)
         return artwork_info, images, count
 
     @contextmanager

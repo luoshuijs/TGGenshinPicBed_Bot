@@ -98,5 +98,5 @@ class PixivRepository:
         """
         audit_info = update.audit_info
         query_args = (audit_info.gp_id, audit_info.gp_art_id, update.new_type, update.new_status, update.new_reason)
-        _ = self._execute_and_fetchall(query, query_args)
+        return self._execute_and_fetchall(query, query_args)
 

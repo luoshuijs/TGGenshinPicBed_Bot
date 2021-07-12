@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Iterable
+import base64
 import json
 
 
@@ -161,11 +162,11 @@ class ArtworkImage:
     def to_json(self):
         pass
 
-    def to_dict(seld):
+    def to_dict(self):
         return {
             "art_id": self.art_id,
             "uri":    self.uri,
-            "data":   self.data,
+            "data":   base64.b64encode(self.data).decode(),
         }
 
     @classmethod
@@ -173,7 +174,11 @@ class ArtworkImage:
         if data is None:
             return None
         data_dict = json.loads(data)
-        return Cls(data_dict["art_id"], uri=data_dict["uri"], data=data_dict["data"])
+        return Cls(
+            data_dict["art_id"],
+            uri=data_dict["uri"],
+            data=base64.b64decode(data_dict["data"].encode()),
+        )
 
 
 class ArtworkImageFactory:
@@ -182,8 +187,8 @@ class ArtworkImageFactory:
         if data is None:
             return []
         data_dict_list = json.loads(data)
-        return tuple(Cls(
+        return tuple(ArtworkImage(
             data_dict["art_id"],
             uri=data_dict["uri"],
-            data=data_dict["data"],
+            data=base64.b64decode(data_dict["data"].encode()),
         ) for data_dict in data_dict_list)
