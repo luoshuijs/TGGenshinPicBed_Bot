@@ -19,6 +19,32 @@ class PixivService:
         name_map_file = pathlib.Path(__file__).parent.joinpath("../../../data/namemap.json").resolve()
         self.name_map = NameMap(name_map_file)
 
+    def contribute_start(self, art_id: int) -> Tuple[ArtworkInfo, Iterable[ArtworkImage]]:
+        # 1. Check database
+        data = self.pixivrepo.get_art_by_artid(art_id)
+        artwork_list = ArtworkFactory.create_from_sql(data)
+        if len(artwork_list) > 0:
+            return None     # Exists in database
+        # 2. Get artwork info
+        artwork_info = self.pixivdownloader.get_artwork_info(art_id)
+        if artwork is None:
+            return None     # Artwork does not exist
+        art_id = artwork_info.art_id
+        images = self.pixivcache.get_images_by_artid(art_id)
+        if images is None:
+            images = self.pixivdownloader.download_images(art_id)
+            self.pixivcache.save_images_by_artid(art_id, images)
+        return artwork_info, images
+
+    def contribute_confirm(self, art_id: int):
+        # 1. Get artwork info
+        result = self.contribute_start(self, art_id)
+        if result is None:
+            return None
+        artwork_info, images = result
+        # 2. Save to database
+        self.pixivrepo.save_art_one(artwork_info)
+
     def audit_start(self, audit_type: AuditType) -> int:
         # 1. Get from database
         data = self.pixivrepo.get_art_for_audit(audit_type)

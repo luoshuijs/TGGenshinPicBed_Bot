@@ -10,9 +10,21 @@ class ArtworkStatusUpdate:
 
     def __init__(self, audit_info: AuditInfo, status: AuditStatus, type: AuditType = None, reason: str = None):
         self.audit_info = audit_info
-        self.new_status = status.value if isinstance(status, AuditStatus) else status
-        self.new_type = type.value if isinstance(type, AuditType) else type
+        self.new_status = AuditStatus(status).value
+        self.new_type = AuditType(type).value if type is not None else None
         self.new_reason = reason
+
+    def can_update(self):
+        if self.audit_info is None:
+            return False
+        a = self.audit_info
+        audit_status = a.audit_status.value if a.audit_status is not None else None
+        audit_type = a.audit_type.value if a.audit_type is not None else None
+        audit_reason = a.audit_reason
+        return (self.new_status != audit_status
+            or self.new_type != audit_type
+            or self.new_reason != audit_reason
+        )
 
 
 class Auditor:

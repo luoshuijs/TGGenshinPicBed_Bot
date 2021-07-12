@@ -6,7 +6,7 @@
 from mysql import connector
 from mysql.connector.pooling import MySQLConnectionPool
 
-from src.model.artwork import AuditType, AuditStatus, DataAggregator
+from src.model.artwork import AuditType, AuditStatus, DataAggregator, ArtworkInfo
 from src.production.auditor import ArtworkStatusUpdate
 
 
@@ -46,7 +46,7 @@ class PixivRepository:
                    gp.like_count, gp.love_count, gp.user_id, gp.upload_timestamp,
                    ad.id, ad.gp_id, ad.gp_illusts_id, ad.type, ad.status, ad.reason
             FROM `{self.pixiv_table}` AS gp
-            INNER JOIN `{self.audit_table}` AS ad
+            LEFT OUTER JOIN `{self.audit_table}` AS ad
                 ON gp.id=ad.gp_id AND gp.illusts_id=ad.gp_illusts_id
             WHERE gp.illusts_id=%s;
         """
@@ -55,7 +55,18 @@ class PixivRepository:
         return DataAggregator.from_sql_data(data)
 
     def get_art_for_audit(self, audit_type: AuditType):
-        condition = "ad.gp_id IS NULL" if audit_type == AuditType.SFW else "TRUE"
+        condition = "(ad.type=%s AND ad.status=%s)"
+        if AuditType(audit_type) != AuditType.R18:
+            condition = f"""
+                (gp.tags NOT LIKE '%R-18%') AND 
+                (ad.gp_id IS NULL OR (ad.type=%s AND ad.status=%s))
+            """
+        else:
+            # R18
+            condition = f"""
+                (gp.titiel LIKE '%R-18') OR
+                (ad.gp_id IS NULL OR (ad.type=%s AND ad.status=%s))
+            """
         query = rf"""
             SELECT gp.id, gp.illusts_id, gp.title, gp.tags, gp.view_count, 
                    gp.like_count, gp.love_count, gp.user_id, gp.upload_timestamp,
@@ -63,7 +74,7 @@ class PixivRepository:
             FROM `{self.pixiv_table}` AS gp
             LEFT OUTER JOIN `{self.audit_table}` AS ad
                 ON gp.id=ad.gp_id AND gp.illusts_id=ad.gp_illusts_id
-            WHERE {condition} OR (ad.type=%s AND ad.status=%s);
+            WHERE {condition};
         """
         query_args = (audit_type.value, AuditStatus.INIT.value,)
         data = self._execute_and_fetchall(query, query_args)
@@ -100,3 +111,28 @@ class PixivRepository:
         query_args = (audit_info.gp_id, audit_info.gp_art_id, update.new_type, update.new_status, update.new_reason)
         return self._execute_and_fetchall(query, query_args)
 
+    def save_art_one(self, artwork_info: ArtworkInfo):
+        query = rf"""
+            INSERT INTO `{self.pixiv_table}` (
+                illusts_id, title, tags, view_count, like_count, love_count, user_id, upload_timestamp
+            ) VALUES (
+            ) ON DUPLICATE KEY UPDATE
+                title=VALUES(title),
+                tags=VALUES(tags),
+                view_count=VALUES(view_count),
+                like_count=VALUES(like_count),
+                love_count=VALUES(love_count),
+                user_id=VALUES(user_id),
+                upload_timestamp=VALUES(upload_timestamp);
+        """
+        query_args = (
+            artwork_info.art_id,
+            artwork_info.title,
+            artwork_info.tags,
+            artwork_info.view_count,
+            artwork_info.like_count,
+            artwork_info.love_count,
+            artwork_info.user_id,
+            artwork_info.upload_timestamp,
+        )
+        return self._execute_and_fetchall(query, query_args)

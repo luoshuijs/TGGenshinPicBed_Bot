@@ -44,6 +44,7 @@ def main() -> None:
         redis_config={
             "host": config.REDIS["host"],
             "port": config.REDIS["port"],
+            "db": config.REDIS["database"],
         },
         px_config={
             "cookie": config.PIXIV["cookie"],

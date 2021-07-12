@@ -3,7 +3,7 @@
 # Maintains an out of process shared dependency
 
 
-import json
+import ujson
 import redis
 from enum import Enum
 from typing import Iterable
@@ -32,7 +32,7 @@ class QueueName:
         # e.g. "genshin_pixiv:SFW:audit_queue"
         #      "genshin_pixiv:SFW:pending_queue"
         if audit_type == QueueType.DIFF:
-            return f"{self.key_prefix}:{queue_type.value}"
+            return f"{self._key_prefix}:{queue_type.value}"
         return f"{self._key_prefix}:{audit_type.value}:{queue_type.value}"
 
 
@@ -48,7 +48,7 @@ class PixivCache:
     def _artwork_to_dict(self, artwork_audit_list: Iterable[ArtworkInfo]):
         arts_dict = dict()
         for artwork in artwork_audit_list:
-            key = json.dumps([artwork.id, artwork.art_id])
+            key = ujson.dumps([artwork.id, artwork.art_id])
             arts_dict[key] = artwork.to_json()
         return arts_dict
 
@@ -159,7 +159,7 @@ class PixivCache:
         key = self._image_key_name_by_art(art_id)
         if any([art.art_id != art_id for art in artwork_images]):
             raise TypeError(f"expected art id {art_id}, but some are incorrect: {artwork_images}")
-        data = json.dumps([art.to_dict() for art in artwork_images])
+        data = ujson.dumps([art.to_dict() for art in artwork_images])
         return self.rdb.setex(key, self.ttl, data)
 
     def _image_key_name_by_art(self, art_id: int):

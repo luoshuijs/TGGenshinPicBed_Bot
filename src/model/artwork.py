@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Iterable
 import base64
-import json
+import ujson
 
 
 class AuditType(Enum):
@@ -60,7 +60,7 @@ class ArtworkInfo:
 
     @classmethod
     def create_from_json(cls, data):
-        data_dict = json.loads(data)
+        data_dict = ujson.loads(data)
         audit_info = None
         if data_dict["audit_info"]:
             audit_info = AuditInfo(
@@ -85,7 +85,7 @@ class ArtworkInfo:
         )
 
     def to_json(self):
-        return json.dumps(self._to_dict())
+        return ujson.dumps(self._to_dict())
 
     def _to_dict(self):
         audit_info = None
@@ -126,7 +126,7 @@ class AuditInfo:
         pass
 
     def to_json(self):
-        return json.dumps(self._to_dict())
+        return ujson.dumps(self._to_dict())
 
     def _to_dict(self):
         return {
@@ -173,7 +173,7 @@ class ArtworkImage:
     def create_from_json(Cls, data):
         if data is None:
             return None
-        data_dict = json.loads(data)
+        data_dict = ujson.loads(data)
         return Cls(
             data_dict["art_id"],
             uri=data_dict["uri"],
@@ -186,7 +186,7 @@ class ArtworkImageFactory:
     def create_from_json(data) -> Iterable[ArtworkImage]:
         if data is None:
             return []
-        data_dict_list = json.loads(data)
+        data_dict_list = ujson.loads(data)
         return tuple(ArtworkImage(
             data_dict["art_id"],
             uri=data_dict["uri"],

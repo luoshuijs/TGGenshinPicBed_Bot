@@ -2,7 +2,24 @@ import requests
 from typing import Iterable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from src.model.artwork import ArtworkImage
+from src.model.artwork import ArtworkImage, ArtworkInfo
+
+
+def CreateArtworkInfoFromAPIResponse(data):
+    details = data["body"].get("illusts_details", None)
+    if details is None:
+        return None
+    tags = "#" + "#".join(details["tags"]) if details["tags"] and len(details["tags"]) > 0 else ""
+    return ArtworkInfo(
+        art_id = details["id"],
+        title = details["title"],
+        tags = tags,
+        view_count = details["rating_view"],
+        like_count = details["rating_count"],
+        love_count = details["bookmark_user_total"],
+        user_id = details["user_id"],
+        upload_timestamp = details["upload_timestamp"],
+    )
 
 
 class PixivDownloader:
@@ -13,6 +30,9 @@ class PixivDownloader:
     def _get_details_uri(self, art_id: int):
         return f"https://www.pixiv.net/ajax/illust/{art_id}/pages"
 
+    def _get_info_uri(self, art_id: int):
+        return f"https://www.pixiv.net/touch/ajax/illust/details?illust_id={art_id}"
+
     def _get_headers(self, art_id: str = ""):
         return {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -20,6 +40,12 @@ class PixivDownloader:
             "Referer":    f"https://www.pixiv.net/artworks/{art_id}",
             "Cookie":     self.cookie,
         }
+
+    def get_artwork_info(self, art_id: int) -> ArtworkInfo:
+        uri = self._get_info_uri(art_id)
+        headers = self._get_headers(art_id)
+        data = requests.get(uri, headers=headers, timeout=5).json()
+        return CreateArtworkInfoFromAPIResponse(data)
 
     def download_images(self, art_id: int) -> Iterable[ArtworkImage]:
         uri_list = self.get_artwork_uris(art_id)
