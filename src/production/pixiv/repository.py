@@ -116,6 +116,7 @@ class PixivRepository:
             INSERT INTO `{self.pixiv_table}` (
                 illusts_id, title, tags, view_count, like_count, love_count, user_id, upload_timestamp
             ) VALUES (
+                %s, %s, %s, %s, %s, %s, %s, %s
             ) ON DUPLICATE KEY UPDATE
                 title=VALUES(title),
                 tags=VALUES(tags),
