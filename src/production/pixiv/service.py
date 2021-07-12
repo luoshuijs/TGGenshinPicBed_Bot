@@ -7,7 +7,7 @@ from src.production.pixiv.repository import PixivRepository
 from src.production.pixiv.downloader import PixivDownloader, ArtworkImage
 from src.production.pixiv.cache import PixivCache
 from src.production.redisaction import RedisUpdate
-from src.production.auditor import Auditor
+from src.production import auditor
 
 
 class PixivService:
@@ -81,7 +81,7 @@ class PixivService:
             raise ValueError(f"art not found: art id {art_id} when approving artwork")
         # 3. Audit
         art = artwork_audit_list[0]
-        update = Auditor.audit(art.audit_info, AuditStatus.PASS, new_type=audit_type)
+        update = auditor.approve(art.audit_info)
         # 4. Save to database
         self.pixivrepo.apply_update(update)
 
@@ -96,7 +96,7 @@ class PixivService:
             raise ValueError(f"art not found: art id {art_id} when rejecting artwork")
         # 3. Audit
         art = artwork_audit_list[0]
-        update = Auditor.audit(art.audit_info, AuditStatus.REJECT, new_type=audit_type, new_reason=reason)
+        update = auditor.reject(art.audit_info, reason=reason)
         # 4. Save to database
         self.pixivrepo.apply_update(update)
 
@@ -133,5 +133,5 @@ class PixivService:
     @contextmanager
     def push_manager(self, artwork_info):
         yield
-        update = Auditor.audit(artwork_info.audit_info, new_status=AuditStatus.PUSH)
+        update = auditor.push(artwork_info.audit_info)
         self.pixivrepo.apply_update(update)

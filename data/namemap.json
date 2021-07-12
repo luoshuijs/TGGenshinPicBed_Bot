@@ -14,7 +14,7 @@
             "神里绫华"
         ],
         "regex": [
-            "神里綾華",
+            "神里(?:綾華)?",
             "Kamisato.?Ayaka",
             "Ayaka.?Kamisato"
         ]
@@ -134,16 +134,6 @@
             "ガイア"
         ]
     },
-    "Kamiko": {
-        "name": [
-            "Kamiko",
-            "八重神子"
-        ],
-        "regex": [
-            "Yae.?Kamiko",
-            "Kamiko.?Kamiko"
-        ]
-    },
     "Kazuha": {
         "name": [
             "Kazuha",
@@ -188,6 +178,16 @@
         ],
         "regex": [
             "モナ"
+        ]
+    },
+    "Miko": {
+        "name": [
+            "Miko",
+            "八重神子"
+        ],
+        "regex": [
+            "Yae.?Miko",
+            "Miko.?Yae"
         ]
     },
     "Ningguang": {

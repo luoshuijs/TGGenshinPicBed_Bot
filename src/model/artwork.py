@@ -107,7 +107,7 @@ class ArtworkInfo:
 
 class AuditInfo:
 
-    def __init__(self, id, gp_id, gp_art_id, audit_type=AuditType.SFW, audit_status=AuditStatus.INIT, audit_reason=""):
+    def __init__(self, id, gp_id, gp_art_id, audit_type=AuditType.SFW, audit_status=AuditStatus.INIT, audit_reason=None):
         self.id = id
         self.gp_id = gp_id
         self.gp_art_id = gp_art_id

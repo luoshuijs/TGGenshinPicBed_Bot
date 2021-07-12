@@ -9,10 +9,10 @@ from src.production.namemap import NameMap, tag_split
 
 class TestTag(unittest.TestCase):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.name_map_file = pathlib.Path(__file__).parent.joinpath("../data/namemap.json").resolve()
-        self.name_map = NameMap(self.name_map_file)
+    @classmethod
+    def setUpClass(cls):
+        name_map_file = pathlib.Path(__file__).parent.joinpath("../../data/namemap.json").resolve()
+        cls.name_map = NameMap(name_map_file)
 
     def test_tag_split(self):
         tag_str = "#GenshinImpact#HuTao#Genshin Impact#Hu Tao#Hu Tao (Genshin Impact)"
@@ -24,6 +24,16 @@ class TestTag(unittest.TestCase):
         tag_str = "#GenshinImpact#HuTao#Genshin Impact#Hu Tao#Hu Tao (Genshin Impact)"
         characters = {"Hutao"}
         names = {("Hutao", "胡桃")}
+        result = self.name_map.identify_characters(tag_str)
+        self.assertEqual(result, characters, msg="%s" % result)
+        result = {self.name_map.get_character_names(character) for character in characters}
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result, names)
+
+    def test_namemap_ayaka(self):
+        tag_str = "#神里#GenshinImpact#原神"
+        characters = {"Ayaka"}
+        names = {("Ayaka", "神里绫华")}
         result = self.name_map.identify_characters(tag_str)
         self.assertEqual(result, characters, msg="%s" % result)
         result = {self.name_map.get_character_names(character) for character in characters}
