@@ -32,7 +32,7 @@ class QueueName:
         # e.g. "genshin_pixiv:SFW:audit_queue"
         #      "genshin_pixiv:SFW:pending_queue"
         if audit_type == QueueType.DIFF:
-            return f"{_self.key_prefix}:{queue_type.value}"
+            return f"{self.key_prefix}:{queue_type.value}"
         return f"{self._key_prefix}:{audit_type.value}:{queue_type.value}"
 
 
