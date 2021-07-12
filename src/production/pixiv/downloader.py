@@ -6,19 +6,19 @@ from src.model.artwork import ArtworkImage, ArtworkInfo
 
 
 def CreateArtworkInfoFromAPIResponse(data):
-    details = data["body"].get("illusts_details", None)
+    details = data["body"].get("illust_details", None)
     if details is None:
         return None
     tags = "#" + "#".join(details["tags"]) if details["tags"] and len(details["tags"]) > 0 else ""
     return ArtworkInfo(
-        art_id = details["id"],
-        title = details["title"],
-        tags = tags,
-        view_count = details["rating_view"],
-        like_count = details["rating_count"],
-        love_count = details["bookmark_user_total"],
-        user_id = details["user_id"],
-        upload_timestamp = details["upload_timestamp"],
+        art_id=details["id"],
+        title=details["title"],
+        tags=tags,
+        view_count=details["rating_view"],
+        like_count=details["rating_count"],
+        love_count=details["bookmark_user_total"],
+        author_id=int(details["user_id"]),
+        upload_timestamp=details["upload_timestamp"]
     )
 
 
@@ -37,8 +37,8 @@ class PixivDownloader:
         return {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
                           "Chrome/90.0.4430.72 Safari/537.36",
-            "Referer":    f"https://www.pixiv.net/artworks/{art_id}",
-            "Cookie":     self.cookie,
+            "Referer": f"https://www.pixiv.net/artworks/{art_id}",
+            "Cookie": self.cookie,
         }
 
     def get_artwork_info(self, art_id: int) -> ArtworkInfo:

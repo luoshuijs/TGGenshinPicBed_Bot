@@ -1,17 +1,20 @@
-from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
+from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, InputMediaPhoto, ParseMode
+from telegram.error import BadRequest
 from telegram.ext import CallbackContext, ConversationHandler
 
 from src.base.logger import Log
-from src.base.utils import Utils
 from src.base.config import config
-from src.production.pixiv.service import PixivService
+from src.production.markdown import markdown_escape
+from src.production.pixiv.downloader import PixivDownloader
+from src.production.contribute import Contribute
 
 
 class ContributeHandler:
     ONE, TWO, THREE, FOUR = range(4)
 
     def __init__(self):
-        self.utils = Utils(config)
+        self.downloader = PixivDownloader(cookie=config.PIXIV["cookie"])
+        self.contribute = Contribute()
 
     def contribute_command(self, update: Update, _: CallbackContext) -> int:
         user = update.effective_user
@@ -28,15 +31,53 @@ class ContributeHandler:
             update.message.reply_text(text="退出投稿")
             return ConversationHandler.END
         # 获取作品信息并发送
-        Rsq = GetIllustsInfo(update.message.text)
+        Rsq = self.contribute.GetIllustsID(update.message.text)
         if not Rsq.status:
-            message = "获取作品信息失败，请检查是否有误"
+            message = "获取作品信息失败，请检连接或者ID是否有误"
             update.message.reply_text(message, reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
+        art_id = Rsq.data
         context.user_data["contribute"] = Rsq.data
         Log.info("用户 %s 请求作品 %s" % (update.effective_user.username, Rsq.data))
-        message = "你投稿的作品是 %s" % Rsq.data
-        update.message.reply_text(message, reply_markup=ReplyKeyboardRemove()) # 跟examine一样批量发送图片
+        artwork_info = self.downloader.get_artwork_info(art_id)
+        if artwork_info is None:
+            update.message.reply_text("图片信息获取错误，找开发者背锅吧~")
+            return ConversationHandler.END
+        images = self.downloader.download_images(art_id)
+        url = "https://www.pixiv.net/artworks/%s" % art_id
+        caption = "Title %s   \n" \
+                  "Views %s Likes %s Loves %s   \n" \
+                  "Tags %s   \n" \
+                  "From [Pixiv](%s)" % (
+                      markdown_escape(artwork_info.title),
+                      artwork_info.view_count,
+                      artwork_info.like_count,
+                      artwork_info.love_count,
+                      markdown_escape(artwork_info.tags),
+                      url
+                  )
+        try:
+            if len(images) > 1:
+                media = [InputMediaPhoto(media=img_info.data) for img_info in images]
+                media = media[:10]
+                media[0] = InputMediaPhoto(media=images[0].data, caption=caption,
+                                           parse_mode=ParseMode.MARKDOWN_V2)
+                update.message.reply_media_group(media, timeout=30)
+            elif len(images) == 1:
+                photo = images[0].data
+                update.message.reply_photo(photo=photo,
+                                           caption=caption,
+                                           timeout=30,
+                                           parse_mode=ParseMode.MARKDOWN_V2)
+            else:
+                Log.error("图片%s获取失败" % art_id)
+                update.message.reply_text("图片获取错误，找开发者背锅吧~")  # excuse?
+                return ConversationHandler.END
+        except BadRequest as TError:
+            update.message.reply_text("图片获取错误，找开发者背锅吧~")
+            Log.error("encounter error with image caption\n%s" % caption)
+            Log.error(TError)
+            return ConversationHandler.END
         reply_keyboard = [['确认', '取消']]
         message = "请确认作品的信息"
         update.message.reply_text(message, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))

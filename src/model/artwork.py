@@ -33,7 +33,7 @@ class DataAggregator:
 
 class ArtworkInfo:
 
-    def __init__(self, id, art_id, title="", tags="", view_count=0, like_count=0, love_count=0, author_id=0, upload_timestamp=0, audit_info=None):
+    def __init__(self, id=0, art_id=0, title="", tags="", view_count=0, like_count=0, love_count=0, author_id=0, upload_timestamp=0, audit_info=None):
         self.id = id
         self.art_id = art_id
         self.title = title

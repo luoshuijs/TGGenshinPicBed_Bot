@@ -12,8 +12,8 @@ from src.model.artwork import AuditType
 
 import time
 
-class PushHandler:
 
+class PushHandler:
     ONE, TWO, THREE = range(3)
 
     def __init__(self, pixiv: PixivService = None):
@@ -38,7 +38,6 @@ class PushHandler:
         update.message.reply_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
         return self.ONE
 
-
     def setup_handler(self, update: Update, context: CallbackContext) -> int:
         query = update.callback_query
         query.answer()
@@ -60,7 +59,6 @@ class PushHandler:
         context.chat_data["audit_type"] = query.data
         query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
         return self.TWO
-
 
     def start_handler(self, update: Update, context: CallbackContext) -> int:
         query = update.callback_query
@@ -110,7 +108,7 @@ class PushHandler:
                     Log.error(TError)
                     update.message.reply_text("图片发送出错")
                     return ConversationHandler.END
-                if audit_type == "NSFW" and not sendReq is None:
+                if audit_type.name == "NSFW" and not sendReq is None:
                     channel_name = config.TELEGRAM["channel"]["NSFW"]["name"]
                     channel_id = config.TELEGRAM["channel"]["SFW"]["char_id"]
                     if isinstance(sendReq, list):
@@ -135,7 +133,6 @@ class PushHandler:
         ]
         query.edit_message_text(text=message, reply_markup=InlineKeyboardMarkup(keyboard))
         return self.THREE
-
 
     def end_handler(self, update: Update, _: CallbackContext) -> int:
         query = update.callback_query

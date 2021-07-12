@@ -1,6 +1,7 @@
 import re
 from src.base.logger import Log
 
+
 class Rsp:
     def __init__(self):
         self.data = None
@@ -9,10 +10,8 @@ class Rsp:
 
 
 class Contribute:
-    def __init__(self, *args,):
-        Log.info("")
 
-    def GetIllustsInfo(self, data: str = "") -> Rsp:
+    def GetIllustsID(self, data: str = "") -> Rsp:
         rsp = Rsp()
         try:
             url = data
@@ -35,4 +34,3 @@ class Contribute:
             rsp.status = False
             rsp.message = "获取失败"
         return rsp
-
