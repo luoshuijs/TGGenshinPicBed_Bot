@@ -29,6 +29,10 @@ class Contribute:
             elif data.isdecimal():
                 rsp.data = data
                 return rsp
+            else:
+                rsp.status = False
+                rsp.message = "获取失败"
+                return rsp
         except BaseException as err:
             Log.error(err)
             rsp.status = False
