@@ -20,8 +20,9 @@ class NameMap:
             regex_str = "|".join([*value["name"], *value["regex"]])
             regex_str = f"(?P<{key}>{regex_str})"
             regex_str_list.append(regex_str)
-        self.regex_str = ".*|.*".join(regex_str_list)
-        self.regex_str = f".*{self.regex_str}.*"
+        self.regex_str = "|".join(regex_str_list)
+        self.regex_str = f".*(?:{self.regex_str}).*"
+        # ".*(?:(?P<Ayaka>Ayaka|神里绫华|Kamisato.*Ayaka)|(?P<Beidou>Beidou|北斗)).*"
         self.tag_regex = re.compile(self.regex_str, re.I)
 
     def filter_character_tags(self, tag_str: str) -> str:

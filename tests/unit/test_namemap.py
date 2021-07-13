@@ -15,32 +15,40 @@ class TestTag(unittest.TestCase):
         cls.name_map = NameMap(name_map_file)
 
     def test_tag_split(self):
-        tag_str = "#GenshinImpact#HuTao#Genshin Impact#Hu Tao#Hu Tao (Genshin Impact)"
+        # 1. Setup
+        sut = "#GenshinImpact#HuTao#Genshin Impact#Hu Tao#Hu Tao (Genshin Impact)"
         tags = ("GenshinImpact", "HuTao", "Genshin Impact", "Hu Tao", "Hu Tao (Genshin Impact)")
-        result = tag_split(tag_str)
+        # 2. Execute
+        result = tag_split(sut)
+        # 2. Compare
         self.assertEqual(result, tags)
 
-    def test_namemap(self):
+    def test_namemap_hutao(self):
+        # 1. Setup
         tag_str = "#GenshinImpact#HuTao#Genshin Impact#Hu Tao#Hu Tao (Genshin Impact)"
         characters = {"Hutao"}
         names = {("Hutao", "胡桃")}
-        result = self.name_map.identify_characters(tag_str)
-        self.assertEqual(result, characters, msg="%s" % result)
-        result = {self.name_map.get_character_names(character) for character in characters}
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result, names)
+        # 2. Execute
+        char_result = self.name_map.identify_characters(tag_str)
+        name_result = {self.name_map.get_character_names(character) for character in characters}
+        # 3. Compare
+        self.assertEqual(char_result, characters, msg="%s" % char_result)
+        self.assertEqual(name_result, names)
 
     def test_namemap_ayaka(self):
+        # 1. Setup
         tag_str = "#神里#GenshinImpact#原神"
         characters = {"Ayaka"}
         names = {("Ayaka", "神里绫华")}
-        result = self.name_map.identify_characters(tag_str)
-        self.assertEqual(result, characters, msg="%s" % result)
-        result = {self.name_map.get_character_names(character) for character in characters}
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result, names)
+        # 2. Execute
+        char_result = self.name_map.identify_characters(tag_str)
+        name_result = {self.name_map.get_character_names(character) for character in characters}
+        # 3. Compare
+        self.assertEqual(char_result, characters, msg="%s" % char_result)
+        self.assertEqual(name_result, names)
 
     def test_namemap_empty(self):
+        # 1. Setup
         tag_str = "#" + "#".join([
             "宝多六花",
             "SSS.GRIDMAN",
@@ -54,27 +62,32 @@ class TestTag(unittest.TestCase):
             "SSSS.GRIDMAN50000users入り"
         ])
         characters = set()
-        result = self.name_map.identify_characters(tag_str)
-        self.assertEqual(result, characters, msg="%s" % result)
-        result = {self.name_map.get_character_names(character) for character in characters}
-        self.assertEqual(len(result), 0)
+        names = set()
+        # 2. Execute
+        char_result = self.name_map.identify_characters(tag_str)
+        name_result = {self.name_map.get_character_names(character) for character in characters}
+        # 3. Compare
+        self.assertEqual(char_result, characters, msg="%s" % char_result)
+        self.assertEqual(name_result, names)
 
-    def test_namemap_complex_tag(self):
-        tag_str = "#原神#水着#おっぱい#荧#琴#可莉#女の子"
+    def test_namemap_white_space_tag(self):
+        # 1. Setup
+        tag_str = "#原神 #水着 #おっぱい #荧 #琴 #可莉 #女の子"
         characters = {"Lumine", "Jean", "Klee"}
         names = {("Lumine", "荧"), ("Jean", "琴"), ("Klee", "可莉")}
-        result = self.name_map.identify_characters(tag_str)
-        self.assertEqual(result, characters, msg="%s" % result)
-        result = {self.name_map.get_character_names(character) for character in characters}
-        self.assertEqual(result, names)
+        # 2. Execute
+        char_result = self.name_map.identify_characters(tag_str)
+        name_result = {self.name_map.get_character_names(character) for character in characters}
+        # 3. Compare
+        self.assertEqual(char_result, characters, msg="%s" % char_result)
+        self.assertEqual(name_result, names)
 
     def test_namemap_multi_names(self):
+        # 1. Setup
         tag_str = "#GenshinImpact#HuTao#Genshin Impact#Hu Tao#Hu Tao (Genshin Impact)"
+        # 2. Execute
         result = self.name_map.identify_characters(tag_str)
         result = self.name_map.get_multi_character_names(result)
+        # 3. Compare
         character_names = {("Hutao", "胡桃")}
         self.assertEqual(result, character_names)
-
-
-if __name__ == "__main__":
-    unittest.main()

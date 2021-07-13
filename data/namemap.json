@@ -140,6 +140,7 @@
             "枫原万叶"
         ],
         "regex": [
+            "万叶",
             "楓原万葉",
             "Kaedehara.?Kazuha",
             "Kazuha.?Kaedehara"
@@ -186,6 +187,7 @@
             "八重神子"
         ],
         "regex": [
+            "神子",
             "Yae.?Miko",
             "Miko.?Yae"
         ]

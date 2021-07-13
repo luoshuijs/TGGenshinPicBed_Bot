@@ -101,7 +101,3 @@ class TestAuditor(unittest.TestCase):
             sut = approve(None)
         with self.assertRaises(Exception):
             sut = approve(None)
-
-
-if __name__ == "__main__":
-    unittest.main()

@@ -27,7 +27,7 @@ class PixivDownloader:
     def __init__(self, cookie: str = ""):
         self.cookie = cookie
 
-    def _get_details_uri(self, art_id: int):
+    def _get_images_uri(self, art_id: int):
         return f"https://www.pixiv.net/ajax/illust/{art_id}/pages"
 
     def _get_info_uri(self, art_id: int):
@@ -64,7 +64,7 @@ class PixivDownloader:
         return res.content
 
     def get_artwork_uris(self, art_id: int) -> Iterable[str]:
-        uri = self._get_details_uri(art_id)
+        uri = self._get_images_uri(art_id)
         headers = self._get_headers(art_id)
         res = requests.get(uri, headers=headers)
         data = res.json()
