@@ -30,7 +30,6 @@ class DataAggregator:
         )
 
 
-
 class ArtworkInfo:
 
     def __init__(self, id=0, art_id=0, title="", tags="", view_count=0, like_count=0, love_count=0, author_id=0, upload_timestamp=0, audit_info=None):
@@ -111,14 +110,20 @@ class AuditInfo:
         self.id = id
         self.gp_id = gp_id
         self.gp_art_id = gp_art_id
-        self.audit_type = audit_type
-        self.audit_status = audit_status
+        self.audit_type = AuditType(audit_type) if audit_type is not None else None
+        self.audit_status = AuditStatus(audit_status) if audit_status is not None else None
         self.audit_reason = audit_reason
 
     @classmethod
     def create_from_sql(cls, result_list):
         id, gp_id, gp_art_id, audit_type, audit_status, audit_reason = result_list
         return cls(id, gp_id, gp_art_id, audit_type=audit_type,
+                   audit_status=audit_status, audit_reason=audit_reason)
+
+    @classmethod
+    def create_from_sql_no_id(cls, result_list):
+        audit_type, audit_status, audit_reason = result_list
+        return cls(0, 0, 0, audit_type=audit_type,
                    audit_status=audit_status, audit_reason=audit_reason)
 
     @classmethod
@@ -133,9 +138,9 @@ class AuditInfo:
             "id":           self.id,
             "gp_id":        self.gp_id,
             "gp_art_id":    self.gp_art_id,
-            "audit_type":   self.audit_type,
+            "audit_type":   AuditType(self.audit_type).value if self.audit_type is not None else None,
+            "audit_status": AuditStatus(self.audit_status).value if self.audit_status is not None else None,
             "audit_reason": self.audit_reason,
-            "audit_status": self.audit_status,
         }
 
 
@@ -146,6 +151,15 @@ class ArtworkFactory:
         result = []
         for data in aggregated_data_list:
             audit_info = AuditInfo.create_from_sql(data.audit_data)
+            artwork_info = ArtworkInfo.create_from_sql(data.artwork_data, audit_info=audit_info)
+            result.append(artwork_info)
+        return result
+
+    @staticmethod
+    def create_from_sql_no_id(aggregated_data_list: Iterable[DataAggregator]) -> Iterable[ArtworkInfo]:
+        result = []
+        for data in aggregated_data_list:
+            audit_info = AuditInfo.create_from_sql_no_id(data.audit_data)
             artwork_info = ArtworkInfo.create_from_sql(data.artwork_data, audit_info=audit_info)
             result.append(artwork_info)
         return result

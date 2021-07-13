@@ -3,6 +3,7 @@
 # Maintains an out of process shared dependency
 
 
+from typing import Iterable, Any, Callable
 from mysql import connector
 from mysql.connector.pooling import MySQLConnectionPool
 
@@ -10,11 +11,13 @@ from src.model.artwork import AuditType, AuditStatus, DataAggregator, ArtworkInf
 from src.production.auditor import ArtworkStatusUpdate
 
 
+
 class PixivRepository:
 
     def __init__(self, host="127.0.0.1", port=3306, user="", password="", database=""):
         self.pixiv_table = "genshin_pixiv"
         self.audit_table = "examine"
+        self.pixiv_audit_table = "genshin_pixiv_audit"
         self.sql_pool = MySQLConnectionPool(pool_name="",
                                             pool_size=10,
                                             pool_reset_session=False,
@@ -40,58 +43,72 @@ class PixivRepository:
             conn.commit()
             return result
 
-    def get_art_by_artid(self, art_id: int):
+    def get_art_by_artid(self, art_id: int, result_transformer: Callable[[list], list] = None):
         query = f"""
-            SELECT gp.id, gp.illusts_id, gp.title, gp.tags, gp.view_count, 
-                   gp.like_count, gp.love_count, gp.user_id, gp.upload_timestamp,
-                   ad.id, ad.gp_id, ad.gp_illusts_id, ad.type, ad.status, ad.reason
-            FROM `{self.pixiv_table}` AS gp
-            LEFT OUTER JOIN `{self.audit_table}` AS ad
-                ON gp.id=ad.gp_id AND gp.illusts_id=ad.gp_illusts_id
-            WHERE gp.illusts_id=%s;
+            SELECT id, illusts_id, title, tags, view_count,
+                   like_count, love_count, user_id, upload_timestamp,
+                   type, status, reason
+            FROM `{self.pixiv_audit_table}`
+            WHERE illusts_id=%s;
         """
         query_args = (art_id,)
         data = self._execute_and_fetchall(query, query_args)
+        if result_transformer:
+            data = result_transformer(data)
         return DataAggregator.from_sql_data(data)
 
-    def get_art_for_audit(self, audit_type: AuditType):
-        condition = "(ad.type=%s AND ad.status=%s)"
-        if AuditType(audit_type) != AuditType.R18:
+    def get_art_for_audit(self, audit_type: AuditType, result_transformer: Callable[[list], list] = None):
+        condition = "(type=%s AND status=%s)"
+        fields = f"""
+            id, illusts_id, title, tags, view_count,
+            like_count, love_count, user_id, upload_timestamp,
+            type, status, reason
+        """
+        if AuditType(audit_type) == AuditType.SFW:
             condition = f"""
-                (gp.tags NOT LIKE '%R-18%') AND 
-                (ad.gp_id IS NULL OR (ad.type=%s AND ad.status=%s))
+                (tags NOT LIKE '%R-18%') AND (
+                (type IS NULL AND status IS NULL) OR
+                (type=%s AND status=%s))
+            """
+        elif AuditType(audit_type) == AuditType.NSFW:
+            condition = f"""
+                (tags NOT LIKE '%R-18%') AND
+                (type=%s AND status=%s)
             """
         else:
             # R18
             condition = f"""
-                (gp.tags LIKE '%R-18') OR
-                (ad.gp_id IS NULL OR (ad.type=%s AND ad.status=%s))
+                (tags LIKE '%R-18%' OR type=%s) AND
+                (status IS NULL OR status=%s)
+            """
+            fields = f"""
+                id, illusts_id, title, tags, view_count,
+                like_count, love_count, user_id, upload_timestamp,
+                'R18' AS type, status, reason
             """
         query = rf"""
-            SELECT gp.id, gp.illusts_id, gp.title, gp.tags, gp.view_count, 
-                   gp.like_count, gp.love_count, gp.user_id, gp.upload_timestamp,
-                   ad.id, ad.gp_id, ad.gp_illusts_id, ad.type, ad.status, ad.reason
-            FROM `{self.pixiv_table}` AS gp
-            LEFT OUTER JOIN `{self.audit_table}` AS ad
-                ON gp.id=ad.gp_id AND gp.illusts_id=ad.gp_illusts_id
+            SELECT {fields}
+            FROM `{self.pixiv_audit_table}`
             WHERE {condition};
         """
         query_args = (audit_type.value, AuditStatus.INIT.value,)
         data = self._execute_and_fetchall(query, query_args)
+        if result_transformer:
+            data = result_transformer(data)
         return DataAggregator.from_sql_data(data)
 
-    def get_art_for_push(self, audit_type: AuditType):
+    def get_art_for_push(self, audit_type: AuditType, result_transformer: Callable[[list], list] = None):
         query = rf"""
-            SELECT gp.id, gp.illusts_id, gp.title, gp.tags, gp.view_count, 
-                   gp.like_count, gp.love_count, gp.user_id, gp.upload_timestamp,
-                   ad.id, ad.gp_id, ad.gp_illusts_id, ad.type, ad.status, ad.reason
-            FROM `{self.pixiv_table}` AS gp
-            INNER JOIN `{self.audit_table}` AS ad
-                ON gp.id=ad.gp_id AND gp.illusts_id=ad.gp_illusts_id
-            WHERE ad.type=%s AND ad.status=%s;
+            SELECT id, illusts_id, title, tags, view_count,
+                   like_count, love_count, user_id, upload_timestamp,
+                   type, status, reason
+            FROM `{self.pixiv_audit_table}`
+            WHERE type=%s AND status=%s;
         """
         query_args = (audit_type.value, AuditStatus.PASS.value,)
         data = self._execute_and_fetchall(query, query_args)
+        if result_transformer:
+            data = result_transformer(data)
         return DataAggregator.from_sql_data(data)
 
     def apply_update(self, update: ArtworkStatusUpdate):
@@ -137,3 +154,45 @@ class PixivRepository:
             artwork_info.upload_timestamp,
         )
         return self._execute_and_fetchall(query, query_args)
+
+
+
+
+class Transformer:
+    @staticmethod
+    def combine(*fn):
+        def act(data: Iterable[Iterable[Any]]) -> Iterable[Iterable[Any]]:
+            for f in fn:
+                data = f(data)
+            return data
+        return act
+
+    @staticmethod
+    def audit_type(audit_type: AuditType, override_if_exists=False):
+        audit_type = AuditType(audit_type)
+        def map_audit_type(info: Iterable[Any]) -> Iterable[Any]:
+            new_type = info[9]
+            if not override_if_exists:
+                new_type = audit_type if new_type is None else new_type
+            else:
+                new_type = audit_type
+            new_info = [*info]
+            new_info[9] = new_type
+            return new_info
+        def transform_audit_type(data: Iterable[Iterable[Any]]) -> Iterable[Iterable[Any]]:
+            return tuple(map_audit_type(info) for info in data)
+        return transform_audit_type
+
+    @staticmethod
+    def r18_type():
+        def map_audit_type(info: Iterable[Any]) -> Iterable[Any]:
+            tags = info[3]
+            new_type = info[9]
+            if "R-18" in tags:
+                new_type = AuditType.R18
+            new_info = [*info]
+            new_info[9] = new_type
+            return new_info
+        def transform_audit_type(data: Iterable[Iterable[Any]]) -> Iterable[Iterable[Any]]:
+            return tuple(map_audit_type(info) for info in data)
+        return transform_audit_type

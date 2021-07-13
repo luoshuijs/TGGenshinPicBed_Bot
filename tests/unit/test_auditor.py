@@ -5,13 +5,32 @@ from src.production.auditor import approve, reject, push, ArtworkStatusUpdate
 
 class TestAuditor(unittest.TestCase):
 
-    def test_audit_approves_init_status(self):
+    def test_audit_sfw_approves_init_status(self):
         # 1. Setup
         sut = AuditInfo(0, 0, 0, audit_type=AuditType.SFW, audit_status=AuditStatus.INIT)
         # 2. Execute
         status_update = approve(sut)
         # 3. Compare
         self.assertEqual(status_update.new_status, AuditStatus.PASS.value)
+        self.assertEqual(status_update.new_type, AuditType.SFW.value)
+
+    def test_audit_nsfw_approves_init_status(self):
+        # 1. Setup
+        sut = AuditInfo(0, 0, 0, audit_type=AuditType.NSFW, audit_status=AuditStatus.INIT)
+        # 2. Execute
+        status_update = approve(sut)
+        # 3. Compare
+        self.assertEqual(status_update.new_status, AuditStatus.PASS.value)
+        self.assertEqual(status_update.new_type, AuditType.NSFW.value)
+
+    def test_audit_r18_approves_init_status(self):
+        # 1. Setup
+        sut = AuditInfo(0, 0, 0, audit_type=AuditType.R18, audit_status=AuditStatus.INIT)
+        # 2. Execute
+        status_update = approve(sut)
+        # 3. Compare
+        self.assertEqual(status_update.new_status, AuditStatus.PASS.value)
+        self.assertEqual(status_update.new_type, AuditType.R18.value)
 
     def test_audit_status_does_not_change_when_approving_non_init_status(self):
         # 1. Setup

@@ -5,7 +5,7 @@ from contextlib import contextmanager
 
 from src.model.artwork import AuditType, ArtworkInfo, AuditInfo, AuditStatus, ArtworkFactory
 from src.production.namemap import NameMap
-from src.production.pixiv.repository import PixivRepository
+from src.production.pixiv.repository import PixivRepository, Transformer
 from src.production.pixiv.downloader import PixivDownloader, ArtworkImage
 from src.production.pixiv.cache import PixivCache
 from src.production.redisaction import RedisUpdate
@@ -24,7 +24,7 @@ class PixivService:
     def contribute_start(self, art_id: int) -> Tuple[ArtworkInfo, Iterable[ArtworkImage]]:
         # 1. Check database
         data = self.pixivrepo.get_art_by_artid(art_id)
-        artwork_list = ArtworkFactory.create_from_sql(data)
+        artwork_list = ArtworkFactory.create_from_sql_no_id(data)
         if len(artwork_list) > 0:
             return None     # Exists in database
         # 2. Get artwork info
@@ -49,8 +49,9 @@ class PixivService:
 
     def audit_start(self, audit_type: AuditType) -> int:
         # 1. Get from database
-        data = self.pixivrepo.get_art_for_audit(audit_type)
-        artwork_audit_list = ArtworkFactory.create_from_sql(data)
+        transformers = Transformer.combine(Transformer.audit_type(audit_type), Transformer.r18_type())
+        data = self.pixivrepo.get_art_for_audit(audit_type, transformers)
+        artwork_audit_list = ArtworkFactory.create_from_sql_no_id(data)
         # 2. Save to redis
         update = RedisUpdate.add_audit(audit_type, artwork_audit_list)
         return self.pixivcache.apply_update(update)
@@ -77,8 +78,9 @@ class PixivService:
         update = RedisUpdate.remove_pending(audit_type, art_id)
         self.pixivcache.apply_update(update)
         # 2. Get from database
-        data = self.pixivrepo.get_art_by_artid(art_id)
-        artwork_audit_list = ArtworkFactory.create_from_sql(data)
+        transformers = Transformer.combine(Transformer.audit_type(audit_type), Transformer.r18_type())
+        data = self.pixivrepo.get_art_by_artid(art_id, transformers)
+        artwork_audit_list = ArtworkFactory.create_from_sql_no_id(data)
         if len(artwork_audit_list) == 0:
             raise ValueError(f"art not found: art id {art_id} when approving artwork")
         # 3. Audit
@@ -93,7 +95,7 @@ class PixivService:
         self.pixivcache.apply_update(update)
         # 2. Get from database
         data = self.pixivrepo.get_art_by_artid(art_id)
-        artwork_audit_list = ArtworkFactory.create_from_sql(data)
+        artwork_audit_list = ArtworkFactory.create_from_sql_no_id(data)
         if len(artwork_audit_list) == 0:
             raise ValueError(f"art not found: art id {art_id} when rejecting artwork")
         # 3. Audit
@@ -109,8 +111,9 @@ class PixivService:
 
     def push_start(self, audit_type: AuditType) -> int:
         # 1. Get from database
-        data = self.pixivrepo.get_art_for_push(audit_type)
-        artwork_audit_list = ArtworkFactory.create_from_sql(data)
+        transformers = Transformer.combine(Transformer.audit_type(audit_type), Transformer.r18_type())
+        data = self.pixivrepo.get_art_for_push(audit_type, transformers)
+        artwork_audit_list = ArtworkFactory.create_from_sql_no_id(data)
         # 2. Save to redis
         update = RedisUpdate.add_push(audit_type, artwork_audit_list)
         return self.pixivcache.apply_update(update)
