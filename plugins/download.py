@@ -5,6 +5,7 @@ from telegram.ext import ConversationHandler, CallbackContext
 
 from src.base.config import config
 from src.base.logger import Log
+from src.base.utils import Utils
 from src.production.pixivdownload import Pixiv
 
 
@@ -15,6 +16,7 @@ class Download:
         self.update = update
         self.loop = asyncio.get_event_loop()
         self.Task_list = []
+        self.utils = Utils(config)
         self.pixiv = Pixiv(
             mysql_host=config.MYSQL["host"],
             mysql_port=config.MYSQL["port"],
