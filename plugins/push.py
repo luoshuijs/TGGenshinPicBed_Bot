@@ -46,8 +46,8 @@ class PushHandler:
             return ConversationHandler.END
         keyboard = [
             [
-                InlineKeyboardButton("OK", callback_data=str(self.TWO)),
-                InlineKeyboardButton("退出", callback_data=str(self.THREE)),
+                InlineKeyboardButton("OK", callback_data="OK"),
+                InlineKeyboardButton("退出", callback_data="退出"),
             ]
         ]
         channel_name = config.TELEGRAM["channel"][query.data]["name"]

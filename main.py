@@ -80,7 +80,7 @@ def main() -> None:
         fallbacks=[CommandHandler('cancel', cancel)],
     )
 
-    contribute = ContributeHandler()
+    contribute = ContributeHandler(pixiv=pixiv)
     contribute_handler = ConversationHandler(
         entry_points=[CommandHandler('contribute', contribute.contribute_command)],
         states={

@@ -133,7 +133,7 @@ class PixivRepository:
             artwork_info.view_count,
             artwork_info.like_count,
             artwork_info.love_count,
-            artwork_info.user_id,
+            artwork_info.author_id,
             artwork_info.upload_timestamp,
         )
         return self._execute_and_fetchall(query, query_args)

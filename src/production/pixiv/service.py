@@ -1,6 +1,8 @@
 import pathlib
 from typing import Iterable, Tuple
 from contextlib import contextmanager
+
+
 from src.model.artwork import AuditType, ArtworkInfo, AuditInfo, AuditStatus, ArtworkFactory
 from src.production.namemap import NameMap
 from src.production.pixiv.repository import PixivRepository
@@ -27,7 +29,7 @@ class PixivService:
             return None     # Exists in database
         # 2. Get artwork info
         artwork_info = self.pixivdownloader.get_artwork_info(art_id)
-        if artwork is None:
+        if artwork_info is None:
             return None     # Artwork does not exist
         art_id = artwork_info.art_id
         images = self.pixivcache.get_images_by_artid(art_id)
@@ -38,7 +40,7 @@ class PixivService:
 
     def contribute_confirm(self, art_id: int):
         # 1. Get artwork info
-        result = self.contribute_start(self, art_id)
+        result = self.contribute_start(art_id)
         if result is None:
             return None
         artwork_info, images = result

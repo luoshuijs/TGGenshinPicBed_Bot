@@ -5,6 +5,7 @@ from telegram.ext import CallbackContext, ConversationHandler
 from src.base.logger import Log
 from src.base.config import config
 from src.production.markdown import markdown_escape
+from src.production.pixiv import PixivService
 from src.production.pixiv.downloader import PixivDownloader
 from src.production.contribute import Contribute
 
@@ -12,9 +13,10 @@ from src.production.contribute import Contribute
 class ContributeHandler:
     ONE, TWO, THREE, FOUR = range(4)
 
-    def __init__(self):
+    def __init__(self, pixiv: PixivService = None):
         self.downloader = PixivDownloader(cookie=config.PIXIV["cookie"])
         self.contribute = Contribute()
+        self.pixiv = pixiv
 
     def contribute_command(self, update: Update, _: CallbackContext) -> int:
         user = update.effective_user
@@ -37,13 +39,18 @@ class ContributeHandler:
             update.message.reply_text(message, reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
         art_id = Rsq.data
-        context.user_data["contribute"] = Rsq.data
-        Log.info("用户 %s 请求作品 %s" % (update.effective_user.username, Rsq.data))
-        artwork_info = self.downloader.get_artwork_info(art_id)
-        if artwork_info is None:
-            update.message.reply_text("图片信息获取错误，找开发者背锅吧~")
+        artwork_data = self.pixiv.contribute_start(art_id)
+        if artwork_data is None:  # 作品存在数据库返回None
+            update.message.reply_text("插画已在频道或者数据库，退出投稿")  #
             return ConversationHandler.END
-        images = self.downloader.download_images(art_id)
+        artwork_info, images = artwork_data
+        Log.info("用户 %s 请求投稿作品 id: %s" % (update.effective_user.username, Rsq.data))
+        if artwork_info is None:
+            update.message.reply_text("插画信息获取错误，找开发者背锅吧~")
+            return ConversationHandler.END
+        if not "原神" in artwork_info.tags:
+            update.message.reply_text("插画标签不符合投稿要求，如果确认没问题请联系管理员")
+            return ConversationHandler.END
         url = "https://www.pixiv.net/artworks/%s" % art_id
         caption = "Title %s   \n" \
                   "Views %s Likes %s Loves %s   \n" \
@@ -78,6 +85,7 @@ class ContributeHandler:
             Log.error("encounter error with image caption\n%s" % caption)
             Log.error(TError)
             return ConversationHandler.END
+        context.chat_data["contribute_art_id"] = art_id
         reply_keyboard = [['确认', '取消']]
         message = "请确认作品的信息"
         update.message.reply_text(message, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
@@ -87,6 +95,7 @@ class ContributeHandler:
         if update.message.text == "取消":
             update.message.reply_text(text="退出投稿")
             return ConversationHandler.END
-        # 写入数据库
-        update.message.reply_text('投稿成功', reply_markup=ReplyKeyboardRemove())
+        art_id = context.chat_data["contribute_art_id"]
+        self.pixiv.contribute_confirm(art_id)
+        update.message.reply_text('投稿成功！✿✿ヽ（°▽°）ノ✿', reply_markup=ReplyKeyboardRemove())
         return ConversationHandler.END

@@ -17,7 +17,7 @@ def CreateArtworkInfoFromAPIResponse(data):
         view_count=details["rating_view"],
         like_count=details["rating_count"],
         love_count=details["bookmark_user_total"],
-        author_id=int(details["user_id"]),
+        author_id=details["user_id"],
         upload_timestamp=details["upload_timestamp"]
     )
 
