@@ -2,6 +2,7 @@ from telegram import Update, ReplyKeyboardRemove
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler, \
     CallbackQueryHandler
 
+from plugins.download import Download
 from src.base.config import config
 from plugins.contribute import ContributeHandler
 from plugins.examine import ExamineHandler
@@ -95,13 +96,24 @@ def main() -> None:
         },
         fallbacks=[CommandHandler('cancel', cancel)],
     )
-
+    download = Download(update=updater)
+    download_handler = ConversationHandler(
+        entry_points=[CommandHandler('download', download.download)],
+        states={
+            contribute.ONE: [
+                MessageHandler(Filters.text, download.start_download),
+                CommandHandler('skip', cancel)
+            ]
+        },
+        fallbacks=[CommandHandler('cancel', cancel)],
+    )
     dispatcher.add_handler(CommandHandler("start", start))
     dispatcher.add_handler(CommandHandler("help", help_command))
     dispatcher.add_handler(CommandHandler("test", test))
     dispatcher.add_handler(conv_handler)
     dispatcher.add_handler(push_handler)
     dispatcher.add_handler(contribute_handler)
+    dispatcher.add_handler(download_handler)
 
     updater.start_polling()
 

@@ -46,9 +46,7 @@ class Pixiv:
         self.char_id: str = ""
         self.pixiv_table = "genshin_pixiv"
 
-    async def work(self, TaskLoop, updater: Updater = None, char_id: str = ""):
-        self.updater = updater
-        self.char_id = char_id
+    async def work(self, TaskLoop, sleep_time: int = 6):
         try:
             self.conn = await aiomysql.connect(host=self.mysql_host, port=self.mysql_port, user=self.mysql_user,
                                                password=self.mysql_password, db=self.mysql_database, loop=TaskLoop)
@@ -66,9 +64,17 @@ class Pixiv:
             self.recommendList = []
             Log.info("正在执行Pixiv爬虫任务")
             await self.task()
-            Log.info("执行Pixiv爬虫任务完成，等待6H")
-            await asyncio.sleep(60 * 60 * 6)
+            Log.info("执行Pixiv爬虫任务完成")
+            if sleep_time == -1:
+                break
+            elif sleep_time >= 1:
+                Log.info("睡眠1小时")
+                await asyncio.sleep(sleep_time)
+            else:
+                break
         await self.client.aclose()
+        await self.cur.close()
+        self.conn.close()
 
     async def is_logged_in(self):  # 注意，如果Cookie失效是无法爬虫，而且会一直卡住
         UserStatus_url = "https://www.pixiv.net/touch/ajax/user/self/status?lang=zh"
@@ -77,7 +83,7 @@ class Pixiv:
         if UserStatus_data.code != 0:
             Log.error("获取Pixiv用户状态失败")
             return False
-        if UserStatus_data.data["body"]["user_status"]["is_logged_in"] == False:
+        if not UserStatus_data.data["body"]["user_status"]["is_logged_in"]:
             Log.error("验证Pixiv_Cookie失败，Cookie失效或过期")
             return False
         else:
@@ -316,4 +322,8 @@ if __name__ == "__main__":
     Task_list = {
         pixiv.work(loop)
     }
-    loop.run_until_complete(asyncio.wait(Task_list))
+    loop.run_until_complete(
+        asyncio.wait(pixiv.work(loop))
+    )
+
+    loop.close()
