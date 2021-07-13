@@ -64,7 +64,7 @@ class PixivRepository:
         else:
             # R18
             condition = f"""
-                (gp.titiel LIKE '%R-18') OR
+                (gp.tags LIKE '%R-18') OR
                 (ad.gp_id IS NULL OR (ad.type=%s AND ad.status=%s))
             """
         query = rf"""

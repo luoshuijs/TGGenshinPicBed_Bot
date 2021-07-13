@@ -108,22 +108,26 @@ class PushHandler:
                     Log.error(TError)
                     update.message.reply_text("图片发送出错")
                     return ConversationHandler.END
-                if audit_type.name == "NSFW" and not sendReq is None:
-                    channel_name = config.TELEGRAM["channel"]["NSFW"]["name"]
-                    channel_id = config.TELEGRAM["channel"]["SFW"]["char_id"]
+                if audit_type.name == "NSFW" or audit_type.name == "R18":
                     if isinstance(sendReq, list):
                         message_id = sendReq[0].message_id
                     else:
                         message_id = sendReq.message_id
+                    if audit_type.name == "NSFW":
+                        channel_name = config.TELEGRAM["channel"]["NSFW"]["name"]
+                        channel_id = config.TELEGRAM["channel"]["SFW"]["char_id"]
+                    elif audit_type.name == "NSFW":
+                        channel_name = config.TELEGRAM["channel"]["R18"]["name"]
+                        channel_id = config.TELEGRAM["channel"]["NSFW"]["char_id"]
                     url = "https://t.me/%s/%s" % (channel_name, message_id)
                     reply_keyboard = [
                         [
                             InlineKeyboardButton("点击查看/Click it to view", url=url),
                         ]
                     ]
-                    text = " **NSFW警告/NSFW warning**   \n" \
+                    text = " **%s警告/%s warning**   \n" \
                            "      \n" \
-                           "%s" % caption
+                           "%s" % (audit_type.name, audit_type.name, caption)
                     context.bot.send_message(channel_id, text=text, reply_markup=InlineKeyboardMarkup(reply_keyboard),
                                              parse_mode=ParseMode.MARKDOWN_V2, disable_web_page_preview=True)
         keyboard = [
