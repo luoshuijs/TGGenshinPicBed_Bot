@@ -46,7 +46,10 @@ class PixivRepository:
             conn.commit()
             return result
 
-    def get_art_by_artid(self, art_id: int, result_transformer: Callable[[list], list] = None):
+    def _get_transformers(self, audit_type: AuditType):
+        return Transformer.combine(Transformer.audit_type(audit_type), Transformer.r18_type())
+
+    def get_art_by_artid(self, art_id: int, result_transormers):
         query = f"""
             SELECT id, illusts_id, title, tags, view_count,
                    like_count, love_count, user_id, upload_timestamp,
@@ -56,11 +59,12 @@ class PixivRepository:
         """
         query_args = (art_id,)
         data = self._execute_and_fetchall(query, query_args)
-        if result_transformer:
-            data = result_transformer(data)
+        data = Transformer.r18_type()(data)
+        if result_transormers:
+            data = result_transormers(data)
         return DataAggregator.from_sql_data(data)
 
-    def get_art_for_audit(self, audit_type: AuditType, result_transformer: Callable[[list], list] = None):
+    def get_art_for_audit(self, audit_type: AuditType):
         table = ""
         if AuditType(audit_type) == AuditType.SFW:
             table = self.pixiv_audit_table_sfw
@@ -77,11 +81,10 @@ class PixivRepository:
         """
         query_args = (AuditStatus.INIT.value,)
         data = self._execute_and_fetchall(query, query_args)
-        if result_transformer:
-            data = result_transformer(data)
+        data = self._get_transformers(audit_type)(data)
         return DataAggregator.from_sql_data(data)
 
-    def get_art_for_push(self, audit_type: AuditType, result_transformer: Callable[[list], list] = None):
+    def get_art_for_push(self, audit_type: AuditType):
         query = rf"""
             SELECT id, illusts_id, title, tags, view_count,
                    like_count, love_count, user_id, upload_timestamp,
@@ -91,8 +94,7 @@ class PixivRepository:
         """
         query_args = (audit_type.value, AuditStatus.PASS.value,)
         data = self._execute_and_fetchall(query, query_args)
-        if result_transformer:
-            data = result_transformer(data)
+        data = self._get_transformers(audit_type)(data)
         return DataAggregator.from_sql_data(data)
 
     def apply_update(self, update: ArtworkStatusUpdate):

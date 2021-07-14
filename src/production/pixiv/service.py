@@ -49,8 +49,7 @@ class PixivService:
 
     def audit_start(self, audit_type: AuditType) -> int:
         # 1. Get from database
-        transformers = Transformer.combine(Transformer.audit_type(audit_type), Transformer.r18_type())
-        data = self.pixivrepo.get_art_for_audit(audit_type, transformers)
+        data = self.pixivrepo.get_art_for_audit(audit_type)
         artwork_audit_list = ArtworkFactory.create_from_sql_no_id(data)
         # 2. Save to redis
         update = RedisUpdate.add_audit(audit_type, artwork_audit_list)
@@ -78,8 +77,8 @@ class PixivService:
         update = RedisUpdate.remove_pending(audit_type, art_id)
         self.pixivcache.apply_update(update)
         # 2. Get from database
-        transformers = Transformer.combine(Transformer.audit_type(audit_type), Transformer.r18_type())
-        data = self.pixivrepo.get_art_by_artid(art_id, transformers)
+        transformer = Transformer.combine(Transformer.audit_type(audit_type), Transformer.r18_type())
+        data = self.pixivrepo.get_art_by_artid(art_id, transformer)
         artwork_audit_list = ArtworkFactory.create_from_sql_no_id(data)
         if len(artwork_audit_list) == 0:
             raise ValueError(f"art not found: art id {art_id} when approving artwork")
@@ -94,7 +93,8 @@ class PixivService:
         update = RedisUpdate.remove_pending(audit_type, art_id)
         self.pixivcache.apply_update(update)
         # 2. Get from database
-        data = self.pixivrepo.get_art_by_artid(art_id)
+        transformer = Transformer.combine(Transformer.audit_type(audit_type), Transformer.r18_type())
+        data = self.pixivrepo.get_art_by_artid(art_id, transformer)
         artwork_audit_list = ArtworkFactory.create_from_sql_no_id(data)
         if len(artwork_audit_list) == 0:
             raise ValueError(f"art not found: art id {art_id} when rejecting artwork")
@@ -111,8 +111,7 @@ class PixivService:
 
     def push_start(self, audit_type: AuditType) -> int:
         # 1. Get from database
-        transformers = Transformer.combine(Transformer.audit_type(audit_type), Transformer.r18_type())
-        data = self.pixivrepo.get_art_for_push(audit_type, transformers)
+        data = self.pixivrepo.get_art_for_push(audit_type)
         artwork_audit_list = ArtworkFactory.create_from_sql_no_id(data)
         # 2. Save to redis
         update = RedisUpdate.add_push(audit_type, artwork_audit_list)
