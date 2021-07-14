@@ -64,6 +64,10 @@ class Pixiv:
         self.artwork_list = []
         self.pixiv_table = "genshin_pixiv"
 
+    async def close(self):
+        await self.client.aclose()
+        await self.repository.close()
+
     async def work(self, loop, sleep_time: int = 6):
         while True:
             self.GetIllustInformationTasks = []
@@ -80,7 +84,6 @@ class Pixiv:
                 await asyncio.sleep(sleep_time)
             else:
                 break
-        await self.client.aclose()
 
     async def is_logged_in(self):  # 注意，如果Cookie失效是无法爬虫，而且会一直卡住
         UserStatus_url = "https://www.pixiv.net/touch/ajax/user/self/status?lang=zh"
@@ -180,7 +183,6 @@ class Pixiv:
         try:
             Log.info("写入数据库...")
             rowcount = await self.repository.save_artwork_many(finalized_artworks)
-            Log.info(result)
             Log.info("写入完成, rows affected=%s" % rowcount)
         except Exception as TError:
             Log.warning("写入数据库发生错误")
@@ -459,10 +461,18 @@ if __name__ == "__main__":
         mysql_password=config.MYSQL["pass"],
         mysql_database=config.MYSQL["database"],
         pixiv_cookie=config.PIXIV["cookie"],
+        loop=loop
+    )
+
+    run = [pixiv.work(loop, sleep_time=-1)]
+    close = [pixiv.close()]
+
+    loop.run_until_complete(
+        asyncio.wait(run)
     )
 
     loop.run_until_complete(
-        pixiv.work(loop, sleep_time=-1)
+        asyncio.wait(close)
     )
 
     loop.close()

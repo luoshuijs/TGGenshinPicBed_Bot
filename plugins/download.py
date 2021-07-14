@@ -24,7 +24,15 @@ class Download:
             mysql_password=config.MYSQL["pass"],
             mysql_database=config.MYSQL["database"],
             pixiv_cookie=config.PIXIV["cookie"],
+            loop=self.loop
         )
+
+    def __del__(self):
+        close = [self.pixiv.close()]
+        self.loop.run_until_complete(
+            asyncio.wait(close)
+        )
+        self.loop.close()
 
     def download(self, update: Update, context: CallbackContext) -> int:
         user = update.effective_user
@@ -47,7 +55,8 @@ class Download:
         context.bot_data["download_chat_id"] = update.message.chat_id
         try:
             update.message.reply_text(text="请耐心等待任务完成")
-            self.loop.run_until_complete(self.pixiv.work(TaskLoop=self.loop, sleep_time=-1))
+            run = [self.pixiv.work(self.loop, sleep_time=-1)]
+            self.loop.run_until_complete(asyncio.wait(run))
             update.message.reply_text(text="执行成功")
         except BaseException as err:
             Log.error(err)
