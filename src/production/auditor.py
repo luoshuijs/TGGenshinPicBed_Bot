@@ -31,7 +31,7 @@ def approve(audit_info: AuditInfo):
     new_status = AuditStatus.PASS
     new_type = AuditType.SFW
     if not check_can_audit(audit_info, new_status):
-        return ArtworkStatusUpdate(audit_info, audit_info.audit_status)
+        return ArtworkStatusUpdate(audit_info, audit_info.audit_status, type=audit_info.audit_type)
     if audit_info.audit_type is not None:
         new_type = audit_info.audit_type
     return ArtworkStatusUpdate(audit_info, new_status, new_type)
@@ -42,7 +42,7 @@ def reject(audit_info: AuditInfo, reason: str = None):
     new_type = AuditType.SFW
     new_reason = reason
     if not check_can_audit(audit_info, new_status):
-        return ArtworkStatusUpdate(audit_info, audit_info.audit_status)
+        return ArtworkStatusUpdate(audit_info, audit_info.audit_status, type=audit_info.audit_type)
     if audit_info.audit_type is not None:
         new_type = audit_info.audit_type
     if reason == AuditType.NSFW.value:
@@ -61,13 +61,15 @@ def reject(audit_info: AuditInfo, reason: str = None):
 def push(audit_info):
     new_status = AuditStatus.PUSH
     if not check_can_audit(audit_info, new_status):
-        return ArtworkStatusUpdate(audit_info, audit_info.audit_status)
+        return ArtworkStatusUpdate(audit_info, audit_info.audit_status, type=audit_info.audit_type)
     return ArtworkStatusUpdate(audit_info, new_status, type=audit_info.audit_type, reason=None)
 
 
 def check_can_audit(audit_info, new_status: AuditStatus):
     if audit_info.audit_status is not None:
-        if audit_info.audit_status != AuditStatus.INIT and audit_info.audit_status != new_status:
+        if audit_info.audit_status != AuditStatus.INIT \
+                and audit_info.audit_status != AuditStatus.PASS \
+                and audit_info.audit_status != new_status:
             return False
     return True
 

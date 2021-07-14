@@ -5,21 +5,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from src.model.artwork import ArtworkImage, ArtworkInfo
 
 
+# Forward declaration
 def CreateArtworkInfoFromAPIResponse(data):
-    details = data["body"].get("illust_details", None)
-    if details is None:
-        return None
-    tags = "#" + "#".join(details["tags"]) if details["tags"] and len(details["tags"]) > 0 else ""
-    return ArtworkInfo(
-        art_id=details["id"],
-        title=details["title"],
-        tags=tags,
-        view_count=details["rating_view"],
-        like_count=details["rating_count"],
-        love_count=details["bookmark_user_total"],
-        author_id=details["user_id"],
-        upload_timestamp=details["upload_timestamp"]
-    )
+    pass
 
 
 class PixivDownloader:
@@ -69,3 +57,22 @@ class PixivDownloader:
         res = requests.get(uri, headers=headers)
         data = res.json()
         return tuple(img_info["urls"]["regular"] for img_info in data["body"])
+
+
+def CreateArtworkInfoFromAPIResponse(data):
+    details = data["body"].get("illust_details", None)
+    if details is None:
+        return None
+    tags = "#" + "#".join(details["tags"]) if details["tags"] and len(details["tags"]) > 0 else ""
+    return ArtworkInfo(
+        art_id=details["id"],
+        title=details["title"],
+        tags=tags,
+        view_count=details["rating_view"],
+        like_count=details["rating_count"],
+        love_count=details["bookmark_user_total"],
+        author_id=details["user_id"],
+        upload_timestamp=details["upload_timestamp"]
+    )
+
+
