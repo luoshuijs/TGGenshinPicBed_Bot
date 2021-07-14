@@ -1,12 +1,14 @@
 import datetime
 import secrets
-from urllib import parse
 import asyncio
-import aiomysql
-from telegram.ext import Updater
 import time
+import aiomysql
+from urllib import parse
+from typing import Iterable
+from telegram.ext import Updater
 from src.base.httprequests import HttpRequests
 from src.base.logger import Log
+from src.model.artwork import ArtworkInfo, AuditStatus, AuditType
 
 search_url = "https://www.pixiv.net/ajax/search/artworks/%s?word=%s&p=%s&order=date_d&mode=all&s_mode" \
              "=s_tag_full"
@@ -15,6 +17,16 @@ details_url = "https://www.pixiv.net/touch/ajax/illust/details?illust_id=%s"
 comments_url = "https://www.pixiv.net/ajax/illusts/comments/roots?illust_id=%s&offset=3&limit=50&lang=zh"
 
 recommend_url = "https://www.pixiv.net/ajax/illust/%s/recommend/init?limit=18&lang=zh"
+
+
+# Forward declaration, see the end of file
+def CreateArtworkInfoFromAPIResponse(data) -> ArtworkInfo:
+    pass
+
+
+# Forward declaration, see the end of file
+class Repository:
+    pass
 
 
 class Pixiv:
@@ -42,9 +54,26 @@ class Pixiv:
         self.conn = None
         self.cur = None
         self.TaskLoop = None
-        self.updater = None
-        self.char_id: str = ""
         self.pixiv_table = "genshin_pixiv"
+
+    def _get_headers(self, art_id: int = None):
+        if not art_id:
+            art_id = ""
+        return {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                          "(KHTML, like Gecko) Chrome/90.0.4430.72 Safari/537.36",
+            "Referer": f"https://www.pixiv.net/{art_id}",
+            "Cookie": self.cookie,
+        }
+
+    async def download_artwork_info(self, art_id: int) -> ArtworkInfo:
+        pass
+
+    async def get_recommended_artwork(self, art_id: int) -> Iterable[int]:
+        pass
+
+    def filter_artwork(self, artwork_list: Iterable[ArtworkInfo]) -> Iterable[ArtworkInfo]:
+        pass
 
     async def work(self, TaskLoop, sleep_time: int = 6):
         try:
@@ -302,6 +331,94 @@ class Pixiv:
             await self.conn.rollback()
             Log.warning("写入数据库发生错误")
             Log.error(TError)
+
+
+def CreateArtworkInfoFromAPIResponse(data) -> ArtworkInfo:
+    """
+    Maps API json response to ArtworkInfo
+    """
+    details = data["body"].get("illust_details", None)
+    if details is None:
+        return None
+    tags = "#" + "#".join(details["tags"]) if details["tags"] and len(details["tags"]) > 0 else ""
+    return ArtworkInfo(
+        art_id=details["id"],
+        title=details["title"],
+        tags=tags,
+        view_count=details["rating_view"],
+        like_count=details["rating_count"],
+        love_count=details["bookmark_user_total"],
+        author_id=details["user_id"],
+        upload_timestamp=details["upload_timestamp"]
+    )
+
+
+class Repository:
+
+    def __init__(self, sql_config = None):
+        self.sql_config = sql_config
+        self.sql_pool = None
+        self.pixiv_table = "genshin_pixiv"
+        self.pixiv_audit_table = "genshin_pixiv_audit"
+
+    async def _get_pool(self):
+        if self.sql_pool is None:
+            self.sql_pool = await aiomysql.create_pool(**self.sql_config)
+        return self.sql_pool
+
+    async def _executemany(self, query, query_args):
+        async with (await self._get_pool()) as conn:
+            sql_cur = await conn.cursor()
+            await sql_cur.executemany(query, query_args)
+            rowcount = sql_cur.rowcount
+            await conn.commit()
+        return rowcount
+
+    async def _execute_and_fetchall(self, query, query_args):
+        async with (await self._get_pool()) as conn:
+            sql_cur = await conn.cursor()
+            await sql_cur.execute(query, query_args)
+            result = await sql_cur.fetchall()
+            await conn.commit()
+        return result
+
+    async def get_artists_with_multiple_approved_art(self, num: int) -> Iterable[int]:
+        """
+        Get user_id of artists with multiple approved art
+        """
+        query = f"""
+            SELECT user_id, COUNT(user_id) AS count
+            FROM {self.pixiv_audit_table}
+            WHERE status=%s OR status=%s
+            GROUP BY user_id
+            HAVING count>%s;
+        """
+        query_args = (AuditStatus.PASS.value, AuditStatus.PUSH.value, num)
+
+    async def save_artwork_many(self, artwork_list: Iterable[ArtworkInfo]) -> int:
+        """
+        Save artworks into table. Returns affected rows (not the number of inserted work)
+        """
+        query = f"""
+            INERT INTO `{self.pixiv_table}` (
+                illusts_id, title, tags, view_count, like_count, love_count,
+                user_id, upload_timestamp
+            ) VALUES (
+                %s, %s, %s, %s, %s, %s, %s, %s
+            ) ON DUPLICATE KEY UPDATE
+                title=VALUES(title),
+                tags=VALUES(tags),
+                view_count=VALUES(view_count),
+                like_count=VALUES(like_count),
+                love_count=VALUES(love_count),
+                user_id=VALUES(user_id),
+                upload_timestamp=VALUES(upload_timestamp);
+        """
+        query_args = tuple(
+            (a.art_id, a.title, a.tags, a.view_count, a.like_count,
+             a.love_count, a.author_id, a.upload_timestamp)
+            for a in artwork_list
+        )
 
 
 # 测试使用
