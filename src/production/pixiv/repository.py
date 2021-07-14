@@ -18,6 +18,9 @@ class PixivRepository:
         self.pixiv_table = "genshin_pixiv"
         self.audit_table = "examine"
         self.pixiv_audit_table = "genshin_pixiv_audit"
+        self.pixiv_audit_table_sfw = f"{self.pixiv_audit_table}_sfw"
+        self.pixiv_audit_table_nsfw = f"{self.pixiv_audit_table}_nsfw"
+        self.pixiv_audit_table_r18 = f"{self.pixiv_audit_table}_r18"
         self.sql_pool = MySQLConnectionPool(pool_name="",
                                             pool_size=10,
                                             pool_reset_session=False,
@@ -58,40 +61,21 @@ class PixivRepository:
         return DataAggregator.from_sql_data(data)
 
     def get_art_for_audit(self, audit_type: AuditType, result_transformer: Callable[[list], list] = None):
-        condition = "(type=%s AND status=%s)"
-        fields = f"""
-            id, illusts_id, title, tags, view_count,
-            like_count, love_count, user_id, upload_timestamp,
-            type, status, reason
-        """
+        table = ""
         if AuditType(audit_type) == AuditType.SFW:
-            condition = f"""
-                (tags NOT LIKE '%R-18%') AND (
-                (type IS NULL AND status IS NULL) OR
-                (type=%s AND status=%s))
-            """
+            table = self.pixiv_audit_table_sfw
         elif AuditType(audit_type) == AuditType.NSFW:
-            condition = f"""
-                (tags NOT LIKE '%R-18%') AND
-                (type=%s AND status=%s)
-            """
-        else:
-            # R18
-            condition = f"""
-                (tags LIKE '%R-18%' OR type=%s) AND
-                (status IS NULL OR status=%s)
-            """
-            fields = f"""
-                id, illusts_id, title, tags, view_count,
-                like_count, love_count, user_id, upload_timestamp,
-                'R18' AS type, status, reason
-            """
+            table = self.pixiv_audit_table_nsfw
+        else: # R18
+            table = self.pixiv_audit_table_r18
         query = rf"""
-            SELECT {fields}
-            FROM `{self.pixiv_audit_table}`
-            WHERE {condition};
+            SELECT id, illusts_id, title, tags, view_count,
+                   like_count, love_count, user_id, upload_timestamp,
+                   type, status, reason
+            FROM `{table}`
+            WHERE status=%s OR status IS NULL;
         """
-        query_args = (audit_type.value, AuditStatus.INIT.value,)
+        query_args = (AuditStatus.INIT.value,)
         data = self._execute_and_fetchall(query, query_args)
         if result_transformer:
             data = result_transformer(data)
