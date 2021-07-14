@@ -32,6 +32,66 @@ class TestAuditor(unittest.TestCase):
         self.assertEqual(status_update.new_status, AuditStatus.PASS.value)
         self.assertEqual(status_update.new_type, AuditType.R18.value)
 
+    def test_audit_sfw_reject_init_status(self):
+        # 1. Setup
+        reason = "类型错误"
+        sut = AuditInfo(0, 0, 0, audit_type=AuditType.SFW, audit_status=AuditStatus.INIT, audit_reason=None)
+        # 2. Execute
+        status_update = reject(sut, reason=reason)
+        # 3. Compare
+        self.assertEqual(status_update.new_reason, reason)
+        self.assertEqual(status_update.new_status, AuditStatus.REJECT.value)
+        self.assertEqual(status_update.new_type, AuditType.SFW.value)
+
+    def test_audit_nsfw_reject_init_status(self):
+        # 1. Setup
+        reason = "类型错误"
+        sut = AuditInfo(0, 0, 0, audit_type=AuditType.NSFW, audit_status=AuditStatus.INIT, audit_reason=None)
+        # 2. Execute
+        status_update = reject(sut, reason=reason)
+        # 3. Compare
+        self.assertEqual(status_update.new_reason, reason)
+        self.assertEqual(status_update.new_status, AuditStatus.REJECT.value)
+        self.assertEqual(status_update.new_type, AuditType.NSFW.value)
+
+    def test_audit_r18_reject_init_status(self):
+        # 1. Setup
+        reason = "类型错误"
+        sut = AuditInfo(0, 0, 0, audit_type=AuditType.R18, audit_status=AuditStatus.INIT, audit_reason=None)
+        # 2. Execute
+        status_update = reject(sut, reason=reason)
+        # 3. Compare
+        self.assertEqual(status_update.new_reason, reason)
+        self.assertEqual(status_update.new_status, AuditStatus.REJECT.value)
+        self.assertEqual(status_update.new_type, AuditType.R18.value)
+
+    def test_audit_sfw_push_status(self):
+        # 1. Setup
+        sut = AuditInfo(0, 0, 0, audit_type=AuditType.SFW, audit_status=AuditStatus.PASS)
+        # 2. Execute
+        status_update = push(sut)
+        # 3. Compare
+        self.assertEqual(status_update.new_status, AuditStatus.PUSH.value)
+        self.assertEqual(status_update.new_type, AuditType.SFW.value)
+
+    def test_audit_nsfw_push_status(self):
+        # 1. Setup
+        sut = AuditInfo(0, 0, 0, audit_type=AuditType.NSFW, audit_status=AuditStatus.PASS)
+        # 2. Execute
+        status_update = push(sut)
+        # 3. Compare
+        self.assertEqual(status_update.new_status, AuditStatus.PUSH.value)
+        self.assertEqual(status_update.new_type, AuditType.NSFW.value)
+
+    def test_audit_r18_push_status(self):
+        # 1. Setup
+        sut = AuditInfo(0, 0, 0, audit_type=AuditType.R18, audit_status=AuditStatus.PASS)
+        # 2. Execute
+        status_update = push(sut)
+        # 3. Compare
+        self.assertEqual(status_update.new_status, AuditStatus.PUSH.value)
+        self.assertEqual(status_update.new_type, AuditType.R18.value)
+
     def test_audit_status_does_not_change_when_approving_non_init_status(self):
         # 1. Setup
         sut = AuditInfo(0, 0, 0, audit_type=AuditType.SFW, audit_status=AuditStatus.PASS)
@@ -39,6 +99,14 @@ class TestAuditor(unittest.TestCase):
         status_update = approve(sut)
         # 3. Compare
         self.assertEqual(status_update.new_status, AuditStatus.PASS.value)
+
+    def test_audit_status_does_not_change_when_approving_rejected_status(self):
+        # 1. Setup
+        sut = AuditInfo(0, 0, 0, audit_type=AuditType.SFW, audit_status=AuditStatus.REJECT)
+        # 2. Execute
+        status_update = approve(sut)
+        # 3. Compare
+        self.assertEqual(status_update.new_status, AuditStatus.REJECT.value)
 
     def test_audit_non_type_changes_to_sfw_when_approving(self):
         # 1. Setup

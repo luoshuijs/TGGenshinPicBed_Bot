@@ -4,6 +4,7 @@
 
 import unittest
 import pathlib
+import re
 from src.production.namemap import NameMap, tag_split
 
 
@@ -22,6 +23,35 @@ class TestTag(unittest.TestCase):
         result = tag_split(sut)
         # 2. Compare
         self.assertEqual(result, tags)
+
+    def test_namemap_baal(self):
+        # 1. Setup
+        tag_str_list = [
+            "#GenshinImpact#原神#raiden",
+            "#原神#GenshinImpact#baal#raiden#魅惑の谷間#Raiden",
+            "#原神#Raiden#RaidenShogun#GenshinImpact#女の子",
+            "#崩坏3#honkai#女の子#girl#붕괴3rd#GenshinImpact#Raiden#雷电芽衣#原神",
+            "#原神#女の子#GenshinImpact#巴尔#Baal#Shogun#雷神#雷神巴尔#baal",
+            "#Genshin#原神#温泉#おっぱい#GenshinImpact#原神Project#神里綾華#yoimiya#Raiden",
+            "#GenshinImpact#雷電将軍#雷神バアル#Baal#Archon#原神#剣#fanart#game#Raiden",
+            "#原神#raiden#魅惑の谷間#タイツ#ストッキング#尻#雷電将軍(原神)",
+            "#Baal#雷電将軍#原神#魅惑の谷間#極上の女体#巨乳#원신#おっぱい#極上の乳#雷神巴尔",
+            "#R-18#巴尔#雷電将軍#雷神バアル#原神#baal#GenshinImpact#中出し#後背位#断面図",
+            "#原神#Genshin#GenshinImpact#miHoYo#baal#raidenshogun#雷電将軍#雷電将軍(原神)#抖M快来#ドMホイホイ",
+            "#原神project#GenshinImpact#おっぱい#雷電将軍#baal#原神#雷電将軍(原神)",
+            "#GenshinImpact#原神#雷電将軍#RaidenShogun#雷神#おっぱい#輪チラ#雷電将軍(原神)#Baal#巨乳",
+            "#原神#GenshinImpact#ฺbaal#雷神バアル#雷電将軍#雷電将軍(原神)",
+            "#雷电将军#原神#Genshinimpact#Raidenshogun#Baal#雷電将軍(原神)",
+            "#原神#GenshinImpact#雷電将軍#空(原神)#Baal",
+            "#R-18#原神#GenshinImpact#雷神バアル#バアル#Baal#おっぱい#巨乳#極上の乳#腋",
+        ]
+        names_regex = re.compile("#Baal #巴尔", re.I)
+        # 2. Execute
+        results = tuple(self.name_map.filter_character_tags(tag_str) for tag_str in tag_str_list)
+        # 3. Compare
+        for tag_str in results:
+            with self.subTest(tag_str=tag_str):
+                self.assertRegex(tag_str, names_regex)
 
     def test_namemap_hutao(self):
         # 1. Setup

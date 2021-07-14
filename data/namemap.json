@@ -28,6 +28,17 @@
             "アンバー"
         ]
     },
+    "Baal": {
+        "name": [
+            "Baal",
+            "巴尔"
+        ],
+        "regex": [
+            "(?:雷神)?バアル",
+            "雷電(?:将軍)?",
+            "Raiden(?:Shogun)?"
+        ]
+    },
     "Barbara": {
         "name": [
             "Barbara",
