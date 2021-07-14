@@ -116,7 +116,7 @@ class PushHandler:
                     if audit_type.name == "NSFW":
                         channel_name = config.TELEGRAM["channel"]["NSFW"]["name"]
                         channel_id = config.TELEGRAM["channel"]["SFW"]["char_id"]
-                    elif audit_type.name == "NSFW":
+                    elif audit_type.name == "R18":
                         channel_name = config.TELEGRAM["channel"]["R18"]["name"]
                         channel_id = config.TELEGRAM["channel"]["NSFW"]["char_id"]
                     url = "https://t.me/%s/%s" % (channel_name, message_id)

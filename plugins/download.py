@@ -28,7 +28,7 @@ class Download:
 
     def download(self, update: Update, context: CallbackContext) -> int:
         user = update.effective_user
-        Log.info("examine命令请求 user %s id %s" % (user["username"], user["id"]))
+        Log.info("download命令请求 user %s id %s" % (user["username"], user["id"]))
         if not self.utils.IfAdmin(user["id"]):
             update.message.reply_text("你不是BOT管理员，不能使用此命令！")
             return ConversationHandler.END
