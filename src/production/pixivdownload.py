@@ -1,22 +1,15 @@
+import re
 import datetime
 import secrets
 import asyncio
 import time
 import aiomysql
 from urllib import parse
-from typing import Iterable
+from typing import Iterable, Set, Callable, Any
 from telegram.ext import Updater
 from src.base.httprequests import HttpRequests
 from src.base.logger import Log
 from src.model.artwork import ArtworkInfo, AuditStatus, AuditType
-
-search_url = "https://www.pixiv.net/ajax/search/artworks/%s?word=%s&p=%s&order=date_d&mode=all&s_mode" \
-             "=s_tag_full"
-details_url = "https://www.pixiv.net/touch/ajax/illust/details?illust_id=%s"
-
-comments_url = "https://www.pixiv.net/ajax/illusts/comments/roots?illust_id=%s&offset=3&limit=50&lang=zh"
-
-recommend_url = "https://www.pixiv.net/ajax/illust/%s/recommend/init?limit=18&lang=zh"
 
 
 # Forward declaration, see the end of file
@@ -29,70 +22,56 @@ class Repository:
     pass
 
 
+# Forward declaration, see the end of file
+class SearchResult:
+    pass
+
+
+# Forward declaration, see the end of file
+class RecommendResult:
+    pass
+
+
+# Core logic
 class Pixiv:
 
-    def __init__(self, *args, mysql_host: str = "127.0.0.1", mysql_port: int = 3306, mysql_user: str = "root",
+    SEARCH_API = "https://www.pixiv.net/ajax/search/artworks/%s?word=%s&p=%s&order=date_d&mode=all&s_mode" \
+                 "=s_tag_full"
+    DETAILS_API = "https://www.pixiv.net/touch/ajax/illust/details?illust_id=%s"
+
+    COMMENTS_API = "https://www.pixiv.net/ajax/illusts/comments/roots?illust_id=%s&offset=3&limit=50&lang=zh"
+
+    RECOMMEND_API = "https://www.pixiv.net/ajax/illust/%s/recommend/init?limit=18&lang=zh"
+
+
+    def __init__(self, mysql_host: str = "127.0.0.1", mysql_port: int = 3306, mysql_user: str = "root",
                  mysql_password: str = "", mysql_database: str = "",
-                 pixiv_cookie: str = ""):
-        self.headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.72 Safari/537.36",
-            "referer": "https://www.pixiv.net/",
-            "cookie": pixiv_cookie
-        }
-        self.mysql_host = mysql_host
-        self.mysql_port = mysql_port
-        self.mysql_user = mysql_user
-        self.mysql_password = mysql_password
-        self.mysql_database = mysql_database
+                 pixiv_cookie: str = "", loop=None, *args):
+        self.repository = Repository(
+            sql_config = {
+                "host": mysql_host,
+                "port": mysql_port,
+                "user": mysql_user,
+                "password": mysql_password,
+                "db": mysql_database,
+                "loop": loop,
+            },
+        )
+        self.cookie = pixiv_cookie
         self.client = HttpRequests()
         self.GetIllustInformationTasks = []
-        self.IllustIdList = []
-        self.IllustIdQueue = None
-        self.illustDataList = []
-        self.popularList = []
-        self.recommendList = []
-        self.conn = None
-        self.cur = None
-        self.TaskLoop = None
+        self.artid_queue = None
+        self.artwork_list = []
         self.pixiv_table = "genshin_pixiv"
 
-    def _get_headers(self, art_id: int = None):
-        if not art_id:
-            art_id = ""
-        return {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                          "(KHTML, like Gecko) Chrome/90.0.4430.72 Safari/537.36",
-            "Referer": f"https://www.pixiv.net/{art_id}",
-            "Cookie": self.cookie,
-        }
-
-    async def download_artwork_info(self, art_id: int) -> ArtworkInfo:
-        pass
-
-    async def get_recommended_artwork(self, art_id: int) -> Iterable[int]:
-        pass
-
-    def filter_artwork(self, artwork_list: Iterable[ArtworkInfo]) -> Iterable[ArtworkInfo]:
-        pass
-
-    async def work(self, TaskLoop, sleep_time: int = 6):
-        try:
-            self.conn = await aiomysql.connect(host=self.mysql_host, port=self.mysql_port, user=self.mysql_user,
-                                               password=self.mysql_password, db=self.mysql_database, loop=TaskLoop)
-            self.cur = await self.conn.cursor()
-        except Exception as err:
-            Log.error("打开数据库发生错误，正在退出任务")
-            Log.error(err)
-            return
+    async def work(self, loop, sleep_time: int = 6):
         while True:
             self.GetIllustInformationTasks = []
-            self.IllustIdList = []
-            self.IllustIdQueue = asyncio.Queue(loop=TaskLoop)
-            self.illustDataList = []
-            self.popularList = []
-            self.recommendList = []
+            self.artid_queue = asyncio.Queue(loop=loop)
+            self.artwork_list = []
             Log.info("正在执行Pixiv爬虫任务")
             await self.task()
+            await self.repository.close()
             Log.info("执行Pixiv爬虫任务完成")
             if sleep_time == -1:
                 break
@@ -102,13 +81,11 @@ class Pixiv:
             else:
                 break
         await self.client.aclose()
-        await self.cur.close()
-        self.conn.close()
 
     async def is_logged_in(self):  # 注意，如果Cookie失效是无法爬虫，而且会一直卡住
         UserStatus_url = "https://www.pixiv.net/touch/ajax/user/self/status?lang=zh"
         UserStatus_data = await self.client.ARequest_json("GET", UserStatus_url,
-                                                          headers=self.headers)
+                                                          headers=self._get_headers())
         if UserStatus_data.code != 0:
             Log.error("获取Pixiv用户状态失败")
             return False
@@ -123,51 +100,22 @@ class Pixiv:
         Log.info("获取作品信息线程%s号：创建完成" % TaskId)
         Log.debug("获取作品信息线程%s号：等待下载任务" % TaskId)
         while True:
-            remaining_count = self.IllustIdQueue.qsize()
+            remaining_count = self.artid_queue.qsize()
             if remaining_count > 0 and remaining_count % 100 == 0:
                 Log.info("Pixiv爬虫进度：还剩下%s张作品" % remaining_count)
-            IllustIdListData = await self.IllustIdQueue.get()
-            status = IllustIdListData.get("status", None)
-            if status and status == "close":
-                self.IllustIdQueue.put_nowait({"status": "close"})
+            id_data = await self.artid_queue.get()
+            if id_data.get("status") == "close":
+                self.artid_queue.put_nowait({"status": "close"})
                 return
             try:
-                iid = IllustIdListData["id"]
-                details_data = None
-                details_get_url = details_url % iid
-                for tries in range(4):
-                    details_req = await self.client.ARequest_json("GET", details_get_url, headers=self.headers)
-                    if details_req.code != 0:
-                        Log.warning("取作品信息线程%s号，作品id：%s，获取失败，正在重试" % (TaskId, iid))
-                        Log.debug("取作品信息线程%s号，请求错误信息：%s" % (TaskId, details_req.message))
-                        continue
-                    details_data = details_req.data
-                    if tries >= 3:
-                        Log.error("取作品信息线程%s号，作品id：%s，获取失败，正在退出任务" % (TaskId, iid))
-                    break
-
-                if details_data is None:
-                    break
-
-                tags_data = ""
-                for illust_tags in details_data["body"]["illust_details"]["tags"]:
-                    if illust_tags.find("'") == -1:
-                        tags_data = tags_data + "#" + illust_tags
-
-                illust_data = dict(title=details_data["body"]["illust_details"]["title"],
-                                   love=details_data["body"]["illust_details"]["bookmark_user_total"],
-                                   id=details_data["body"]["illust_details"]["id"],
-                                   tags=tags_data,
-                                   height=details_data["body"]["illust_details"]["height"],
-                                   width=details_data["body"]["illust_details"]["width"],
-                                   like=details_data["body"]["illust_details"]["rating_count"],
-                                   view=details_data["body"]["illust_details"]["rating_view"],
-                                   user_id=details_data["body"]["illust_details"]["user_id"],
-                                   upload_timestamp=details_data["body"]["illust_details"]["upload_timestamp"])
-                self.illustDataList.append(illust_data)
-                Log.debug("获取作品信息线程%s号，收到任务，作品id：%s，获取完成" % (TaskId, iid))
+                art_id = id_data["id"]
+                artwork_info = await self.download_artwork_info(art_id)
+                self.artwork_list.append(artwork_info)
+                Log.debug("获取作品信息线程%s号，收到任务，作品id：%s，获取完成" % (TaskId, art_id))
+            except Exception as TError:
+                Log.error(TError)
             finally:
-                self.IllustIdQueue.task_done()
+                self.artid_queue.task_done()
 
     async def task(self):
         if not await self.is_logged_in():
@@ -178,164 +126,148 @@ class Pixiv:
             task_main = asyncio.ensure_future(self.GetIllustInformation(i))
             self.GetIllustInformationTasks.append(task_main)
 
-        name = "原神"
-
-        p = 1
+        # 1. Search artworks by keyword
+        search_keyword = "原神"
+        page = 1
         total = 0
+        all_popular_id = set()
         while True:
-            search_get_url = search_url % (parse.quote(name), parse.quote(name), p)
-            today = str(datetime.date.today())
-            SevenDaysAgo = str(datetime.date.today() + datetime.timedelta(-7))
-            search_get_url += "&scd=%s&ecd=%s" % (today, SevenDaysAgo)
-            search_req = await self.client.ARequest_json("GET", search_get_url, headers=self.headers)
-
-            if search_req.code != 0:
-                Log.debug(search_req.message)
-                return
-
-            permanent_list = search_req.data["body"]["popular"]["permanent"]
-            recent_list = search_req.data["body"]["popular"]["recent"]
-            illustManga_list = search_req.data["body"]["illustManga"]["data"]
-            illustManga_total = search_req.data["body"]["illustManga"]["total"]
-
-            for temp_list in permanent_list:
-                iid = temp_list["id"]
-                if not iid in self.popularList:
-                    self.popularList.append(iid)
-
-            for temp_list in recent_list:
-                iid = temp_list["id"]
-                if not iid in self.popularList:
-                    self.popularList.append(iid)
-
-            for illustManga_data in illustManga_list:
-                if "isAdContainer" in illustManga_data:
-                    continue
-                try:
-                    self.IllustIdQueue.put_nowait({"id": illustManga_data["id"]})
-                    # self.IllustIdList.append({"id": illustManga_data["id"]})
-                except BaseException as err:
-                    Log.error("读取数据处理错误，错误信息如下")
-                    Log.error(err)
-                    Log.debug("错误数据信息如下")
-                    Log.debug(illustManga_data)
-                    continue
-                total = total + 1
-            if illustManga_total == total:
+            search_result = await self.search_artwork(search_keyword, page)
+            all_popular_id = all_popular_id.union(
+                                search_result.get_all_popular_permanent_id(),
+                                search_result.get_all_popular_recent_id())
+            for art_id in search_result.get_all_illust_manga_id():
+                self.artid_queue.put_nowait({"id": art_id})
+            total += search_result.get_illust_manga_count()
+            if total >= search_result.total:
                 break
-            p = p + 1
+            page += 1
 
-        try:
-            for temp_id in self.popularList:
-                self.IllustIdQueue.put_nowait({"id": temp_id})
-                # self.IllustIdList.append({"id": temp_id})
-        except BaseException as err:
-            Log.error("写入数据处理错误，错误信息如下")
-            Log.error(err)
+        for art_id in all_popular_id:
+            self.artid_queue.put_nowait({"id": art_id})
 
-        recommend_mun = 0  # 根据人气作品寻找推荐作品
-        for temp_id in self.popularList:
-            recommend_get_url = recommend_url % temp_id
+        # 2. Search artwork by recommendation
+        all_recommend_id = set()
+        recommend_num = 0
+        for art_id in all_popular_id:
+            recommend_result = await self.get_recommendation(art_id)
+            recommend_id = recommend_result.get_all_illust_id(lambda x: "原神" in x.get("tags", ""))
+            recommend_num += len(recommend_id)
+            all_recommend_id = all_recommend_id.union(recommend_id)
+        recommend_int = min(36, len(all_recommend_id))
+        rec_tuple = tuple(all_recommend_id)
+        all_recommend_id = set(secrets.choice(rec_tuple) for i in range(recommend_int))
 
-            search_req = await self.client.ARequest_json("GET", recommend_get_url, headers=self.headers)
+        for art_id in all_recommend_id:
+            self.artid_queue.put_nowait({"id": art_id})
 
-            if search_req.code != 0:
-                Log.debug(search_req.message)
-                continue
-            recommend_illusts = search_req.data["body"]["illusts"]
-
-            for illustdata_temp in recommend_illusts:
-                if "isAdContainer" in illustdata_temp:
-                    continue
-                if "原神" in illustdata_temp["tags"]:
-                    try:
-                        self.recommendList.append(illustdata_temp["id"])
-                    except BaseException as err:
-                        Log.error("读取数据处理错误，错误信息如下")
-                        Log.error(err)
-                        Log.debug("错误数据信息如下")
-                        Log.debug(illustdata_temp)
-                        continue
-                    recommend_mun += 1
-
-        recommend_int = 36
-        for i in range(recommend_int):  # 随机选择18个作品
-            temp_id = secrets.choice(self.recommendList)
-            try:
-                self.IllustIdQueue.put_nowait({"id": temp_id})
-                # self.IllustIdList.append({"id": temp_id})
-            except BaseException as err:
-                Log.error("读取数据处理错误，错误信息如下")
-                Log.error(err)
-                continue
-
+        # 3. Wait for artwork details
         Log.info(
-            "7天一共有%s个普通作品，%s个热门作品，%s个推荐作品，随机选择推荐作品%s个" % (total, len(self.popularList), recommend_mun, recommend_int))
-
+            "7天一共有%s个普通作品，%s个热门作品，%s个推荐作品，随机选择推荐作品%s个" % (
+                total, len(all_recommend_id), recommend_num, recommend_int)
+        )
         Log.info("等待作业完成")
-        await self.IllustIdQueue.join()
-        self.IllustIdQueue.put_nowait({"status": "close"})
-        # self.IllustIdList.append({"status": "close"})
+        await self.artid_queue.join()
+        self.artid_queue.put_nowait({"status": "close"})
         await asyncio.wait(self.GetIllustInformationTasks)
         Log.info("作业完成")
 
-        self.illustDataList.sort(key=lambda i: i['love'], reverse=True)  # 排序
+        # 4. Filter artwork based on stats
+        artwork_list = sorted(self.artwork_list, key=lambda i: i.love_count, reverse=True)  # 排序
+        finalized_artworks = self.filter_artwork(artwork_list)
 
-        sql_query_data = []
-        for illust_data in self.illustDataList:
-            tags = illust_data["tags"]
-            RStr = "R-18"
-            filterStrTemp = RStr.lower()
-            TagsTemp = tags.lower()
-            if TagsTemp.rfind(filterStrTemp) != -1:  # 要求提升2倍
-                if illust_data["love"] < 2000:
-                    continue
-            correctA = (time.time() - illust_data["upload_timestamp"]) / 24 / 60 / 60 * 100
-            if 10 <= correctA <= 300 and illust_data["love"] >= 700:
-                if illust_data["love"] < 1000 - correctA:
-                    continue
-            else:
-                if illust_data["love"] < 1000:
-                    continue
-            if illust_data["love"] < 1000:
-                Log.debug(
-                    "illust id %s title %s love %s" % (illust_data["id"], illust_data["title"], illust_data["love"]))
-            Log.debug("作品标题：%s，作品id：%s，收藏：%s" % (illust_data["title"], illust_data["id"], illust_data["love"]))
-
-            query_data = (int(illust_data["id"]), illust_data["title"], illust_data["tags"],
-                    int(illust_data["view"]), int(illust_data["like"]), illust_data["love"],
-                    int(illust_data["user_id"]), illust_data["upload_timestamp"])
-            sql_query_data.append(query_data)
-
-        query = f"""
-            INSERT INTO `{self.pixiv_table}` (
-                illusts_id, title, tags, view_count, like_count, love_count, user_id, upload_timestamp
-            ) VALUES (
-                %s, %s, %s, %s, %s, %s, %s, %s
-            ) ON DUPLICATE KEY UPDATE
-                title=VALUES(title),
-                tags=VALUES(tags),
-                view_count=VALUES(view_count),
-                like_count=VALUES(like_count),
-                love_count=VALUES(love_count),
-                user_id=VALUES(user_id);
-        """
+        # 5. Write to database
         try:
             Log.info("写入数据库...")
-            await self.cur.executemany(query, sql_query_data)
-            rowcount = self.cur.rowcount
-            await self.conn.commit()
-            # Log.debug("作品id：%s，获取信息成功并写入数据库" % (illust_data["id"]))
+            rowcount = await self.repository.save_artwork_many(finalized_artworks)
+            Log.info(result)
             Log.info("写入完成, rows affected=%s" % rowcount)
-        except BaseException as TError:
-            await self.conn.rollback()
+        except Exception as TError:
             Log.warning("写入数据库发生错误")
             Log.error(TError)
+
+    def _get_headers(self, art_id: int = None):
+        if not art_id:
+            art_id = ""
+        return {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                          "(KHTML, like Gecko) Chrome/90.0.4430.72 Safari/537.36",
+            "Referer": f"https://www.pixiv.net/{art_id}",
+            "Cookie": self.cookie,
+        }
+
+    def _get_search_url(self,
+                        search_str: str,
+                        search_page: int,
+                        from_date: datetime.date = None,
+                        to_date: datetime.date = None) -> str:
+        s = parse.quote(search_str)
+        date_range = ""
+        if from_date and to_date:
+            date_range = "&scd=%s&ecd=%s" % (to_date, from_date)
+        return self.SEARCH_API % (s, s, search_page) + date_range
+
+    def _get_recommend_url(self, art_id: int) -> str:
+        return self.RECOMMEND_API % art_id
+
+    def _get_details_url(self, art_id: int) -> str:
+        return self.DETAILS_API % art_id
+
+    async def search_artwork(self, keyword, page) -> SearchResult:
+        today = datetime.date.today()
+        seven_days_ago = datetime.date.today() + datetime.timedelta(-7)
+        search_url = self._get_search_url(keyword, page, from_date=seven_days_ago, to_date=today)
+        search_res = await self.client.ARequest_json("GET", search_url, headers=self._get_headers())
+        if search_res.code != 0:
+            return
+        search_result = CreateSearchResultFromAPIResponse(search_res.data)
+        return search_result
+
+    def extract_id_from_search_result(self, search_result: SearchResult) -> Set[int]:
+        res = search_result
+        return set().union(
+                res.get_all_popular_permanent_id(),
+                res.get_all_popular_recent_id(),
+                res.get_all_illust_manga_id())
+
+    async def get_recommendation(self, art_id: int) -> RecommendResult:
+        recommend_url = self.RECOMMEND_API % art_id
+        recommend_res = await self.client.ARequest_json("GET", recommend_url, headers=self._get_headers())
+        if recommend_res.code != 0:
+            return
+        recommend_result = CreateRecommendResultFromAPIResponse(recommend_res.data)
+        return recommend_result
+
+    async def download_artwork_info(self, art_id: int) -> ArtworkInfo:
+        details_url = self._get_details_url(art_id)
+        details_res = await self.client.ARequest_json("GET", details_url, headers=self._get_headers())
+        if details_res.code != 0:
+            return None
+        artwork_info = CreateArtworkInfoFromAPIResponse(details_res.data)
+        return artwork_info
+
+    def filter_artwork(self, artwork_list: Iterable[ArtworkInfo]) -> Iterable[ArtworkInfo]:
+        r18_regex = re.compile(r"R.?18", re.I)
+        result = []
+        for artwork_info in artwork_list:
+            tags = artwork_info.tags
+            if r18_regex.search(tags) is not None:  # 要求提升2倍
+                if artwork_info.love_count < 2000:
+                    continue
+            days_hundred_fold = (time.time() - artwork_info.upload_timestamp) / 24 / 60 / 60 * 100
+            if 10 <= days_hundred_fold <= 300 and artwork_info.love_count >= 700:
+                if artwork_info.love_count < 1000 - days_hundred_fold:
+                    continue
+            else:
+                if artwork_info.love_count < 1000:
+                    continue
+            result.append(artwork_info)
+        return result
 
 
 def CreateArtworkInfoFromAPIResponse(data) -> ArtworkInfo:
     """
-    Maps API json response to ArtworkInfo
+    Maps pixiv artwork info API json response to ArtworkInfo
     """
     details = data["body"].get("illust_details", None)
     if details is None:
@@ -353,6 +285,85 @@ def CreateArtworkInfoFromAPIResponse(data) -> ArtworkInfo:
     )
 
 
+def CreateSearchResultFromAPIResponse(data) -> SearchResult:
+    """
+    Maps pixiv search API json response to SearchResult
+    """
+    if not data.get("body"):
+        return None
+    if data.get("error"):
+        return None
+    popular_permanent = data["body"]["popular"]["permanent"]
+    popular_recent = data["body"]["popular"]["recent"]
+    illust_manga = data["body"]["illustManga"]["data"]
+    illust_manga_total = data["body"]["illustManga"]["total"]
+    return SearchResult(
+        total=illust_manga_total,
+        popular_permanent=popular_permanent,
+        popular_recent=popular_recent,
+        illust_manga=illust_manga,
+    )
+
+
+def CreateRecommendResultFromAPIResponse(data) -> RecommendResult:
+    """
+    Maps pixiv recommend API json response to RecommendResult
+    """
+    if not data.get("body"):
+        return None
+    if data.get("error"):
+        return None
+    illusts = data["body"]["illusts"]
+    next_ids = data["body"]["nextIds"]
+    return RecommendResult(illusts=illusts, next_ids=next_ids)
+
+
+class SearchResult:
+
+    def __init__(self, total: int, popular_permanent = None, popular_recent = None,
+                 illust_manga = None):
+        self.total = total
+        self.popular_permanent = popular_permanent
+        self.popular_recent = popular_recent
+        self.illust_manga = illust_manga
+
+    def get_all_popular_permanent_id(self) -> Set[int]:
+        if not self.popular_permanent:
+            return set()
+        return set(info["id"] for info in self.popular_permanent if info.get("id"))
+
+    def get_all_popular_recent_id(self) -> Set[int]:
+        if not self.popular_recent:
+            return set()
+        return set(info["id"] for info in self.popular_recent if info.get("id"))
+
+    def get_all_illust_manga_id(self) -> Set[int]:
+        if not self.illust_manga:
+            return set()
+        return set(info["id"] for info in self.illust_manga if info.get("isAdContainer") is None)
+
+    def get_illust_manga_count(self) -> int:
+        if not self.illust_manga:
+            return 0
+        return len(self.illust_manga)
+
+
+class RecommendResult:
+
+    def __init__(self, illusts = None, next_ids = None):
+        self.illusts = illusts
+        self.next_ids = tuple(next_ids) if next_ids is not None else tuple()
+
+    def get_all_illust_id(self, fn: Callable[[Any], bool]) -> Set[int]:
+        if not self.illusts:
+            return set()
+        if not fn:
+            fn = lambda _: True
+        return set(info["id"] for info in self.illusts
+                   if info.get("isAdContainer") is None
+                   and fn(info))
+
+
 class Repository:
 
     def __init__(self, sql_config = None):
@@ -361,24 +372,36 @@ class Repository:
         self.pixiv_table = "genshin_pixiv"
         self.pixiv_audit_table = "genshin_pixiv_audit"
 
+    async def close(self):
+        if self.sql_pool is None:
+            return
+        pool = self.sql_pool
+        pool.close()
+        self.sql_pool = None
+        await pool.wait_closed()
+
     async def _get_pool(self):
         if self.sql_pool is None:
             self.sql_pool = await aiomysql.create_pool(**self.sql_config)
         return self.sql_pool
 
     async def _executemany(self, query, query_args):
-        async with (await self._get_pool()) as conn:
+        pool = await self._get_pool()
+        async with pool.acquire() as conn:
             sql_cur = await conn.cursor()
             await sql_cur.executemany(query, query_args)
             rowcount = sql_cur.rowcount
+            await sql_cur.close()
             await conn.commit()
         return rowcount
 
     async def _execute_and_fetchall(self, query, query_args):
-        async with (await self._get_pool()) as conn:
+        pool = await self._get_pool()
+        async with pool.acquire() as conn:
             sql_cur = await conn.cursor()
             await sql_cur.execute(query, query_args)
             result = await sql_cur.fetchall()
+            await sql_cur.close()
             await conn.commit()
         return result
 
@@ -394,13 +417,14 @@ class Repository:
             HAVING count>%s;
         """
         query_args = (AuditStatus.PASS.value, AuditStatus.PUSH.value, num)
+        return await self._execute_and_fetchall(query, query_args)
 
     async def save_artwork_many(self, artwork_list: Iterable[ArtworkInfo]) -> int:
         """
         Save artworks into table. Returns affected rows (not the number of inserted work)
         """
         query = f"""
-            INERT INTO `{self.pixiv_table}` (
+            INSERT INTO `{self.pixiv_table}` (
                 illusts_id, title, tags, view_count, like_count, love_count,
                 user_id, upload_timestamp
             ) VALUES (
@@ -419,6 +443,7 @@ class Repository:
              a.love_count, a.author_id, a.upload_timestamp)
             for a in artwork_list
         )
+        return await self._executemany(query, query_args)
 
 
 # 测试使用
@@ -436,11 +461,8 @@ if __name__ == "__main__":
         pixiv_cookie=config.PIXIV["cookie"],
     )
 
-    Task_list = {
-        pixiv.work(loop)
-    }
     loop.run_until_complete(
-        asyncio.wait(pixiv.work(loop))
+        pixiv.work(loop, sleep_time=-1)
     )
 
     loop.close()
