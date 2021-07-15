@@ -48,7 +48,7 @@ class PixivCache:
     def _artwork_to_dict(self, artwork_audit_list: Iterable[ArtworkInfo]):
         arts_dict = dict()
         for artwork in artwork_audit_list:
-            key = ujson.dumps([artwork.id, artwork.art_id])
+            key = f"{artwork.art_id}"
             arts_dict[key] = artwork.to_json()
         return arts_dict
 
@@ -91,7 +91,9 @@ class PixivCache:
             result = pipe.srem(qname.pending, art_key)
             pipe.multi()
             if result == 1:
-                return pipe.sadd(qname.audit, art_key)
+                pipe.sadd(qname.audit, art_key)
+                pipe.expire(qname.pending, self.ttl)
+                return 1
             return 0
         return self.rdb.transaction(update_queue, qname.audit, value_from_callable=True)
 
@@ -106,13 +108,17 @@ class PixivCache:
             if art_key is not None:
                 pipe.srem(qname.audit, art_key)
                 pipe.sadd(qname.pending, art_key)
+                pipe.expire(qname.pending, self.ttl)
             pipe.expire(self.artwork_info, self.ttl)
             return art
         return self.rdb.transaction(update_queue, qname.audit, qname.pending, value_from_callable=True)
 
     def remove_pending_audit(self, audit_type, art_key: str):
         qname = QueueName(audit_type, self.key_prefix)
-        self.rdb.srem(qname.pending, art_key)
+        with self.rdb.pipeline(transaction=True) as pipe:
+            pipe.srem(qname.pending, art_key) \
+                .expire(qname.pending, self.ttl) \
+                .execute()
 
     def add_push(self, audit_type: AuditType, artwork_audit_list: Iterable[ArtworkInfo]) -> int:
         qname = QueueName(audit_type, self.key_prefix)
@@ -120,10 +126,10 @@ class PixivCache:
         if len(arts_to_add) > 0:
             with self.rdb.pipeline(transaction=True) as pipe:
                 _, art_count, _, _ = pipe.sadd(qname.push, *arts_to_add.keys()) \
-                                          .scard(qname.push) \
-                                          .hmset(self.artwork_info, arts_to_add) \
-                                          .expire(self.artwork_info, self.ttl) \
-                                          .execute()
+                                         .scard(qname.push) \
+                                         .hmset(self.artwork_info, arts_to_add) \
+                                         .expire(self.artwork_info, self.ttl) \
+                                         .execute()
                 return art_count
         return 0
 
