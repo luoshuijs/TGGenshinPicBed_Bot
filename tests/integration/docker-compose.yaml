@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+
+  mysql:
+    image: "mariadb:10"
+    logging:
+      driver: none
+    environment:
+      - MYSQL_ROOT_HOST=%
+      - MYSQL_ROOT_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+
+  redis:
+    image: "redis:6.2"
+    logging:
+      driver: none
+
+  test:
+    build:
+      context: "../../"
+      dockerfile: "tests/integration/Dockerfile"
+    environment:
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=${MYSQL_PORT}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DATABASE=0
+      - PIXIV_COOKIE=${PIXIV_COOKIE}
+    depends_on:
+      - mysql
+      - redis

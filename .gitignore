@@ -15,6 +15,7 @@
 !.gitignore
 !README.md
 
+.env
 .idea
 venv
 **/logs
