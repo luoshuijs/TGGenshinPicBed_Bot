@@ -49,7 +49,7 @@ class PixivRepository:
     def _get_transformers(self, audit_type: AuditType):
         return Transformer.combine(Transformer.audit_type(audit_type), Transformer.r18_type())
 
-    def get_art_by_artid(self, art_id: int, result_transormers):
+    def get_art_by_artid(self, art_id: int, result_transormers = None):
         query = f"""
             SELECT id, illusts_id, title, tags, view_count,
                    like_count, love_count, user_id, upload_timestamp,
