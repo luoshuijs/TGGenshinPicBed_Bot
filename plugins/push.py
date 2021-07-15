@@ -97,7 +97,7 @@ class PushHandler:
                         for _, img in enumerate(images[1:10]):
                             media.append(InputMediaPhoto(img.data, parse_mode=ParseMode.MARKDOWN_V2))
                         sendReq = context.bot.send_media_group(char_id, media)
-                        time.sleep(len(media))
+                        time.sleep(len(media) * 2)
                     elif len(images) == 1:
                         photo = images[0].data
                         sendReq = context.bot.send_photo(char_id, photo, caption=caption,
