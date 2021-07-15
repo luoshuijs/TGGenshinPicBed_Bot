@@ -1,6 +1,7 @@
 import unittest
 import os
 import pathlib
+from redis import Redis
 from mysql.connector import connect
 from src.production.pixiv import PixivService
 
@@ -30,22 +31,66 @@ class TestPixivService(unittest.TestCase):
             "redis_config": redis_config,
             "px_config": px_config,
         }
-        cls.sql_file = pathlib.Path(__file__).parent.joinpath("./data.sql").resolve()
-        with open(cls.sql_file) as f:
+        cls.sql_connection = connect(**sql_config)
+        cls.redis_connection = Redis(**redis_config)
+        sql_file = pathlib.Path(__file__).parent.joinpath("./data.sql").resolve()
+        with open(sql_file) as f:
             lines = f.read()
             statements = lines.split(';')
             cls.statements = tuple(s for s in statements if len(s.strip()) > 0)
 
+    @classmethod
+    def tearDownClass(cls):
+        cls.sql_connection.close()
+
     def setUp(self):
         self.service = PixivService(**self.config)
-        sql_connection = connect(**self.config["sql_config"])
-        with sql_connection.cursor() as cur:
+        with self.sql_connection.cursor() as cur:
             for statement in self.statements:
                 cur.execute(statement)
-                sql_connection.commit()
+                self.sql_connection.commit()
+
+    def tearDown(self):
+        self.redis_connection.flushall()
 
     def test_no_op(self):
         pass
 
-    def test_no_op_2(self):
+    def test_approve_sfw_artwork_does_succeed(self):
+        pass
+
+    def test_approve_nsfw_artwork_does_succeed(self):
+        pass
+
+    def test_approve_r18_artwork_does_succeed(self):
+        pass
+
+    def test_reject_sfw_artwork_does_succeed(self):
+        pass
+
+    def test_reject_nsfw_artwork_does_succeed(self):
+        pass
+
+    def test_reject_r18_artwork_does_succeed(self):
+        pass
+
+    def test_reject_sfw_artwork_for_nsfw_reason_does_succeed(self):
+        pass
+
+    def test_reject_sfw_artwork_for_r18_reason_does_succeed(self):
+        pass
+
+    def test_reject_nsfw_artwork_for_r18_reason_does_succeed(self):
+        pass
+
+    def test_push_sfw_artwork_does_succeed(self):
+        pass
+
+    def test_push_nsfw_artwork_does_succeed(self):
+        pass
+
+    def test_push_r18_artwork_does_succeed(self):
+        pass
+
+    def test_putback_artwork_does_succeed(self):
         pass

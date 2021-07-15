@@ -21,11 +21,11 @@ CREATE TABLE `genshin_pixiv` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO `genshin_pixiv` VALUES (
-    1,90751154,'甘雨','#甘雨(原神)#甘雨#原神#GenshinImpact#チャイナドレス#尻神様#原神5000users入り#可愛い女の子',25505,5476,8929,25447095,1624417521
+  226,90829805,'バーバラ水着','#原神#バーバラ#バーバラ(原神)#サマータイムスパークル#原神1000users入り',3530,783,1165,6649124,1624716761
 ),(
-    258,90880870,'ジン','#R-18#原神#ジン#尻神様#後背位#ジン・グンヒルド#金髪#ジン(原神)#蒸れ',125219,13121,20180,464063,1624892412
+  426,90912717,'胡桃','#GenshinImpact#原神#胡桃(原神)#胡桃#HuTao',3521,535,1110,8333579,1625037074
 ),(
-    310,90901859,'甘雨','#R-18#GenshinImpact#原神#甘雨(原神)#魅惑のふともも#sex',10458,1486,2557,62776999,1624978812
+  3038,91160535,'Raiden Shogun','#R-18#Baal#GenshinImpact#バアル#雷電将軍,#raidenshogun#原神#雷電将軍(原神)',8377,921,2049,70617660,1625948170
 );
 
 CREATE TABLE `examine` (
@@ -41,6 +41,14 @@ CREATE TABLE `examine` (
   KEY `examine_ibfk_1` (`gp_id`,`gp_illusts_id`),
   CONSTRAINT `examine_ibfk_1` FOREIGN KEY (`gp_id`, `gp_illusts_id`) REFERENCES `genshin_pixiv` (`id`, `illusts_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO `examine` VALUES (
+  1763,226,90829805,'SFW',NULL,NULL,0
+),(
+  1738,426,90912717,'NSFW',NULL,'NSFW',0
+),(
+  1740,3038,91160535,'R18',NULL,'R18',0
+);
 
 CREATE VIEW `genshin_pixiv_audit`
 AS SELECT gp.id, gp.illusts_id, gp.title, gp.tags, gp.view_count,
