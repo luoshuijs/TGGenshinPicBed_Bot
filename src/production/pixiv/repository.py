@@ -100,18 +100,16 @@ class PixivRepository:
     def apply_update(self, update: ArtworkStatusUpdate):
         query = rf"""
             INSERT INTO `{self.audit_table}` (
-                gp_id, gp_illusts_id, type, status, reason
+                illusts_id, type, status, reason
             ) VALUES (
-                %s, %s, %s, %s, %s
+                %s, %s, %s, %s
             ) ON DUPLICATE KEY UPDATE
-                gp_id=VALUES(gp_id),
-                gp_illusts_id=VALUES(gp_illusts_id),
                 type=VALUES(type),
                 status=VALUES(status),
                 reason=VALUES(reason);
         """
         audit_info = update.audit_info
-        query_args = (audit_info.gp_id, audit_info.gp_art_id, update.new_type, update.new_status, update.new_reason)
+        query_args = (audit_info.gp_art_id, update.new_type, update.new_status, update.new_reason)
         return self._execute_and_fetchall(query, query_args)
 
     def save_art_one(self, artwork_info: ArtworkInfo):
