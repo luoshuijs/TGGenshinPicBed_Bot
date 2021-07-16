@@ -77,7 +77,7 @@ class PixivCache:
                                                .sdiffstore(qname.audit, qname.diff, qname.pending) \
                                                .scard(qname.audit) \
                                                .delete(qname.diff) \
-                                               .hmset(self.artwork_info, arts_to_add) \
+                                               .hset(self.artwork_info, mapping=arts_to_add) \
                                                .expire(self.artwork_info, self.ttl) \
                                                .execute()
                 return art_count
@@ -127,7 +127,7 @@ class PixivCache:
             with self.rdb.pipeline(transaction=True) as pipe:
                 _, art_count, _, _ = pipe.sadd(qname.push, *arts_to_add.keys()) \
                                          .scard(qname.push) \
-                                         .hmset(self.artwork_info, arts_to_add) \
+                                         .hset(self.artwork_info, mapping=arts_to_add) \
                                          .expire(self.artwork_info, self.ttl) \
                                          .execute()
                 return art_count

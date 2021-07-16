@@ -20,14 +20,6 @@ CREATE TABLE `genshin_pixiv` (
   UNIQUE KEY `illusts_id` (`illusts_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO `genshin_pixiv` VALUES (
-  226,90829805,'バーバラ水着','#原神#バーバラ#バーバラ(原神)#サマータイムスパークル#原神1000users入り',3530,783,1165,6649124,1624716761
-),(
-  426,90912717,'胡桃','#GenshinImpact#原神#胡桃(原神)#胡桃#HuTao',3521,535,1110,8333579,1625037074
-),(
-  3038,91160535,'Raiden Shogun','#R-18#Baal#GenshinImpact#バアル#雷電将軍,#raidenshogun#原神#雷電将軍(原神)',8377,921,2049,70617660,1625948170
-);
-
 CREATE TABLE `examine` (
   `illusts_id` bigint(11) unsigned NOT NULL COMMENT 'Pixiv artwork id',
   `type` VARCHAR(255) DEFAULT NULL COMMENT '审核类型(Audit type): SFW, NSFW, R18',
@@ -37,14 +29,6 @@ CREATE TABLE `examine` (
   PRIMARY KEY (`illusts_id`),
   CONSTRAINT `examine_ibfk_1` FOREIGN KEY (`illusts_id`) REFERENCES `genshin_pixiv` (`illusts_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-INSERT INTO `examine` VALUES (
-  90829805,'SFW',NULL,NULL,0
-),(
-  90912717,'NSFW',NULL,'NSFW',0
-),(
-  91160535,'R18',NULL,'R18',0
-);
 
 CREATE VIEW `genshin_pixiv_audit`
 AS SELECT gp.id, gp.illusts_id, gp.title, gp.tags, gp.view_count,

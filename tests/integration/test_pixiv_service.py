@@ -1,9 +1,12 @@
-import unittest
+import re
 import os
 import pathlib
+import unittest
+from unittest.mock import MagicMock
 from redis import Redis
 from mysql.connector import connect
 from src.production.pixiv import PixivService
+from src.model.artwork import ArtworkInfo, AuditInfo, AuditType, AuditStatus
 
 
 class TestPixivService(unittest.TestCase):
@@ -33,11 +36,16 @@ class TestPixivService(unittest.TestCase):
         }
         cls.sql_connection = connect(**sql_config)
         cls.redis_connection = Redis(**redis_config)
-        sql_file = pathlib.Path(__file__).parent.joinpath("./data.sql").resolve()
-        with open(sql_file) as f:
+        create_file = pathlib.Path(__file__).parent.joinpath("./create.sql").resolve()
+        reset_file = pathlib.Path(__file__).parent.joinpath("./reset.sql").resolve()
+        with open(create_file) as f:
             lines = f.read()
             statements = lines.split(';')
-            cls.statements = tuple(s for s in statements if len(s.strip()) > 0)
+            cls.create_statements = tuple(s for s in statements if len(s.strip()) > 0)
+        with open(reset_file) as f:
+            lines = f.read()
+            statements = lines.split(';')
+            cls.reset_statements = tuple(s for s in statements if len(s.strip()) > 0)
 
     @classmethod
     def tearDownClass(cls):
@@ -45,52 +53,450 @@ class TestPixivService(unittest.TestCase):
 
     def setUp(self):
         self.service = PixivService(**self.config)
-        with self.sql_connection.cursor() as cur:
-            for statement in self.statements:
-                cur.execute(statement)
-                self.sql_connection.commit()
+        self.service.pixivdownloader = MagicMock()
+        self.service.pixivdownloader.download_images = MagicMock(return_value=[])
 
     def tearDown(self):
         self.redis_connection.flushall()
+        with self.sql_connection.cursor() as cur:
+            for statement in self.reset_statements:
+                cur.execute(statement)
+                self.sql_connection.commit()
 
     def test_no_op(self):
         pass
 
     def test_approve_sfw_artwork_does_succeed(self):
-        pass
+        # 1. Setup
+        data = {
+            "art_id": 90751154,
+            "title": "甘雨",
+            "tags": "#甘雨(原神)#甘雨#原神#GenshinImpact#チャイナドレス#尻神様#原神5000users入り#可愛い女の子",
+            "view_count": 25505,
+            "like_count": 5476,
+            "love_count": 8929,
+            "author_id": 25447095,
+            "upload_timestamp": 1624417521,
+        }
+        new_artwork = ArtworkInfo(**data)
+        self.create_artwork(new_artwork)
+        # 2. Execute
+        self.service.audit_start(AuditType.SFW)
+        artwork_info_for_audit, images = self.service.audit_next(AuditType.SFW)
+        self.service.audit_approve(AuditType.SFW, artwork_info_for_audit.art_id)
+        # 3. Compare
+        artwork_info = self.get_artwork(data["art_id"])
+        audit_info = artwork_info.audit_info
+        self.assertEqual(artwork_info.art_id, data["art_id"])
+        self.assertEqual(audit_info.audit_status, AuditStatus.PASS)
+        self.assertEqual(audit_info.audit_type, AuditType.SFW)
 
     def test_approve_nsfw_artwork_does_succeed(self):
-        pass
+        # 1. Setup
+        data = {
+            "art_id": 90254397,
+            "title": "七七(原神)",
+            "tags": "#女の子#少女소녀#七七(原神)#七七#原神#足指#ソックス足裏#足裏",
+            "view_count": 12767,
+            "like_count": 2813,
+            "love_count": 4321,
+            "author_id": 13556121,
+            "upload_timestamp": 1622550132,
+        }
+        new_artwork = ArtworkInfo(**data)
+        new_audit = AuditInfo(0, 0, data["art_id"], audit_type=AuditType.NSFW, audit_status=AuditStatus.INIT)
+        self.create_artwork(new_artwork)
+        self.create_audit_info(new_audit)
+        # 2. Execute
+        self.service.audit_start(AuditType.NSFW)
+        artwork_info_for_audit, images = self.service.audit_next(AuditType.NSFW)
+        self.service.audit_approve(AuditType.NSFW, artwork_info_for_audit.art_id)
+        # 3. Compare
+        artwork_info = self.get_artwork(data["art_id"])
+        audit_info = artwork_info.audit_info
+        self.assertEqual(artwork_info.art_id, data["art_id"])
+        self.assertEqual(audit_info.audit_status, AuditStatus.PASS)
+        self.assertEqual(audit_info.audit_type, AuditType.NSFW)
 
     def test_approve_r18_artwork_does_succeed(self):
-        pass
+        # 1. Setup
+        data = {
+            "art_id": 91008306,
+            "title": "ganqing?? その2",
+            "tags": "#R-18#原神#刻晴#甘雨#百合#ganqing#刻甘#甘雨(原神)",
+            "view_count": 11600,
+            "like_count": 1830,
+            "love_count": 3042,
+            "author_id": 1238753,
+            "upload_timestamp": 1625387844,
+        }
+        new_artwork = ArtworkInfo(**data)
+        self.create_artwork(new_artwork)
+        # 2. Execute
+        self.service.audit_start(AuditType.R18)
+        artwork_info_for_audit, images = self.service.audit_next(AuditType.R18)
+        self.service.audit_approve(AuditType.R18, artwork_info_for_audit.art_id)
+        # 3. Compare
+        artwork_info = self.get_artwork(data["art_id"])
+        audit_info = artwork_info.audit_info
+        self.assertEqual(artwork_info.art_id, data["art_id"])
+        self.assertEqual(audit_info.audit_status, AuditStatus.PASS)
+        self.assertEqual(audit_info.audit_type, AuditType.R18)
+
+    def test_audit_cancel_does_succeed(self):
+        # 1. Setup
+        data = {
+            "art_id": 91008306,
+            "title": "ganqing?? その2",
+            "tags": "#R-18#原神#刻晴#甘雨#百合#ganqing#刻甘#甘雨(原神)",
+            "view_count": 11600,
+            "like_count": 1830,
+            "love_count": 3042,
+            "author_id": 1238753,
+            "upload_timestamp": 1625387844,
+        }
+        new_artwork = ArtworkInfo(**data)
+        self.create_artwork(new_artwork)
+        # 2. Execute
+        self.service.audit_start(AuditType.R18)
+        artwork_info_for_audit, images = self.service.audit_next(AuditType.R18)
+        self.service.audit_cancel(AuditType.R18, artwork_info_for_audit.art_id)
+        artwork_info_for_audit, images = self.service.audit_next(AuditType.R18)
+        self.service.audit_approve(AuditType.R18, artwork_info_for_audit.art_id)
+        # 3. Compare
+        artwork_info = self.get_artwork(data["art_id"])
+        audit_info = artwork_info.audit_info
+        self.assertEqual(artwork_info.art_id, data["art_id"])
+        self.assertEqual(audit_info.audit_status, AuditStatus.PASS)
+        self.assertEqual(audit_info.audit_type, AuditType.R18)
 
     def test_reject_sfw_artwork_does_succeed(self):
-        pass
+        # 1. Setup
+        data = {
+            "art_id": 90751154,
+            "title": "甘雨",
+            "tags": "#甘雨(原神)#甘雨#原神#GenshinImpact#チャイナドレス#尻神様#原神5000users入り#可愛い女の子",
+            "view_count": 25505,
+            "like_count": 5476,
+            "love_count": 8929,
+            "author_id": 25447095,
+            "upload_timestamp": 1624417521,
+        }
+        reason = "一般"
+        new_artwork = ArtworkInfo(**data)
+        self.create_artwork(new_artwork)
+        # 2. Execute
+        self.service.audit_start(AuditType.SFW)
+        artwork_info_for_audit, images = self.service.audit_next(AuditType.SFW)
+        self.service.audit_reject(AuditType.SFW, artwork_info_for_audit.art_id, reason)
+        # 3. Compare
+        artwork_info = self.get_artwork(data["art_id"])
+        audit_info = artwork_info.audit_info
+        self.assertEqual(artwork_info.art_id, data["art_id"])
+        self.assertEqual(audit_info.audit_reason, reason)
+        self.assertEqual(audit_info.audit_status, AuditStatus.REJECT)
+        self.assertEqual(audit_info.audit_type, AuditType.SFW)
 
     def test_reject_nsfw_artwork_does_succeed(self):
-        pass
+        # 1. Setup
+        data = {
+            "art_id": 90254397,
+            "title": "七七(原神)",
+            "tags": "#女の子#少女소녀#七七(原神)#七七#原神#足指#ソックス足裏#足裏",
+            "view_count": 12767,
+            "like_count": 2813,
+            "love_count": 4321,
+            "author_id": 13556121,
+            "upload_timestamp": 1622550132,
+        }
+        reason = "一般"
+        new_artwork = ArtworkInfo(**data)
+        new_audit = AuditInfo(0, 0, data["art_id"], audit_type=AuditType.NSFW, audit_status=AuditStatus.INIT)
+        self.create_artwork(new_artwork)
+        self.create_audit_info(new_audit)
+        # 2. Execute
+        self.service.audit_start(AuditType.NSFW)
+        artwork_info_for_audit, images = self.service.audit_next(AuditType.NSFW)
+        self.service.audit_reject(AuditType.NSFW, artwork_info_for_audit.art_id, reason)
+        # 3. Compare
+        artwork_info = self.get_artwork(data["art_id"])
+        audit_info = artwork_info.audit_info
+        self.assertEqual(artwork_info.art_id, data["art_id"])
+        self.assertEqual(audit_info.audit_reason, reason)
+        self.assertEqual(audit_info.audit_status, AuditStatus.REJECT)
+        self.assertEqual(audit_info.audit_type, AuditType.NSFW)
 
     def test_reject_r18_artwork_does_succeed(self):
-        pass
+        # 1. Setup
+        data = {
+            "art_id": 91008306,
+            "title": "ganqing?? その2",
+            "tags": "#R-18#原神#刻晴#甘雨#百合#ganqing#刻甘#甘雨(原神)",
+            "view_count": 11600,
+            "like_count": 1830,
+            "love_count": 3042,
+            "author_id": 1238753,
+            "upload_timestamp": 1625387844,
+        }
+        reason = "质量差"
+        new_artwork = ArtworkInfo(**data)
+        self.create_artwork(new_artwork)
+        # 2. Execute
+        self.service.audit_start(AuditType.R18)
+        artwork_info_for_audit, images = self.service.audit_next(AuditType.R18)
+        self.service.audit_reject(AuditType.R18, artwork_info_for_audit.art_id, reason)
+        # 3. Compare
+        artwork_info = self.get_artwork(data["art_id"])
+        audit_info = artwork_info.audit_info
+        self.assertEqual(artwork_info.art_id, data["art_id"])
+        self.assertEqual(audit_info.audit_reason, reason)
+        self.assertEqual(audit_info.audit_status, AuditStatus.REJECT)
+        self.assertEqual(audit_info.audit_type, AuditType.R18)
 
     def test_reject_sfw_artwork_for_nsfw_reason_does_succeed(self):
-        pass
+        # 1. Setup
+        data = {
+            "art_id": 90751154,
+            "title": "甘雨",
+            "tags": "#甘雨(原神)#甘雨#原神#GenshinImpact#チャイナドレス#尻神様#原神5000users入り#可愛い女の子",
+            "view_count": 25505,
+            "like_count": 5476,
+            "love_count": 8929,
+            "author_id": 25447095,
+            "upload_timestamp": 1624417521,
+        }
+        reason = "NSFW"
+        new_artwork = ArtworkInfo(**data)
+        self.create_artwork(new_artwork)
+        # 2. Execute
+        self.service.audit_start(AuditType.SFW)
+        artwork_info_for_audit, images = self.service.audit_next(AuditType.SFW)
+        self.service.audit_reject(AuditType.SFW, artwork_info_for_audit.art_id, reason)
+        # 3. Compare
+        artwork_info = self.get_artwork(data["art_id"])
+        audit_info = artwork_info.audit_info
+        self.assertEqual(artwork_info.art_id, data["art_id"])
+        self.assertEqual(audit_info.audit_reason, reason)
+        self.assertEqual(audit_info.audit_status, AuditStatus.INIT)
+        self.assertEqual(audit_info.audit_type, AuditType.NSFW)
 
     def test_reject_sfw_artwork_for_r18_reason_does_succeed(self):
-        pass
+        # 1. Setup
+        data = {
+            "art_id": 90751154,
+            "title": "甘雨",
+            "tags": "#甘雨(原神)#甘雨#原神#GenshinImpact#チャイナドレス#尻神様#原神5000users入り#可愛い女の子",
+            "view_count": 25505,
+            "like_count": 5476,
+            "love_count": 8929,
+            "author_id": 25447095,
+            "upload_timestamp": 1624417521,
+        }
+        reason = "R18"
+        new_artwork = ArtworkInfo(**data)
+        self.create_artwork(new_artwork)
+        # 2. Execute
+        self.service.audit_start(AuditType.SFW)
+        artwork_info_for_audit, images = self.service.audit_next(AuditType.SFW)
+        self.service.audit_reject(AuditType.SFW, artwork_info_for_audit.art_id, reason)
+        # 3. Compare
+        artwork_info = self.get_artwork(data["art_id"])
+        audit_info = artwork_info.audit_info
+        self.assertEqual(artwork_info.art_id, data["art_id"])
+        self.assertEqual(audit_info.audit_reason, reason)
+        self.assertEqual(audit_info.audit_status, AuditStatus.INIT)
+        self.assertEqual(audit_info.audit_type, AuditType.R18)
 
     def test_reject_nsfw_artwork_for_r18_reason_does_succeed(self):
-        pass
+        # 1. Setup
+        data = {
+            "art_id": 90254397,
+            "title": "七七(原神)",
+            "tags": "#女の子#少女소녀#七七(原神)#七七#原神#足指#ソックス足裏#足裏",
+            "view_count": 12767,
+            "like_count": 2813,
+            "love_count": 4321,
+            "author_id": 13556121,
+            "upload_timestamp": 1622550132,
+        }
+        reason = "R18"
+        new_artwork = ArtworkInfo(**data)
+        new_audit = AuditInfo(0, 0, data["art_id"], audit_type=AuditType.NSFW, audit_status=AuditStatus.INIT)
+        self.create_artwork(new_artwork)
+        self.create_audit_info(new_audit)
+        # 2. Execute
+        self.service.audit_start(AuditType.NSFW)
+        artwork_info_for_audit, images = self.service.audit_next(AuditType.NSFW)
+        self.service.audit_reject(AuditType.NSFW, artwork_info_for_audit.art_id, reason)
+        # 3. Compare
+        artwork_info = self.get_artwork(data["art_id"])
+        audit_info = artwork_info.audit_info
+        self.assertEqual(artwork_info.art_id, data["art_id"])
+        self.assertEqual(audit_info.audit_reason, reason)
+        self.assertEqual(audit_info.audit_status, AuditStatus.INIT)
+        self.assertEqual(audit_info.audit_type, AuditType.R18)
 
     def test_push_sfw_artwork_does_succeed(self):
-        pass
+        # 1. Setup
+        data = {
+            "art_id": 90751154,
+            "title": "甘雨",
+            "tags": "#甘雨(原神)#甘雨#原神#GenshinImpact#チャイナドレス#尻神様#原神5000users入り#可愛い女の子",
+            "view_count": 25505,
+            "like_count": 5476,
+            "love_count": 8929,
+            "author_id": 25447095,
+            "upload_timestamp": 1624417521,
+        }
+        new_artwork = ArtworkInfo(**data)
+        new_audit = AuditInfo(0, 0, data["art_id"], audit_type=AuditType.SFW, audit_status=AuditStatus.PASS)
+        self.create_artwork(new_artwork)
+        self.create_audit_info(new_audit)
+        # 2. Execute
+        self.service.push_start(AuditType.SFW)
+        artwork_info_for_push, images, count = self.service.push_next(AuditType.SFW)
+        with self.service.push_manager(artwork_info_for_push):
+            pass
+        # 3. Compare
+        artwork_info = self.get_artwork(data["art_id"])
+        audit_info = artwork_info.audit_info
+        self.assertEqual(count, 0)
+        self.assertEqual(artwork_info.art_id, data["art_id"])
+        self.assertEqual(audit_info.audit_status, AuditStatus.PUSH)
+        self.assertEqual(audit_info.audit_type, AuditType.SFW)
+        self.assertRegex(artwork_info_for_push.tags, re.compile("#Ganyu #甘雨", re.I))
 
     def test_push_nsfw_artwork_does_succeed(self):
-        pass
+        data = {
+            "art_id": 90254397,
+            "title": "七七(原神)",
+            "tags": "#女の子#少女소녀#七七(原神)#七七#原神#足指#ソックス足裏#足裏",
+            "view_count": 12767,
+            "like_count": 2813,
+            "love_count": 4321,
+            "author_id": 13556121,
+            "upload_timestamp": 1622550132,
+        }
+        new_artwork = ArtworkInfo(**data)
+        new_audit = AuditInfo(0, 0, data["art_id"], audit_type=AuditType.NSFW, audit_status=AuditStatus.PASS)
+        self.create_artwork(new_artwork)
+        self.create_audit_info(new_audit)
+        # 2. Execute
+        self.service.push_start(AuditType.NSFW)
+        artwork_info_for_push, images, count = self.service.push_next(AuditType.NSFW)
+        with self.service.push_manager(artwork_info_for_push):
+            pass
+        # 3. Compare
+        artwork_info = self.get_artwork(data["art_id"])
+        audit_info = artwork_info.audit_info
+        self.assertEqual(count, 0)
+        self.assertEqual(artwork_info.art_id, data["art_id"])
+        self.assertEqual(audit_info.audit_status, AuditStatus.PUSH)
+        self.assertEqual(audit_info.audit_type, AuditType.NSFW)
+        self.assertRegex(artwork_info_for_push.tags, re.compile("#Qiqi #七七", re.I))
 
     def test_push_r18_artwork_does_succeed(self):
-        pass
+        data = {
+            "art_id": 91008306,
+            "title": "ganqing?? その2",
+            "tags": "#R-18#原神#刻晴#甘雨#百合#ganqing#刻甘#甘雨(原神)",
+            "view_count": 11600,
+            "like_count": 1830,
+            "love_count": 3042,
+            "author_id": 1238753,
+            "upload_timestamp": 1625387844,
+        }
+        new_artwork = ArtworkInfo(**data)
+        new_audit = AuditInfo(0, 0, data["art_id"], audit_type=AuditType.R18, audit_status=AuditStatus.PASS)
+        self.create_artwork(new_artwork)
+        self.create_audit_info(new_audit)
+        # 2. Execute
+        self.service.push_start(AuditType.R18)
+        artwork_info_for_push, images, count = self.service.push_next(AuditType.R18)
+        with self.service.push_manager(artwork_info_for_push):
+            pass
+        # 3. Compare
+        artwork_info = self.get_artwork(data["art_id"])
+        audit_info = artwork_info.audit_info
+        self.assertEqual(count, 0)
+        self.assertEqual(artwork_info.art_id, data["art_id"])
+        self.assertEqual(audit_info.audit_status, AuditStatus.PUSH)
+        self.assertEqual(audit_info.audit_type, AuditType.R18)
+        self.assertRegex(artwork_info_for_push.tags, re.compile("#Keqing #刻晴", re.I))
+        self.assertRegex(artwork_info_for_push.tags, re.compile("#Ganyu #甘雨", re.I))
 
-    def test_putback_artwork_does_succeed(self):
-        pass
+    def get_artwork(self, art_id: int):
+        query = f"""
+            SELECT illusts_id, title, tags, view_count, like_count, love_count, user_id, upload_timestamp,
+                   type, status, reason
+            FROM `genshin_pixiv_audit`
+            WHERE illusts_id=%s;
+        """
+        query_args = (art_id,)
+        artwork = None
+        with self.sql_connection.cursor() as cur:
+            cur.execute(query, query_args)
+            result = cur.fetchall()
+            self.sql_connection.commit()
+            if len(result) == 0:
+                return None
+            result = result[0]
+            artwork = ArtworkInfo(
+                art_id = result[0],
+                title = result[1],
+                tags = result[2],
+                view_count = result[3],
+                like_count = result[4],
+                love_count = result[5],
+                author_id = result[6],
+                upload_timestamp = result[7],
+                audit_info = AuditInfo(
+                    0,
+                    0,
+                    gp_art_id = result[0],
+                    audit_type = result[8],
+                    audit_status = result[9],
+                    audit_reason = result[10],
+                ),
+            )
+        return artwork
+
+    def create_artwork(self, artwork_info: ArtworkInfo):
+        query = f"""
+            INSERT INTO `genshin_pixiv` (
+                illusts_id, title, tags, view_count, like_count, love_count, user_id, upload_timestamp
+            ) VALUES (
+                %s, %s, %s, %s, %s, %s, %s, %s
+            );
+        """
+        query_args = (
+            artwork_info.art_id,
+            artwork_info.title,
+            artwork_info.tags,
+            artwork_info.view_count,
+            artwork_info.like_count,
+            artwork_info.love_count,
+            artwork_info.author_id,
+            artwork_info.upload_timestamp,
+        )
+        with self.sql_connection.cursor() as cur:
+            cur.execute(query, query_args)
+            self.sql_connection.commit()
+
+    def create_audit_info(self, audit_info: AuditInfo):
+        query = f"""
+            INSERT INTO `examine` (
+                illusts_id, type, status, reason
+            ) VALUES (
+                %s, %s, %s, %s
+            );
+        """
+        query_args = (
+            audit_info.gp_art_id,
+            AuditType(audit_info.audit_type).value if audit_info.audit_type is not None else None,
+            AuditStatus(audit_info.audit_status).value if audit_info.audit_status is not None else None,
+            audit_info.audit_reason,
+        )
+        with self.sql_connection.cursor() as cur:
+            cur.execute(query, query_args)
+            self.sql_connection.commit()

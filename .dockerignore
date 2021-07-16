@@ -16,11 +16,10 @@
 !.dockerignore
 !README.md
 
-.env
 .idea
 venv
 **/logs
-config/config.json
 *.swp
 *.swo
 __pycache__
+.git
