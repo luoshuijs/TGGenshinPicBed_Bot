@@ -46,6 +46,10 @@ class TestPixivService(unittest.TestCase):
             lines = f.read()
             statements = lines.split(';')
             cls.reset_statements = tuple(s for s in statements if len(s.strip()) > 0)
+        with cls.sql_connection.cursor() as cur:
+            for s in cls.create_statements:
+                cur.execute(s)
+                cls.sql_connection.commit()
 
     @classmethod
     def tearDownClass(cls):
