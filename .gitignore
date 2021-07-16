@@ -1,6 +1,8 @@
 *
 
 !*.py
+!.github
+!.github/**
 !config
 !config/**
 !data
