@@ -26,6 +26,7 @@ FROM runtime_2
 COPY . /root/app/
 COPY --from=dependency /wait-for /wait-for
 WORKDIR /root/app/
-ENTRYPOINT echo "Waiting for database (sleep=25)..." && sleep 25 && echo "Waiting for API..."\
+ENTRYPOINT echo "Waiting for database (sleep=25s)..." && sleep 25 \
+    && echo "Waiting for API ${MYSQL_HOST}:${MYSQL_PORT} ${REDIS_HOST}:${REDIS_PORT}..." \
     && /wait-for ${MYSQL_HOST}:${MYSQL_PORT} ${REDIS_HOST}:${REDIS_PORT} -- \
     python3 -m unittest discover tests.integration
