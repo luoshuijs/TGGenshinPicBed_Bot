@@ -8,6 +8,14 @@
             "アルベド"
         ]
     },
+    "Aloy": {
+        "name": [
+            "Aloy",
+            "埃洛伊"
+        ],
+        "regex": [
+        ]
+    },
     "Ayaka": {
         "name": [
             "Ayaka",
@@ -26,17 +34,6 @@
         ],
         "regex": [
             "アンバー"
-        ]
-    },
-    "Baal": {
-        "name": [
-            "Baal",
-            "巴尔"
-        ],
-        "regex": [
-            "(?:雷神)?バアル",
-            "雷電(?:将軍)?",
-            "Raiden(?:Shogun)?"
         ]
     },
     "Barbara": {
@@ -174,6 +171,26 @@
             "クレー"
         ]
     },
+    "Kokomi": {
+        "name": [
+            "Kokomi",
+            "珊瑚宫心海"
+        ],
+        "regex": [
+            "(?:珊瑚宮)?心海",
+            "(?:Sangonomiya)?Kokomi"
+        ]
+    },
+    "KujouSara": {
+        "name": [
+            "KujouSara",
+            "九条裟罗"
+        ],
+        "regex": [
+            "九条裟羅",
+            "Kujou.?Sara"
+        ]
+    },
     "Lisa": {
         "name": [
             "Lisa",
@@ -235,6 +252,18 @@
             "七七"
         ],
         "regex": [
+        ]
+    },
+    "RaidenShogun": {
+        "name": [
+            "RaidenShogun",
+            "雷电将军"
+        ],
+        "regex": [
+            "Baal",
+            "(?:雷神)?バアル",
+            "雷電(?:将軍)?",
+            "Raiden(?:Shogun)?"
         ]
     },
     "Razor": {

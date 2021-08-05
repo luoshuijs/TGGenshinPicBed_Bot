@@ -45,7 +45,7 @@ class TestTag(unittest.TestCase):
             "#原神#GenshinImpact#雷電将軍#空(原神)#Baal",
             "#R-18#原神#GenshinImpact#雷神バアル#バアル#Baal#おっぱい#巨乳#極上の乳#腋",
         ]
-        names_regex = re.compile("#Baal #巴尔", re.I)
+        names_regex = re.compile("#RaidenShogun #雷电将军", re.I)
         # 2. Execute
         results = tuple(self.name_map.filter_character_tags(tag_str) for tag_str in tag_str_list)
         # 3. Compare

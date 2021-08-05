@@ -158,7 +158,7 @@ class Pixiv:
             GetIllustInformationTasks1.append(task_main)
 
         all_popular_user_id = set()
-        popular_artists_all = await self.repository.get_artists_with_multiple_approved_artists(3)  # 从数据库获取全部话说
+        popular_artists_all = await self.repository.get_artists_with_multiple_approved_arts(3)  # 从数据库获取全部话说
         for popular_artists in popular_artists_all:
             all_popular_user_id.add(popular_artists[0])
 

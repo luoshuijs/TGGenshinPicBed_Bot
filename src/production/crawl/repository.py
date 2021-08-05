@@ -46,9 +46,10 @@ class Repository:
             await conn.commit()
         return result
 
-    async def get_artists_with_multiple_approved_art(self, num: int) -> Iterable[int]:
+    async def get_artists_with_multiple_approved_arts(self, num: int) -> Iterable[int]:
         """
         Get user_id of artists with multiple approved art
+        :returns: set(4028484, 18177156)
         """
         query = f"""
             SELECT user_id, COUNT(user_id) AS count
@@ -58,21 +59,8 @@ class Repository:
             HAVING count>%s;
         """
         query_args = (AuditStatus.PASS.value, AuditStatus.PUSH.value, num)
-        return await self._execute_and_fetchall(query, query_args)
-
-    async def get_artists_with_multiple_approved_artists(self, num: int) -> Iterable[int]:
-        """
-        Get user_id of artists with multiple approved art
-        """
-        query = f"""
-            SELECT illusts_id,user_id, COUNT(user_id) AS count
-            FROM {self.pixiv_audit_table}
-            WHERE status=%s OR status=%s
-            GROUP BY user_id
-            HAVING count>%s;
-        """
-        query_args = (AuditStatus.PASS.value, AuditStatus.PUSH.value, num)
-        return await self._execute_and_fetchall(query, query_args)
+        result = await self._execute_and_fetchall(query, query_args)
+        return set(i[0] for i in result)    # {4028484, 18177156, ...}
 
     async def save_artwork_many(self, artwork_list: Iterable[ArtworkInfo]) -> int:
         """
