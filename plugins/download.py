@@ -6,7 +6,7 @@ from telegram.ext import ConversationHandler, CallbackContext
 from src.base.config import config
 from src.base.logger import Log
 from src.base.utils import Utils
-from src.production.pixivdownload import Pixiv
+from src.production.crawl.pixivdownload import Pixiv
 
 
 class Download:
