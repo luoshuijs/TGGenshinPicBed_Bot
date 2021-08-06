@@ -1,8 +1,7 @@
 import datetime
-from typing import Iterable
 from urllib import parse
 
-from src.base.httprequests import HttpRequests
+from src.base.utils.httprequests import HttpRequests
 from src.base.logger import Log
 from src.production.crawl.base import *
 

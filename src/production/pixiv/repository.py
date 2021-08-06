@@ -3,12 +3,11 @@
 # Maintains an out of process shared dependency
 
 
-from typing import Iterable, Any, Callable
-from mysql import connector
+from typing import Iterable, Any
 from mysql.connector.pooling import MySQLConnectionPool
 
-from src.model.artwork import AuditType, AuditStatus, DataAggregator, ArtworkInfo
-from src.production.auditor import ArtworkStatusUpdate
+from src.base.bean.artwork import AuditType, AuditStatus, DataAggregator, ArtworkInfo
+from src.base.utils.bean.auditor import ArtworkStatusUpdate
 
 
 

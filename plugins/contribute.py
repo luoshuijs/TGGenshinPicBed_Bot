@@ -4,7 +4,7 @@ from telegram.ext import CallbackContext, ConversationHandler
 
 from src.base.logger import Log
 from src.base.config import config
-from src.production.markdown import markdown_escape
+from src.base.utils.markdown import markdown_escape
 from src.production.pixiv import PixivService
 from src.production.pixiv.downloader import PixivDownloader
 from src.production.contribute import Contribute

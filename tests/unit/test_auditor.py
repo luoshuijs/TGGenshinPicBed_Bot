@@ -1,6 +1,6 @@
 import unittest
-from src.model.artwork import AuditInfo, AuditStatus, AuditType
-from src.production.auditor import approve, reject, push, ArtworkStatusUpdate
+from src.base.bean.artwork import AuditInfo, AuditStatus, AuditType
+from src.base.utils.bean.auditor import approve, reject, push
 
 
 class TestAuditor(unittest.TestCase):

@@ -2,7 +2,7 @@ from typing import Iterable
 
 import aiomysql
 
-from src.model.artwork import AuditStatus, ArtworkInfo
+from src.base.bean.artwork import AuditStatus, ArtworkInfo
 
 
 class Repository:

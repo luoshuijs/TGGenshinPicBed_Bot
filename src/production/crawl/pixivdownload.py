@@ -2,10 +2,10 @@ import re
 import secrets
 import asyncio
 import time
-from typing import Iterable, Set, Callable, Any
-from src.base.httprequests import HttpRequests
+from typing import Iterable, Set
+from src.base.utils.httprequests import HttpRequests
 from src.base.logger import Log
-from src.model.artwork import ArtworkInfo
+from src.base.bean.artwork import ArtworkInfo
 from src.production.crawl.base import SearchResult
 from src.production.crawl.repository import Repository
 from src.production.crawl.request import BasicRequest

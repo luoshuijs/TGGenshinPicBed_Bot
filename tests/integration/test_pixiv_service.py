@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 from redis import Redis
 from mysql.connector import connect
 from src.production.pixiv import PixivService
-from src.model.artwork import ArtworkInfo, AuditInfo, AuditType, AuditStatus
+from src.base.bean.artwork import ArtworkInfo, AuditInfo, AuditType, AuditStatus
 
 
 class TestPixivService(unittest.TestCase):

@@ -1,6 +1,6 @@
 from typing import Iterable
 from enum import Enum
-from src.model.artwork import AuditType, ArtworkInfo
+from src.base.bean.artwork import AuditType, ArtworkInfo
 
 
 class RedisActionType(Enum):

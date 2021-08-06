@@ -2,7 +2,7 @@ from telegram import Update
 from telegram.ext import CallbackContext
 
 from src.base.config import config
-from src.base.utils import Utils
+from src.base.utils.base import Utils
 from src.base.logger import Log
 
 utils = Utils(config)

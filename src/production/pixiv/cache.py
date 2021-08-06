@@ -8,8 +8,8 @@ import redis
 from enum import Enum
 from typing import Iterable
 
-from src.production.redisaction import RedisUpdate, RedisActionType
-from src.model.artwork import AuditType, ArtworkImage, ArtworkImageFactory, ArtworkInfo
+from src.base.utils.redisaction import RedisUpdate, RedisActionType
+from src.base.bean.artwork import AuditType, ArtworkImage, ArtworkImageFactory, ArtworkInfo
 
 
 class QueueType(Enum):

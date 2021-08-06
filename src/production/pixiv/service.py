@@ -3,13 +3,13 @@ from typing import Iterable, Tuple
 from contextlib import contextmanager
 
 
-from src.model.artwork import AuditType, ArtworkInfo, AuditInfo, AuditStatus, ArtworkFactory
-from src.production.namemap import NameMap
+from src.base.bean.artwork import AuditType, ArtworkInfo, ArtworkFactory
+from src.base.utils.namemap import NameMap
 from src.production.pixiv.repository import PixivRepository, Transformer
 from src.production.pixiv.downloader import PixivDownloader, ArtworkImage
 from src.production.pixiv.cache import PixivCache
-from src.production.redisaction import RedisUpdate
-from src.production import auditor
+from src.base.utils.redisaction import RedisUpdate
+from src.base.utils.bean import auditor
 
 
 class PixivService:

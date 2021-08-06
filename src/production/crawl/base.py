@@ -1,6 +1,6 @@
 from typing import Iterable, Set, Callable, Any
 
-from src.model.artwork import ArtworkInfo
+from src.base.bean.artwork import ArtworkInfo
 
 """
     解析返回结果
