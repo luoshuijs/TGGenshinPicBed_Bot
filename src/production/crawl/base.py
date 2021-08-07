@@ -1,6 +1,7 @@
 from typing import Iterable, Set, Callable, Any
 
 from src.base.model.artwork import ArtworkInfo
+from src.base.model.artist import ArtistCrawlInfo
 
 """
     解析返回结果
@@ -56,6 +57,16 @@ class RecommendResult:
         return set(info["id"] for info in self.illusts
                    if info.get("isAdContainer") is None
                    and fn(info))
+
+
+class ArtistCrawlUpdate:
+    """
+    Most recent crawled art_id on an artist
+    """
+
+    def __init__(self, user_id: int, art_id: int):
+        self.user_id = user_id
+        self.art_id = art_id
 
 
 """
@@ -127,3 +138,23 @@ def CreateUserAllIllustsResultFromAPIResponse(data: dict) -> Iterable[int]:
         return None
     illusts = data["body"]["illusts"]
     return illusts.keys()
+
+
+
+"""
+    Map SQL Query result
+"""
+
+def CreateArtistCrawlInfoFromSQLResult(data) -> Iterable[ArtistCrawlInfo]:
+    if len(data) == 0:
+        return []
+    artists = [
+        ArtistCrawlInfo(
+            user_id = a[0],
+            last_art_id = a[1],
+            last_crawled_at = a[2],
+            approved_art_count = a[3],
+        )
+        for a in data
+    ]
+    return artists

@@ -32,6 +32,7 @@ $ cp tests/integration/.env.example tests/integration/.env
 # Cleanup old settings
 $ docker-compose -f tests/integration/docker-compose.yaml rm -fv
 
-# Build test containers
-$ docker-compose -f tests/integration/docker-compose.yaml up --abort-on-container-exit --build
+# Build & run test containers, then cleanup
+$ docker-compose -f tests/integration/docker-compose.yaml up --abort-on-container-exit --build; \
+    docker rmi $(docker images --filter "dangling=true" -q --no-trunc)
 ```

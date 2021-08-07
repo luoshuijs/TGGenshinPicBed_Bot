@@ -36,8 +36,8 @@ class TestPixivService(unittest.TestCase):
         }
         cls.sql_connection = connect(**sql_config)
         cls.redis_connection = Redis(**redis_config)
-        create_file = pathlib.Path(__file__).parent.joinpath("./create.sql").resolve()
-        reset_file = pathlib.Path(__file__).parent.joinpath("./reset.sql").resolve()
+        create_file = pathlib.Path(__file__).parent.joinpath("./testdata/create_test_pixiv_service.sql").resolve()
+        reset_file = pathlib.Path(__file__).parent.joinpath("./testdata/reset_test_pixiv_service.sql").resolve()
         with open(create_file) as f:
             lines = f.read()
             statements = lines.split(';')

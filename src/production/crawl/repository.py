@@ -3,6 +3,8 @@ from typing import Iterable
 import aiomysql
 
 from src.base.model.artwork import AuditStatus, ArtworkInfo
+from src.base.model.artist import ArtistCrawlInfo
+from src.production.crawl.base import ArtistCrawlUpdate, CreateArtistCrawlInfoFromSQLResult
 
 
 class Repository:
@@ -12,6 +14,8 @@ class Repository:
         self.sql_pool = None
         self.pixiv_table = "genshin_pixiv"
         self.pixiv_audit_table = "genshin_pixiv_audit"
+        self.pixiv_artist_table = "pixiv_artist"
+        self.pixiv_approved_artist_table = "pixiv_approved_artist"
 
     async def close(self):
         if self.sql_pool is None:
@@ -46,26 +50,61 @@ class Repository:
             await conn.commit()
         return result
 
-    async def get_artists_with_multiple_approved_arts(self, num: int) -> Iterable[int]:
+    async def get_artists_with_multiple_approved_arts(self, num: int, days_ago: int) -> Iterable[ArtistCrawlInfo]:
         """
         Get user_id of artists with multiple approved art
-        :returns: set(4028484, 18177156)
+        :returns: [ArtistCrawlInfo(user_id=1713, last_art_id=18324, ...), ...]
         """
         query = f"""
-            SELECT user_id, COUNT(user_id) AS count
-            FROM {self.pixiv_audit_table}
-            WHERE status=%s OR status=%s
-            GROUP BY user_id
-            HAVING count>%s;
+            SELECT user_id, last_art_id, last_crawled_at, approved_art_count
+            FROM {self.pixiv_approved_artist_table}
+            WHERE approved_art_count >= %s
+            AND (last_crawled_at IS NULL OR DATEDIFF(NOW(), last_crawled_at) >= %s);
         """
-        query_args = (AuditStatus.PASS.value, AuditStatus.PUSH.value, num)
+        query_args = (num, days_ago)
         result = await self._execute_and_fetchall(query, query_args)
-        return set(i[0] for i in result)    # {4028484, 18177156, ...}
+        return CreateArtistCrawlInfoFromSQLResult(result)    # [ArtistCrawlInfo(user_id=1713, last_art_id=18324, ...), ...]
+
+    async def save_artist_last_crawl(self, user_id: int, last_art_id: int):
+        """
+        Update artist crawled data.
+        """
+        query = f"""
+            INSERT INTO {self.pixiv_artist_table} (
+                user_id, last_art_id
+            ) VALUES (
+                %s, %s
+            ) ON DUPLICATE KEY UPDATE
+                last_art_id=VALUES(last_art_id),
+                last_crawled_at=NOW();
+        """
+        query_args =(user_id, last_art_id)
+        return await self._execute_and_fetchall(query, query_args)
+
+    async def save_artist_last_crawl_many(self, last_crawl_list: Iterable[ArtistCrawlUpdate]) -> int:
+        """
+        Update artist crawled data. Returns affected rows (not the number of inserted rows)
+        """
+        if len(last_crawl_list) == 0:
+            return 0
+        query = f"""
+            INSERT INTO {self.pixiv_artist_table} (
+                user_id, last_art_id
+            ) VALUES (
+                %s, %s
+            ) ON DUPLICATE KEY UPDATE
+                last_art_id=VALUES(last_art_id),
+                last_crawled_at=NOW();
+        """
+        query_args = tuple((a.user_id, a.art_id) for a in last_crawl_list)
+        return await self._executemany(query, query_args)
 
     async def save_artwork_many(self, artwork_list: Iterable[ArtworkInfo]) -> int:
         """
-        Save artworks into table. Returns affected rows (not the number of inserted work)
+        Save artworks into table. Returns affected rows (not the number of inserted rows)
         """
+        if len(artwork_list) == 0:
+            return 0
         query = f"""
             INSERT INTO `{self.pixiv_table}` (
                 illusts_id, title, tags, view_count, like_count, love_count,
