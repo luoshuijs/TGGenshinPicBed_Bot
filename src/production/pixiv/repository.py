@@ -6,8 +6,8 @@
 from typing import Iterable, Any
 from mysql.connector.pooling import MySQLConnectionPool
 
-from src.base.bean.artwork import AuditType, AuditStatus, DataAggregator, ArtworkInfo
-from src.base.utils.bean.auditor import ArtworkStatusUpdate
+from src.base.model.artwork import AuditType, AuditStatus, DataAggregator, ArtworkInfo
+from src.production.pixiv.auditor import ArtworkStatusUpdate
 
 
 

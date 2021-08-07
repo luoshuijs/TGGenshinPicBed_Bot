@@ -8,7 +8,7 @@ from src.base.utils.base import Utils
 from src.base.logger import Log
 from src.base.utils.markdown import markdown_escape
 from src.production.pixiv.service import PixivService
-from src.base.bean.artwork import AuditType
+from src.base.model.artwork import AuditType
 
 
 class ExamineHandler:

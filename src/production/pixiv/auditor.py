@@ -3,7 +3,7 @@
 # Makes decisions on image status
 
 
-from src.base.bean.artwork import AuditType, AuditStatus, AuditInfo
+from src.base.model.artwork import AuditType, AuditStatus, AuditInfo
 
 
 class ArtworkStatusUpdate:

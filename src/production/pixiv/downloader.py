@@ -2,7 +2,7 @@ import requests
 from typing import Iterable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from src.base.bean.artwork import ArtworkImage, ArtworkInfo
+from src.base.model.artwork import ArtworkImage, ArtworkInfo
 
 
 # Forward declaration

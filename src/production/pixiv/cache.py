@@ -9,7 +9,7 @@ from enum import Enum
 from typing import Iterable
 
 from src.base.utils.redisaction import RedisUpdate, RedisActionType
-from src.base.bean.artwork import AuditType, ArtworkImage, ArtworkImageFactory, ArtworkInfo
+from src.base.model.artwork import AuditType, ArtworkImage, ArtworkImageFactory, ArtworkInfo
 
 
 class QueueType(Enum):

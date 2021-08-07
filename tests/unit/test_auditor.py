@@ -1,6 +1,6 @@
 import unittest
-from src.base.bean.artwork import AuditInfo, AuditStatus, AuditType
-from src.base.utils.bean.auditor import approve, reject, push
+from src.base.model.artwork import AuditInfo, AuditStatus, AuditType
+from src.production.pixiv.auditor import approve, reject, push
 
 
 class TestAuditor(unittest.TestCase):
