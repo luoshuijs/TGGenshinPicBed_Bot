@@ -5,6 +5,7 @@ import unittest
 import aiomysql
 from mysql.connector import connect
 from src.production.crawl.repository import Repository
+from src.production.crawl.base import ArtistCrawlUpdate
 from src.base.model.artwork import ArtworkInfo, AuditInfo, AuditType, AuditStatus
 from src.base.model.artist import ArtistCrawlInfo
 
@@ -167,6 +168,76 @@ class TestCrawlRepository(unittest.IsolatedAsyncioTestCase):
         artist = await self.get_approved_artist(17156250)
         self.assertEqual(artist.user_id, 17156250)
         self.assertEqual(artist.last_art_id, 90940211)
+
+    async def test_save_many_artist_last_crawl_succeeds(self):
+        # 1. Setup
+        data_list = [
+            {
+                "art_id": 90670263,
+                "title": "バーバラ",
+                "tags": "#原神#GenshinImpact#Genshin#バーバラ#バーバラ(原神)#水着#海#サマータイムスパークル#原神1000users入り",
+                "view_count": 11342,
+                "like_count": 2146,
+                "love_count": 3632,
+                "author_id": 17156250,
+                "upload_timestamp": 1624114805,
+            },
+            {
+                "art_id": 90806639,
+                "title": "蛍ちゃん",
+                "tags": "#原神#GenshinImpact#Genshin#蛍#蛍(原神)#荧#Lumine#水着#原神1000users入り",
+                "view_count": 13813,
+                "like_count": 2821,
+                "love_count": 5163,
+                "author_id": 17156250,
+                "upload_timestamp": 1624633208,
+            },
+            {
+                "art_id": 90967393,
+                "title": "フゥータオ",
+                "tags": "#原神#GenshinImpact#Genshin#胡桃#胡桃(原神)#ツインテール#水着#フレアビキニ#原神1000users入り",
+                "view_count": 11088,
+                "like_count": 2389,
+                "love_count": 4165,
+                "author_id": 17156250,
+                "upload_timestamp": 1625238836,
+            },
+            {
+                "art_id": 90826719,
+                "title": "ジン",
+                "tags": "#原神#ジン#ジン(原神)#ジン・グンヒルド#水着#海風の夢#原神5000users入り",
+                "view_count": 24031,
+                "like_count": 5349,
+                "love_count": 8718,
+                "author_id": 17317073,
+                "upload_timestamp": 1624710342,
+            },
+            {
+                "art_id": 90479192,
+                "title": "ロサリア",
+                "tags": "#ロサリア#原神#罗莎莉亚#原神5000users入り#下着#黒下着",
+                "view_count": 18054,
+                "like_count": 3737,
+                "love_count": 6234,
+                "author_id": 17317073,
+                "upload_timestamp": 1623406321,
+            },
+        ]
+        for data in data_list:
+            await self.create_approved_artwork(ArtworkInfo(**data), AuditStatus.PASS)
+        update_list = [
+            ArtistCrawlUpdate(17156250, 90940211),
+            ArtistCrawlUpdate(17317073, 90479192),
+        ]
+        # 2. Execute
+        result = await self.repo.save_artist_last_crawl_many(update_list)
+        # 3. Compare
+        artist = await self.get_approved_artist(17156250)
+        self.assertEqual(artist.user_id, 17156250)
+        self.assertEqual(artist.approved_art_count, 3)
+        artist = await self.get_approved_artist(17317073)
+        self.assertEqual(artist.user_id, 17317073)
+        self.assertEqual(artist.approved_art_count, 2)
 
     async def get_approved_artist(self, user_id: int) -> ArtistCrawlInfo:
         query = f"""
