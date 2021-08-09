@@ -9,7 +9,7 @@ from src.production.crawl.base import ArtistCrawlUpdate, CreateArtistCrawlInfoFr
 
 class Repository:
 
-    def __init__(self, sql_config = None):
+    def __init__(self, sql_config=None):
         self.sql_config = sql_config
         self.sql_pool = None
         self.pixiv_table = "genshin_pixiv"
@@ -53,6 +53,7 @@ class Repository:
     async def get_artists_with_multiple_approved_arts(self, num: int, days_ago: int) -> Iterable[ArtistCrawlInfo]:
         """
         Get user_id of artists with multiple approved art
+        获取具有多个已通过插画的画师的用户id
         :returns: [ArtistCrawlInfo(user_id=1713, last_art_id=18324, ...), ...]
         """
         query = f"""
@@ -63,11 +64,13 @@ class Repository:
         """
         query_args = (num, days_ago)
         result = await self._execute_and_fetchall(query, query_args)
-        return CreateArtistCrawlInfoFromSQLResult(result)    # [ArtistCrawlInfo(user_id=1713, last_art_id=18324, ...), ...]
+        return CreateArtistCrawlInfoFromSQLResult(
+            result)  # [ArtistCrawlInfo(user_id=1713, last_art_id=18324, ...), ...]
 
     async def save_artist_last_crawl(self, user_id: int, last_art_id: int):
         """
         Update artist crawled data.
+        更新画师的爬虫数据。
         """
         query = f"""
             INSERT INTO {self.pixiv_artist_table} (
@@ -78,12 +81,13 @@ class Repository:
                 last_art_id=VALUES(last_art_id),
                 last_crawled_at=NOW();
         """
-        query_args =(user_id, last_art_id)
+        query_args = (user_id, last_art_id)
         return await self._execute_and_fetchall(query, query_args)
 
     async def save_artist_last_crawl_many(self, last_crawl_list: Iterable[ArtistCrawlUpdate]) -> int:
         """
         Update artist crawled data. Returns affected rows (not the number of inserted rows)
+        更新画师的爬虫数据。
         """
         if len(last_crawl_list) == 0:
             return 0

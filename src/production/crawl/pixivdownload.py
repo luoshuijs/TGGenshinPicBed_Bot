@@ -3,7 +3,6 @@ import secrets
 import asyncio
 import time
 from typing import Iterable, Set
-from src.base.utils.httprequests import HttpRequests
 from src.base.logger import Log
 from src.base.model.artwork import ArtworkInfo
 from src.production.crawl.base import SearchResult
@@ -26,7 +25,6 @@ class Pixiv:
             },
         )
         self.cookie = pixiv_cookie
-        self.client = HttpRequests()
         self.GetIllustInformationTasks = []
         self.artid_queue = None
         self.artwork_list = []
@@ -34,19 +32,20 @@ class Pixiv:
         self.BasicRequest = BasicRequest(cookie=self.cookie)
 
     async def close(self):
-        await self.client.aclose()
         await self.repository.close()
+        await self.BasicRequest.close()
 
     async def work(self, loop, sleep_time: int = 6):
         while True:
             if not await self.BasicRequest.is_logged_in():
                 return
             self.GetIllustInformationTasks = []
-            self.artid_queue = asyncio.Queue(loop=loop)
             self.artwork_list = []
+            self.artid_queue = asyncio.Queue(loop=loop)
             Log.info("正在执行Pixiv爬虫任务")
             await self.task()
-            await self.repository.close()
+            await self.task1()
+            # await self.repository.close()
             Log.info("执行Pixiv爬虫任务完成")
             if sleep_time == -1:
                 break
@@ -80,10 +79,13 @@ class Pixiv:
     async def task(self):
         """
         获取基础爬虫数据
+        爬取的数据包括7天前的数据，推荐的数据
         :return:
         """
-        Log.info("准备开始爬虫任务")
+        Log.info("准备开始基础爬虫任务")
         Log.info("正在创建爬虫线程")
+        self.GetIllustInformationTasks = []
+        self.artwork_list = []
         for i in range(6):
             task_main = asyncio.ensure_future(self.GetIllustInformation(i))
             self.GetIllustInformationTasks.append(task_main)
@@ -147,23 +149,61 @@ class Pixiv:
             Log.warning("写入数据库发生错误")
             Log.error(TError)
 
-    async def Task1(self):
+    async def task1(self):
         """
-        获取推荐
+        获取画师推荐
+        因为爬虫只获取当前前7天的数据，为了弥补没有获取以前的数据的不足
+        根据画师在数据库通过的作品爬取画师以前的作品。
         :return:
         """
-        GetIllustInformationTasks1 = []
+        Log.info("准备开始推荐爬虫任务")
+        # 初始化，清空之前的数据
+        self.GetIllustInformationTasks = []
+        self.artwork_list = []
+
         for i in range(6):
             task_main = asyncio.ensure_future(self.GetIllustInformation(i))
-            GetIllustInformationTasks1.append(task_main)
+            self.GetIllustInformationTasks.append(task_main)
 
-        all_popular_user_id = set()
-        popular_artists_all = await self.repository.get_artists_with_multiple_approved_arts(3)  # 从数据库获取全部话说
+        popular_artists_all = await self.repository.get_artists_with_multiple_approved_arts(num=3,
+                                                                                            days_ago=7)  # 从数据库获取全部话说
+
         for popular_artists in popular_artists_all:
-            all_popular_user_id.add(popular_artists[0])
+            all_illusts = await self.BasicRequest.get_user_all_illusts(popular_artists.user_id)
+            if not popular_artists.last_art_id is None:
+                all_illusts_f = [i for i in all_illusts if i > popular_artists.last_art_id]
+            else:
+                all_illusts_f = all_illusts
+            for art_id in all_illusts_f:
+                self.artid_queue.put_nowait({"id": art_id})
+            await self.repository.save_artist_last_crawl(user_id=popular_artists.user_id,
+                                                         last_art_id=max(all_illusts_f))
 
-        for user_id in all_popular_user_id:
-            all_illusts = self.BasicRequest.get_user_all_illusts(user_id)
+        self.artid_queue.put_nowait({"status": "close"})
+        await asyncio.wait(self.GetIllustInformationTasks)
+
+        if len(popular_artists_all) == 0:
+            return
+
+        finalized_artworks = self.filter_tags(self.artwork_list)
+
+        try:
+            Log.info("写入数据库...")
+            rowcount = await self.repository.save_artwork_many(finalized_artworks)
+            Log.info("写入完成, rows affected=%s" % rowcount)
+        except Exception as TError:
+            Log.warning("写入数据库发生错误")
+            Log.error(TError)
+
+    def filter_tags(self, artwork_list: Iterable[ArtworkInfo]) -> Iterable[ArtworkInfo]:
+        result = []
+        for artwork_info in artwork_list:
+            if not "原神" in artwork_info.tags:
+                continue
+            if artwork_info.love_count < 300:
+                continue
+            result.append(artwork_info)
+        return result
 
     def extract_id_from_search_result(self, search_result: SearchResult) -> Set[int]:
         res = search_result
@@ -191,7 +231,12 @@ class Pixiv:
         return result
 
 
-# 测试使用
+# 作为计划任务单独运行
+# 运行命令为
+# cd  //进入项目目录
+# PYTHONPATH=$PYTHONPATH:   //设置python工作目录
+# python3 src/production/crawl/pixivdownload.py  //执行爬虫
+#
 if __name__ == "__main__":
     from src.base.config import config
 

@@ -132,12 +132,15 @@ def CreateRecommendResultFromAPIResponse(data: dict) -> RecommendResult:
 
 
 def CreateUserAllIllustsResultFromAPIResponse(data: dict) -> Iterable[int]:
+    illusts_list = []
     if not data.get("body"):
         return None
     if data.get("error"):
         return None
     illusts = data["body"]["illusts"]
-    return illusts.keys()
+    for i in illusts.keys():
+        illusts_list.append(int(i))
+    return illusts_list
 
 
 

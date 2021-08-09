@@ -21,6 +21,9 @@ class BasicRequest:
         self.client = HttpRequests()
         self.cookie = cookie
 
+    async def close(self):
+        await self.client.aclose()
+
     async def is_logged_in(self):  # 注意，如果Cookie失效是无法爬虫，而且会一直卡住
         UserStatus_url = "https://www.pixiv.net/touch/ajax/user/self/status?lang=zh"
         UserStatus_data = await self.client.ARequest_json("GET", UserStatus_url,
