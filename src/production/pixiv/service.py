@@ -3,7 +3,7 @@ from typing import Iterable, Tuple
 from contextlib import contextmanager
 
 
-from src.base.model.artwork import AuditStatus, AuditType, ArtworkInfo, ArtworkFactory
+from src.base.model.artwork import AuditStatus, AuditType, ArtworkInfo
 from src.base.utils.namemap import NameMap
 from src.production.pixiv.repository import PixivRepository, Transformer
 from src.production.pixiv.downloader import PixivDownloader, ArtworkImage
@@ -23,9 +23,8 @@ class PixivService:
 
     def contribute_start(self, art_id: int) -> Tuple[ArtworkInfo, Iterable[ArtworkImage]]:
         # 1. Check database
-        data = self.pixivrepo.get_art_by_artid(art_id)
-        artwork_list = ArtworkFactory.create_from_sql_no_id(data)
-        if len(artwork_list) > 0:
+        artwork_info = self.pixivrepo.get_art_by_artid(art_id)
+        if artwork_info is not None:
             return None     # Exists in database
         # 2. Get artwork info
         artwork_info = self.pixivdownloader.get_artwork_info(art_id)
@@ -49,8 +48,7 @@ class PixivService:
 
     def audit_start(self, audit_type: AuditType) -> int:
         # 1. Get from database
-        data = self.pixivrepo.get_art_for_audit(audit_type)
-        artwork_audit_list = ArtworkFactory.create_from_sql_no_id(data)
+        artwork_audit_list = self.pixivrepo.get_art_for_audit(audit_type)
         # 2. Save to redis
         update = RedisUpdate.add_audit(audit_type, artwork_audit_list)
         return self.pixivcache.apply_update(update)
@@ -77,13 +75,10 @@ class PixivService:
         update = RedisUpdate.remove_pending(audit_type, art_id)
         self.pixivcache.apply_update(update)
         # 2. Get from database
-        transformer = Transformer.combine(Transformer.audit_type(audit_type), Transformer.r18_type())
-        data = self.pixivrepo.get_art_by_artid(art_id, transformer)
-        artwork_audit_list = ArtworkFactory.create_from_sql_no_id(data)
-        if len(artwork_audit_list) == 0:
+        art = self.pixivrepo.get_art_by_artid(art_id)
+        if art is None:
             raise ValueError(f"art not found: art id {art_id} when approving artwork")
         # 3. Audit
-        art = artwork_audit_list[0]
         update = auditor.approve(art.audit_info)
         # 4. Save to database
         self.pixivrepo.apply_update(update)
@@ -93,13 +88,10 @@ class PixivService:
         update = RedisUpdate.remove_pending(audit_type, art_id)
         self.pixivcache.apply_update(update)
         # 2. Get from database
-        transformer = Transformer.combine(Transformer.audit_type(audit_type), Transformer.r18_type())
-        data = self.pixivrepo.get_art_by_artid(art_id, transformer)
-        artwork_audit_list = ArtworkFactory.create_from_sql_no_id(data)
-        if len(artwork_audit_list) == 0:
+        art = self.pixivrepo.get_art_by_artid(art_id)
+        if art is None:
             raise ValueError(f"art not found: art id {art_id} when rejecting artwork")
         # 3. Audit
-        art = artwork_audit_list[0]
         update = auditor.reject(art.audit_info, reason=reason)
         # 4. Save to database
         self.pixivrepo.apply_update(update)
@@ -111,8 +103,7 @@ class PixivService:
 
     def push_start(self, audit_type: AuditType) -> int:
         # 1. Get from database
-        data = self.pixivrepo.get_art_for_push(audit_type)
-        artwork_audit_list = ArtworkFactory.create_from_sql_no_id(data)
+        artwork_audit_list = self.pixivrepo.get_art_for_push(audit_type)
         # 2. Save to redis
         update = RedisUpdate.add_push(audit_type, artwork_audit_list)
         return self.pixivcache.apply_update(update)
@@ -143,11 +134,9 @@ class PixivService:
         Find the info and artwork images by art_id for confirmation
         """
         # 1. Check database
-        data = self.pixivrepo.get_art_by_artid(art_id)
-        artwork_list = ArtworkFactory.create_from_sql_no_id(data)
-        if len(artwork_list) == 0:
+        artwork_info = self.pixivrepo.get_art_by_artid(art_id)
+        if artwork_info is None:
             return None     # Does not exists in database
-        artwork_info = artwork_list[0]
         # 2. Get artwork info
         artwork_exists = self.pixivdownloader.get_artwork_info(art_id)
         if artwork_exists is None:
@@ -166,12 +155,11 @@ class PixivService:
         if info_type not in ["status", "type"]:
             raise ValueError(f"Unknown operation for set_art_audit_info: {info_type}")
         # 1. Get artwork info
-        artwork_data = self.pixivrepo.get_art_by_artid(art_id)
-        artwork_list = ArtworkFactory.create_from_sql_no_id(artwork_data)
-        if len(artwork_list) == 0:
+        artwork_info = self.pixivrepo.get_art_by_artid(art_id)
+        if artwork_info is None:
             return None     # Does not exists in database
         # 2. Update status
-        audit_info = artwork_list[0].audit_info
+        audit_info = artwork_info.audit_info
         audit_status = audit_info.audit_status
         audit_type = audit_info.audit_type
         if info_type == "status":

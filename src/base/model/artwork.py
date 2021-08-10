@@ -49,15 +49,6 @@ class ArtworkInfo:
         self.audit_info.gp_art_id = self.art_id
 
     @classmethod
-    def create_from_sql(cls, result_list, audit_info=None):
-        id, art_id, title, tags, view_count, like_count, love_count, author_id, upload_timestamp = result_list
-        return cls(id, art_id, title=title, tags=tags,
-                   view_count=view_count, like_count=like_count,
-                   love_count=love_count, author_id=author_id,
-                   upload_timestamp=upload_timestamp,
-                   audit_info=audit_info)
-
-    @classmethod
     def create_from_json(cls, data):
         data_dict = ujson.loads(data)
         audit_info = None
@@ -115,18 +106,6 @@ class AuditInfo:
         self.audit_reason = audit_reason
 
     @classmethod
-    def create_from_sql(cls, result_list):
-        id, gp_id, gp_art_id, audit_type, audit_status, audit_reason = result_list
-        return cls(id, gp_id, gp_art_id, audit_type=audit_type,
-                   audit_status=audit_status, audit_reason=audit_reason)
-
-    @classmethod
-    def create_from_sql_no_id(cls, result_list):
-        audit_type, audit_status, audit_reason = result_list
-        return cls(0, 0, 0, audit_type=audit_type,
-                   audit_status=audit_status, audit_reason=audit_reason)
-
-    @classmethod
     def create_from_json(cls, data):
         pass
 
@@ -142,28 +121,6 @@ class AuditInfo:
             "audit_status": AuditStatus(self.audit_status).value if self.audit_status is not None else None,
             "audit_reason": self.audit_reason,
         }
-
-
-
-class ArtworkFactory:
-    @staticmethod
-    def create_from_sql(aggregated_data_list: Iterable[DataAggregator]) -> Iterable[ArtworkInfo]:
-        result = []
-        for data in aggregated_data_list:
-            audit_info = AuditInfo.create_from_sql(data.audit_data)
-            artwork_info = ArtworkInfo.create_from_sql(data.artwork_data, audit_info=audit_info)
-            result.append(artwork_info)
-        return result
-
-    @staticmethod
-    def create_from_sql_no_id(aggregated_data_list: Iterable[DataAggregator]) -> Iterable[ArtworkInfo]:
-        result = []
-        for data in aggregated_data_list:
-            audit_info = AuditInfo.create_from_sql_no_id(data.audit_data)
-            artwork_info = ArtworkInfo.create_from_sql(data.artwork_data, audit_info=audit_info)
-            result.append(artwork_info)
-        return result
-
 
 
 class ArtworkImage:

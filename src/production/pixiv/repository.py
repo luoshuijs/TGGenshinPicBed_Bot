@@ -3,12 +3,28 @@
 # Maintains an out of process shared dependency
 
 
+import copy
 from typing import Iterable, Any
 from mysql.connector.pooling import MySQLConnectionPool
 
-from src.base.model.artwork import AuditType, AuditStatus, DataAggregator, ArtworkInfo
+from src.base.model.artwork import AuditType, AuditStatus, ArtworkInfo, AuditInfo
 from src.production.pixiv.auditor import ArtworkStatusUpdate
 
+
+
+def CreateArtworkFromSQLData(data) -> ArtworkInfo:
+    (id, art_id, title, tags, view_count, like_count,
+            love_count, author_id, upload_timestamp,
+            type, status, reason) = data
+    audit_info = AuditInfo(0, 0, id, audit_type=type, audit_status=status, audit_reason=reason)
+    return ArtworkInfo(id, art_id, title=title, tags=tags,
+               view_count=view_count, like_count=like_count,
+               love_count=love_count, author_id=author_id,
+               upload_timestamp=upload_timestamp,
+               audit_info=audit_info)
+
+def CreateArtworkManyFromSQLData(data) -> Iterable[ArtworkInfo]:
+    return [CreateArtworkFromSQLData(i) for i in data]
 
 
 class PixivRepository:
@@ -45,10 +61,7 @@ class PixivRepository:
             conn.commit()
             return result
 
-    def _get_transformers(self, audit_type: AuditType):
-        return Transformer.combine(Transformer.audit_type(audit_type), Transformer.r18_type())
-
-    def get_art_by_artid(self, art_id: int, result_transormers = None):
+    def get_art_by_artid(self, art_id: int) -> ArtworkInfo:
         query = f"""
             SELECT id, illusts_id, title, tags, view_count,
                    like_count, love_count, user_id, upload_timestamp,
@@ -58,12 +71,12 @@ class PixivRepository:
         """
         query_args = (art_id,)
         data = self._execute_and_fetchall(query, query_args)
-        data = Transformer.r18_type()(data)
-        if result_transormers:
-            data = result_transormers(data)
-        return DataAggregator.from_sql_data(data)
+        if len(data) == 0:
+            return None
+        artwork_info = CreateArtworkFromSQLData(data[0])
+        return Transformer.apply(artwork_info)
 
-    def get_art_for_audit(self, audit_type: AuditType):
+    def get_art_for_audit(self, audit_type: AuditType) -> Iterable[ArtworkInfo]:
         table = ""
         if AuditType(audit_type) == AuditType.SFW:
             table = self.pixiv_audit_table_sfw
@@ -80,10 +93,10 @@ class PixivRepository:
         """
         query_args = (AuditStatus.INIT.value,)
         data = self._execute_and_fetchall(query, query_args)
-        data = self._get_transformers(audit_type)(data)
-        return DataAggregator.from_sql_data(data)
+        artwork_info_list = CreateArtworkManyFromSQLData(data)
+        return Transformer.apply_many(artwork_info_list, audit_type)
 
-    def get_art_for_push(self, audit_type: AuditType):
+    def get_art_for_push(self, audit_type: AuditType) -> Iterable[ArtworkInfo]:
         query = rf"""
             SELECT id, illusts_id, title, tags, view_count,
                    like_count, love_count, user_id, upload_timestamp,
@@ -93,8 +106,8 @@ class PixivRepository:
         """
         query_args = (audit_type.value, AuditStatus.PASS.value,)
         data = self._execute_and_fetchall(query, query_args)
-        data = self._get_transformers(audit_type)(data)
-        return DataAggregator.from_sql_data(data)
+        artwork_info_list = CreateArtworkManyFromSQLData(data)
+        return Transformer.apply_many(artwork_info_list, audit_type)
 
     def apply_update(self, update: ArtworkStatusUpdate):
         query = rf"""
@@ -140,42 +153,70 @@ class PixivRepository:
 
 
 
-
 class Transformer:
-    @staticmethod
-    def combine(*fn):
-        def act(data: Iterable[Iterable[Any]]) -> Iterable[Iterable[Any]]:
-            for f in fn:
-                data = f(data)
-            return data
-        return act
 
-    @staticmethod
-    def audit_type(audit_type: AuditType, override_if_exists=False):
-        audit_type = AuditType(audit_type)
-        def map_audit_type(info: Iterable[Any]) -> Iterable[Any]:
-            new_type = info[9]
+    class Singular:
+        @staticmethod
+        def audit_type(info: ArtworkInfo, audit_type: AuditType, override_if_exists=False):
+            new_type = AuditType(audit_type)
+            audit_type = info.audit_info.audit_type
             if not override_if_exists:
-                new_type = audit_type if new_type is None else new_type
+                if audit_type is not None:
+                    new_type = audit_type
             else:
                 new_type = audit_type
-            new_info = [*info]
-            new_info[9] = new_type
+            new_info = copy.deepcopy(info)
+            new_info.audit_info.audit_type = new_type
+            return info
+
+        @staticmethod
+        def initialize_none(info: ArtworkInfo):
+            audit_type = info.audit_info.audit_type
+            audit_status = info.audit_info.audit_status
+            if audit_type is None:
+                audit_type = AuditType.SFW
+            if audit_status is None:
+                audit_status = AuditStatus.INIT
+            new_info = copy.deepcopy(info)
+            new_info.audit_info.audit_type = audit_type
+            new_info.audit_info.audit_status = audit_status
             return new_info
-        def transform_audit_type(data: Iterable[Iterable[Any]]) -> Iterable[Iterable[Any]]:
-            return tuple(map_audit_type(info) for info in data)
-        return transform_audit_type
+
+        @staticmethod
+        def r18_type(info: ArtworkInfo):
+            tags = info.tags
+            new_type = info.audit_info.audit_type
+            if "R-18" in tags and new_type is None:
+                new_type = AuditType.R18
+            new_info = copy.deepcopy(info)
+            new_info.audit_info.audit_type = new_type
+            return new_info
+
+    class Many:
+        @staticmethod
+        def audit_type(info_list: Iterable[ArtworkInfo], audit_type: AuditType, override_if_exists=False):
+            return [Transformer.Singular.audit_type(i, audit_type, override_if_exists) for i in info_list]
+
+        @staticmethod
+        def initialize_none(info_list: Iterable[ArtworkInfo]):
+            return [Transformer.Singular.initialize_none(i) for i in info_list]
+
+        @staticmethod
+        def r18_type(info_list: Iterable[ArtworkInfo]):
+            return [Transformer.Singular.r18_type(i) for i in info_list]
 
     @staticmethod
-    def r18_type():
-        def map_audit_type(info: Iterable[Any]) -> Iterable[Any]:
-            tags = info[3]
-            new_type = info[9]
-            if "R-18" in tags:
-                new_type = AuditType.R18
-            new_info = [*info]
-            new_info[9] = new_type
-            return new_info
-        def transform_audit_type(data: Iterable[Iterable[Any]]) -> Iterable[Iterable[Any]]:
-            return tuple(map_audit_type(info) for info in data)
-        return transform_audit_type
+    def apply(artwork_info: ArtworkInfo, audit_type: AuditType = None, override_if_exists=False):
+        t = Transformer.Singular
+        artwork_info = t.initialize_none(t.r18_type(artwork_info))
+        if audit_type is not None:
+            artwork_info = t.audit_type(artwork_info, audit_type, override_if_exists)
+        return artwork_info
+
+    @staticmethod
+    def apply_many(artwork_list: Iterable[ArtworkInfo], audit_type: AuditType = None, override_if_exists=False):
+        t = Transformer.Many
+        artwork_list = t.initialize_none(t.r18_type(artwork_list))
+        if audit_type is not None:
+            artwork_list = t.audit_type(artwork_list, audit_type, override_if_exists)
+        return artwork_list
