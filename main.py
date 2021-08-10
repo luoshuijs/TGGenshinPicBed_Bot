@@ -66,12 +66,14 @@ def main() -> None:
     )
 
     set_audit = SetAuditHandler(pixiv=pixiv)
+    updater.dispatcher.add_handler(CommandHandler('set', set_audit.command_handler))
     set_audit_handler = ConversationHandler(
-        entry_points=[CommandHandler('set', set_audit.command_handler)],
+        entry_points=[CallbackQueryHandler(set_audit.set_audit_info)],
         states={
             set_audit.QUERY: [CallbackQueryHandler(set_audit.set_audit_info)],
         },
         fallbacks=[CommandHandler('cancel', examine.cancel_handler)],
+        per_message=True,
     )
 
     push = PushHandler(pixiv=pixiv)
