@@ -2,8 +2,10 @@ from telegram import Update, InputMediaPhoto, ParseMode, InlineKeyboardButton, I
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext, ConversationHandler
 
+import re
 import ujson
 from src.base.utils.markdown import markdown_escape
+from src.base.utils.artid import ExtractArtid
 from src.base.model.artwork import AuditStatus, AuditType, ArtworkInfo
 from src.base.logger import Log
 from src.production.pixiv import PixivService
@@ -20,7 +22,7 @@ class SetAuditHandler:
         Log.info("set命令请求 user %s id %s" % (user.username, user.id))
         try:
             operation = context.args[0]
-            art_id = int(context.args[1])
+            art_id = int(ExtractArtid(context.args[1]))
             Log.info("用户 %s 请求修改作品(%s): [%s]" % (user.username, art_id, operation))
             artwork_data = self.pixiv.get_artwork_image_by_art_id(art_id)
             if artwork_data is None:

@@ -1,5 +1,6 @@
 import re
 from src.base.logger import Log
+from src.base.utils.artid import ExtractArtid
 
 
 class Rsp:
@@ -15,24 +16,12 @@ class Contribute:
         rsp = Rsp()
         try:
             url = data
-            if url.rfind("pixiv") != -1:  # 判断是否是pxiv域名
-                matchObj = re.match(r'(.*)://www.pixiv.net/artworks/(.*)', url)
-                if matchObj:
-                    illusts_id = matchObj.group(2)
-                    rsp.data = illusts_id
-                    return rsp
-                matchObj = re.match(r'(.*)://www.pixiv.net/member_illust.php?mode=medium&illust_id=(.*)', url)
-                if matchObj:
-                    illusts_id = matchObj.group(2)
-                    rsp.data = illusts_id
-                    return rsp
-            elif data.isdecimal():
-                rsp.data = data
-                return rsp
-            else:
+            art_id = int(ExtractArtid(data))
+            if art_id is None:
                 rsp.status = False
                 rsp.message = "获取失败"
                 return rsp
+            rsp.data = art_id
         except BaseException as err:
             Log.error(err)
             rsp.status = False
