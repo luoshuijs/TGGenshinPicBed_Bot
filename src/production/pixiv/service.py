@@ -134,6 +134,10 @@ class PixivService:
             self.pixivcache.save_images_by_artid(art_id, images)
         return artwork_info, images, count
 
+    def cache_size(self, audit_type: AuditType):
+        # 1. Get from redis
+        return self.pixivcache.audit_size(audit_type)
+
     def get_artwork_image_by_art_id(self, art_id: int) -> Tuple[ArtworkInfo, Iterable[ArtworkImage]]:
         """
         Find the info and artwork images by art_id for confirmation

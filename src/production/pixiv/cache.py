@@ -68,6 +68,10 @@ class PixivCache:
         else:
             raise ValueError(f"unknown action type {update.action}")
 
+    def audit_size(self, audit_type: AuditType):
+        qname = QueueName(audit_type, self.key_prefix)
+        return self.rdb.scard(qname.audit)
+
     def add_audit(self, audit_type: AuditType, artwork_audit_list: Iterable[ArtworkInfo]) -> int:
         qname = QueueName(audit_type, self.key_prefix)
         arts_to_add = self._artwork_to_dict(artwork_audit_list)

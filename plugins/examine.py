@@ -147,7 +147,9 @@ class ExamineHandler:
             return self.EXAMINE_RESULT
         if IsPass:
             self.pixiv.audit_approve(audit_type, art_id)
-            message = "你选择了：%s，已经确认。请选择退出还是下一个。" % update.message.text
+            remaining = self.pixiv.cache_size(audit_type)
+            message = "你选择了：%s，已经确认。缓存池仍有%s件作品。请选择退出还是下一个。" % (
+                    update.message.text, remaining)
             update.message.reply_text(message, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
             return self.EXAMINE_START
         reply_keyboard = [["质量差", "类型错误"], ["一般"], ["NSFW", "R18"], ["退出"]]
@@ -183,6 +185,8 @@ class ExamineHandler:
             return ConversationHandler.END
         reason = update.message.text
         self.pixiv.audit_reject(audit_type, art_id, reason)
-        message = "你选择了：%s，已经确认。请选择退出还是下一个。" % update.message.text
+        remaining = self.pixic.cache_size(audit_type)
+        message = "你选择了：%s，已经确认。缓存池仍有%s件作品。请选择退出还是下一个。" % (
+                update.message.text, remaining)
         update.message.reply_text(message, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
         return self.EXAMINE_START
