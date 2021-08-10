@@ -1,5 +1,4 @@
-from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, InputMediaPhoto, ParseMode, \
-        InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InputMediaPhoto, ParseMode, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext, ConversationHandler
 
@@ -11,7 +10,6 @@ from src.production.pixiv import PixivService
 
 
 class SetAuditHandler:
-
     QUERY, = range(1)
 
     def __init__(self, pixiv: PixivService = None):
@@ -86,7 +84,8 @@ class SetAuditHandler:
             keyboard = [
                 [
                     InlineKeyboardButton("PASS", callback_data=ujson.dumps([art_id, "status", AuditStatus.PASS.value])),
-                    InlineKeyboardButton("REJECT", callback_data=ujson.dumps([art_id, "status", AuditStatus.REJECT.value])),
+                    InlineKeyboardButton("REJECT",
+                                         callback_data=ujson.dumps([art_id, "status", AuditStatus.REJECT.value])),
                     InlineKeyboardButton("PUSH", callback_data=ujson.dumps([art_id, "status", AuditStatus.PUSH.value])),
                     InlineKeyboardButton("Cancel", callback_data="Cancel"),
                 ]
@@ -118,6 +117,6 @@ class SetAuditHandler:
         except Exception as TError:
             Log.error(TError)
             query.edit_message_text(f"发生未知错误, 联系开发者 - "
-                                      "(art_id {art_id}, info_type {info_type}, "
-                                      "update_data {update_data})")
+                                    "(art_id {art_id}, info_type {info_type}, "
+                                    "update_data {update_data})")
         return ConversationHandler.END

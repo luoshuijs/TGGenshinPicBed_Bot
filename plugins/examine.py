@@ -12,7 +12,6 @@ from src.base.model.artwork import AuditType
 
 
 class ExamineHandler:
-
     EXAMINE, EXAMINE_START, EXAMINE_RESULT, EXAMINE_REASON = range(4)
 
     def __init__(self, pixiv: PixivService = None):
@@ -33,7 +32,6 @@ class ExamineHandler:
         )
         return self.EXAMINE
 
-
     def setup_handler(self, update: Update, context: CallbackContext) -> int:
         user = update.effective_user
         Log.info("examine: setup函数请求 %s %s" % (user["username"], update.message.text))
@@ -47,16 +45,19 @@ class ExamineHandler:
         message = "嗯，我看见了，%s 。审核类型是 %s 吧。\n" \
                   "审核完毕后，可以使用 /push 命令推送。\n" \
                   "接下来进入审核模式，请回复OK继续。" % (user["username"], update.message.text)
+        context.user_data["examine_count"] = {
+            "count": 0,
+            "pass": 0,
+            "cancel": 0
+        }
         update.message.reply_text(message, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
         return self.EXAMINE_START
-
 
     def cancel_handler(self, update: Update, _: CallbackContext) -> int:
         user = update.message.from_user
         Log.info("User %s canceled the conversation.", user.first_name)
         update.message.reply_text('命令取消.', reply_markup=ReplyKeyboardRemove())
         return ConversationHandler.END
-
 
     def start_handler(self, update: Update, context: CallbackContext) -> int:
         user = update.message.from_user
@@ -116,7 +117,6 @@ class ExamineHandler:
             update.message.reply_text('命令错误，请重新回复')
         return self.EXAMINE_START
 
-
     def result_handler(self, update: Update, context: CallbackContext) -> int:
         user = update.message.from_user
         Log.info("examine: result函数请求 %s : %s" % (user["username"], update.message.text))
@@ -146,10 +146,13 @@ class ExamineHandler:
             update.message.reply_text('命令错误，请重新回复')
             return self.EXAMINE_RESULT
         if IsPass:
+            context.user_data["examine_count"]["count"] += 1
+            context.user_data["examine_count"]["pass"] += 1
             self.pixiv.audit_approve(audit_type, art_id)
             remaining = self.pixiv.cache_size(audit_type)
-            message = "你选择了：%s，已经确认。缓存池仍有%s件作品。请选择退出还是下一个。" % (
-                    update.message.text, remaining)
+            message = "你选择了：%s，已经确认。你已经审核%s个，通过%s个，撤销%s个。缓存池仍有%s件作品。请选择退出还是下一个。" % (
+                update.message.text, context.user_data["examine_count"]["count"],
+                context.user_data["examine_count"]["pass"], context.user_data["examine_count"]["cancel"], remaining)
             update.message.reply_text(message, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
             return self.EXAMINE_START
         reply_keyboard = [["质量差", "类型错误"], ["一般"], ["NSFW", "R18"], ["退出"]]
@@ -160,7 +163,6 @@ class ExamineHandler:
         message = "你选择了：%s，已经确认。请选撤销择原因或者输入原因。" % update.message.text
         update.message.reply_text(message, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
         return self.EXAMINE_REASON
-
 
     def reason_handler(self, update: Update, context: CallbackContext) -> int:
         user = update.message.from_user
@@ -186,7 +188,10 @@ class ExamineHandler:
         reason = update.message.text
         self.pixiv.audit_reject(audit_type, art_id, reason)
         remaining = self.pixic.cache_size(audit_type)
-        message = "你选择了：%s，已经确认。缓存池仍有%s件作品。请选择退出还是下一个。" % (
-                update.message.text, remaining)
+        context.user_data["examine_count"]["count"] += 1
+        context.user_data["examine_count"]["pass"] += 1
+        message = "你选择了：%s，已经确认。你已经审核%s个，通过%s个，撤销%s个。缓存池仍有%s件作品。请选择退出还是下一个。" % (
+                update.message.text, context.user_data["examine_count"]["count"],
+                context.user_data["examine_count"]["pass"], context.user_data["examine_count"]["cancel"], remaining)
         update.message.reply_text(message, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
         return self.EXAMINE_START
