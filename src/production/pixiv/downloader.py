@@ -60,8 +60,9 @@ class PixivDownloader:
 
 
 def CreateArtworkInfoFromAPIResponse(data):
-    details = data["body"].get("illust_details", None)
-    if details is None:
+    try:
+        details = data["body"]["illust_details"]
+    except (AttributeError, TypeError):
         return None
     tags = "#" + "#".join(details["tags"]) if details["tags"] and len(details["tags"]) > 0 else ""
     return ArtworkInfo(

@@ -3,7 +3,7 @@ from typing import Iterable, Tuple
 from contextlib import contextmanager
 
 
-from src.base.model.artwork import AuditType, ArtworkInfo, ArtworkFactory
+from src.base.model.artwork import AuditStatus, AuditType, ArtworkInfo, ArtworkFactory
 from src.base.utils.namemap import NameMap
 from src.production.pixiv.repository import PixivRepository, Transformer
 from src.production.pixiv.downloader import PixivDownloader, ArtworkImage
@@ -133,6 +133,50 @@ class PixivService:
             images = self.pixivdownloader.download_images(art_id)
             self.pixivcache.save_images_by_artid(art_id, images)
         return artwork_info, images, count
+
+    def get_artwork_image_by_art_id(self, art_id: int) -> Tuple[ArtworkInfo, Iterable[ArtworkImage]]:
+        """
+        Find the info and artwork images by art_id for confirmation
+        """
+        # 1. Check database
+        data = self.pixivrepo.get_art_by_artid(art_id)
+        artwork_list = ArtworkFactory.create_from_sql_no_id(data)
+        if len(artwork_list) == 0:
+            return None     # Does not exists in database
+        artwork_info = artwork_list[0]
+        # 2. Get artwork info
+        artwork_exists = self.pixivdownloader.get_artwork_info(art_id)
+        if artwork_exists is None:
+            return None     # Artwork does not exist
+        art_id = artwork_info.art_id
+        images = self.pixivcache.get_images_by_artid(art_id)
+        if images is None:
+            images = self.pixivdownloader.download_images(art_id)
+            self.pixivcache.save_images_by_artid(art_id, images)
+        return artwork_info, images
+
+    def set_art_audit_info(self, art_id: int, info_type: str, data):
+        """
+        Set art audit status by art_id
+        """
+        if info_type not in ["status", "type"]:
+            raise ValueError(f"Unknown operation for set_art_audit_info: {info_type}")
+        # 1. Get artwork info
+        artwork_data = self.pixivrepo.get_art_by_artid(art_id)
+        artwork_list = ArtworkFactory.create_from_sql_no_id(artwork_data)
+        if len(artwork_list) == 0:
+            return None     # Does not exists in database
+        # 2. Update status
+        audit_info = artwork_list[0].audit_info
+        audit_status = audit_info.audit_status
+        audit_type = audit_info.audit_type
+        if info_type == "status":
+            audit_status = AuditStatus(data)
+        elif info_type == "type":
+            audit_type = AuditType(data)
+        update = auditor.ArtworkStatusUpdate(
+                audit_info=audit_info, status=audit_status, type=audit_type)
+        self.pixivrepo.apply_update(update)
 
     @contextmanager
     def push_manager(self, artwork_info):

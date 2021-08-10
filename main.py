@@ -3,6 +3,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
     CallbackQueryHandler
 
 from plugins.download import Download
+from plugins.set_audit import SetAuditHandler
 from src.base.config import config
 from plugins.contribute import ContributeHandler
 from plugins.examine import ExamineHandler
@@ -10,7 +11,7 @@ from plugins.push import PushHandler
 from plugins.start import start, help_command, test
 from src.production.pixiv import PixivService
 from src.base.logger import Log
-from src.base.utils import Utils
+from src.base.utils.base import Utils
 
 utils = Utils(config)
 logger = Log.getLogger()  # 必须初始化log，不然卡死机
@@ -60,6 +61,15 @@ def main() -> None:
                                      CommandHandler('skip', examine.cancel_handler)],
             examine.EXAMINE_REASON: [MessageHandler(Filters.text, examine.reason_handler),
                                      CommandHandler('skip', examine.cancel_handler)],
+        },
+        fallbacks=[CommandHandler('cancel', examine.cancel_handler)],
+    )
+
+    set_audit = SetAuditHandler(pixiv=pixiv)
+    set_audit_handler = ConversationHandler(
+        entry_points=[CommandHandler('set', set_audit.command_handler)],
+        states={
+            set_audit.QUERY: [CallbackQueryHandler(set_audit.set_audit_info)],
         },
         fallbacks=[CommandHandler('cancel', examine.cancel_handler)],
     )
@@ -114,6 +124,7 @@ def main() -> None:
     dispatcher.add_handler(push_handler)
     dispatcher.add_handler(contribute_handler)
     dispatcher.add_handler(download_handler)
+    dispatcher.add_handler(set_audit_handler)
 
     updater.start_polling()
 
