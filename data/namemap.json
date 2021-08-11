@@ -389,9 +389,10 @@
     "Yoimiya": {
         "name": [
             "Yoimiya",
-            "宵宮"
+            "宵宫"
         ],
         "regex": [
+            "宵宮"
         ]
     },
     "Zhongli": {
