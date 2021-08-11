@@ -89,7 +89,8 @@ class PixivRepository:
                    like_count, love_count, user_id, upload_timestamp,
                    type, status, reason
             FROM `{table}`
-            WHERE status=%s OR status IS NULL;
+            WHERE status=%s OR status IS NULL
+            ORDER BY upload_timestamp DESC, love_count ASC;
         """
         query_args = (AuditStatus.INIT.value,)
         data = self._execute_and_fetchall(query, query_args)
