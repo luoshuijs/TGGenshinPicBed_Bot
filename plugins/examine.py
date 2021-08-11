@@ -187,7 +187,7 @@ class ExamineHandler:
             return ConversationHandler.END
         reason = update.message.text
         self.pixiv.audit_reject(audit_type, art_id, reason)
-        remaining = self.pixic.cache_size(audit_type)
+        remaining = self.pixiv.cache_size(audit_type)
         context.user_data["examine_count"]["count"] += 1
         context.user_data["examine_count"]["pass"] += 1
         message = "你选择了：%s，已经确认。你已经审核%s个，通过%s个，撤销%s个。缓存池仍有%s件作品。请选择退出还是下一个。" % (
