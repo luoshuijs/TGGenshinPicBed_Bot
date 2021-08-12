@@ -12,7 +12,7 @@ from src.production.pixiv import PixivService
 
 
 class SetAuditHandler:
-    QUERY, = range(1)
+    QUERY, = -1000,
 
     def __init__(self, pixiv: PixivService = None):
         self.pixiv = pixiv
@@ -119,6 +119,6 @@ class SetAuditHandler:
         except Exception as TError:
             Log.error(TError)
             query.edit_message_text(f"发生未知错误, 联系开发者 - "
-                                    "(art_id {art_id}, info_type {info_type}, "
-                                    "update_data {update_data})")
+                                    f"(art_id {art_id}, info_type {info_type}, "
+                                    f"update_data {update_data})")
         return ConversationHandler.END
