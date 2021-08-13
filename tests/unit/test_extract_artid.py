@@ -28,10 +28,16 @@ class TestExtractArtid(unittest.TestCase):
             "https://pixiv.net/artworks/85423428",          # https without `www.`
             "https://www.pixiv.net/artworks/85423428",      # https with `www.`
             "https://www.pixiv.net/artworks/85423428?anything_else=abc",
-                                                            # with other query
+                                                            # with other params
             " http://pixiv.net/artworks/85423428",          # with leading space
             " http://www.pixiv.net/artworks/85423428 ",     # with trailing space
             "http://www.pixiv.net/artworks/85423428 ",      # with both leading and trailing space
+            "http://pixiv.net/member_illust.php?illust_id=85423428"
+                                                            # another valid uri
+            "http://www.pixiv.net/member_illust.php?illust_id=85423428"
+                                                            # with `www.`
+            "https://pixiv.net/member_illust.php?mode=medium&illust_id=85423428"
+                                                            # with other params
         ]
         # 2. Execute
         for data in data_list:
