@@ -477,8 +477,8 @@ class TestPixivService(unittest.TestCase):
             new_artwork = ArtworkInfo(**data)
             self.create_artwork(new_artwork)
         # 2. Execute
-        self.service.push_start(AuditType.SFW)
-        audit_size = self.service.cache_size()
+        self.service.audit_start(AuditType.SFW)
+        audit_size = self.service.cache_size(AuditType.SFW)
         # 3. Compare
         self.assertEqual(audit_size, len(data_list))
 
