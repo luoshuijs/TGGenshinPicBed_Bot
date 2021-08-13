@@ -429,6 +429,59 @@ class TestPixivService(unittest.TestCase):
         self.assertRegex(artwork_info_for_push.tags, re.compile("#Keqing #刻晴", re.I))
         self.assertRegex(artwork_info_for_push.tags, re.compile("#Ganyu #甘雨", re.I))
 
+    def test_cache_size_stays_up_to_date(self):
+        # 1. Setup
+        data_list = [
+            {
+                "art_id": 90670263,
+                "title": "バーバラ",
+                "tags": "#原神#GenshinImpact#Genshin#バーバラ#バーバラ(原神)#水着#海#サマータイムスパークル#原神1000users入り",
+                "view_count": 11342,
+                "like_count": 2146,
+                "love_count": 3632,
+                "author_id": 17156250,
+                "upload_timestamp": 1624114805,
+            },
+            {
+                "art_id": 90806639,
+                "title": "蛍ちゃん",
+                "tags": "#原神#GenshinImpact#Genshin#蛍#蛍(原神)#荧#Lumine#水着#原神1000users入り",
+                "view_count": 13813,
+                "like_count": 2821,
+                "love_count": 5163,
+                "author_id": 17156250,
+                "upload_timestamp": 1624633208,
+            },
+            {
+                "art_id": 90967393,
+                "title": "フゥータオ",
+                "tags": "#原神#GenshinImpact#Genshin#胡桃#胡桃(原神)#ツインテール#水着#フレアビキニ#原神1000users入り",
+                "view_count": 11088,
+                "like_count": 2389,
+                "love_count": 4165,
+                "author_id": 17156250,
+                "upload_timestamp": 1625238836,
+            },
+            {
+                "art_id": 90940211,
+                "title": "シニョーラ",
+                "tags": "#シニョーラ#原神#極上の乳#女の子#GenshinImpact#Genshin#シニョーラ(原神)#Signora",
+                "view_count": 5000,
+                "like_count": 980,
+                "love_count": 1660,
+                "author_id": 17156250,
+                "upload_timestamp": 1625138558,
+            },
+        ]
+        for data in data_list:
+            new_artwork = ArtworkInfo(**data)
+            self.create_artwork(new_artwork)
+        # 2. Execute
+        self.service.push_start(AuditType.SFW)
+        audit_size = self.service.cache_size()
+        # 3. Compare
+        self.assertEqual(audit_size, len(data_list))
+
     def get_artwork(self, art_id: int):
         query = f"""
             SELECT illusts_id, title, tags, view_count, like_count, love_count, user_id, upload_timestamp,

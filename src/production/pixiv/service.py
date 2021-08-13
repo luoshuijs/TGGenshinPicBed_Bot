@@ -55,8 +55,16 @@ class PixivService:
 
     def audit_next(self, audit_type: AuditType):
         # 1. Get from redis
-        update = RedisUpdate.get_audit_one(audit_type)
-        data = self.pixivcache.apply_update(update)
+        def get_audit():
+            update = RedisUpdate.get_audit_one(audit_type)
+            data = self.pixivcache.apply_update(update)
+            return data
+        data = get_audit()
+        if data is None:
+            if self.pixivcache.audit_size() == 0:
+                return None
+            self.audit_start()
+            data = get_audit()
         if data is None:
             return None
         artwork_info = ArtworkInfo.create_from_json(data)

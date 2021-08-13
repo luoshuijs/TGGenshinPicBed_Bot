@@ -1,4 +1,4 @@
-FROM python:3.8-alpine AS base
+FROM python:3.8.11-alpine3.14 AS base
 
 FROM base AS runtime_1
 RUN apk add --no-cache g++                                \
