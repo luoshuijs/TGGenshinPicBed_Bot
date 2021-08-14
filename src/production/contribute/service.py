@@ -16,11 +16,12 @@ class Contribute:
         rsp = Rsp()
         try:
             url = data
-            art_id = int(ExtractArtid(data))
-            if art_id is None:
+            art_id_str = ExtractArtid(data)
+            if art_id_str is None:
                 rsp.status = False
                 rsp.message = "获取失败"
                 return rsp
+            art_id = int(art_id_str)
             rsp.data = art_id
         except BaseException as err:
             Log.error(err)
