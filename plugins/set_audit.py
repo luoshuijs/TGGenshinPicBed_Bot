@@ -39,7 +39,7 @@ class SetAuditHandler:
         try:
             art_id_str = ExtractArtid(update.message.text)
             art_id = int(art_id_str)
-        except (IndexError, ValueError):
+        except (IndexError, ValueError, TypeError):
             update.message.reply_text("获取作品信息失败，请检连接或者ID是否有误", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
         Log.info("用户 %s 请求修改作品(%s)" % (user.username, art_id))
@@ -94,10 +94,11 @@ class SetAuditHandler:
             Log.error(TError)
             return ConversationHandler.END
         art_id = artwork_info.art_id
+        context.chat_data["SetCommand"] = {}
         context.chat_data["SetCommand"]["art_id"] = art_id
         reply_keyboard = [['status', 'type'], ["退出"]]
         update.message.reply_text("请选择你要修改的类型",
-                                  reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True), )
+                                  reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
         return self.TWO
 
     def set_operation(self, update: Update, context: CallbackContext):
@@ -123,6 +124,7 @@ class SetAuditHandler:
         return self.THREE
 
     def set_audit_info(self, update: Update, context: CallbackContext):
+        user = update.effective_user
         if update.message.text == "退出":
             update.message.reply_text(text="退出任务", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
@@ -161,5 +163,5 @@ class SetAuditHandler:
             update.message.reply_text(f"发生未知错误, 联系开发者 - "
                                       f"(art_id {art_id}, info_type {info_type}, "
                                       f"update_data {update_data})")
-
+        Log.info("用户 %s 请求修改作品(%s): [%s]" % (user.username, art_id, info_type))
         return ConversationHandler.END
