@@ -53,6 +53,12 @@ class ExamineHandler:
         update.message.reply_text(message, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
         return self.EXAMINE_START
 
+    def skip_handler(self, update: Update, _: CallbackContext) -> int:
+        user = update.message.from_user
+        Log.info("User %s canceled the conversation.", user.first_name)
+        update.message.reply_text('命令取消.', reply_markup=ReplyKeyboardRemove())
+        return ConversationHandler.END
+
     def cancel_handler(self, update: Update, _: CallbackContext) -> int:
         user = update.message.from_user
         Log.info("User %s canceled the conversation.", user.first_name)
@@ -103,7 +109,7 @@ class ExamineHandler:
                                                reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
                 else:
                     Log.error("图片%s获取失败" % art_id)
-                    update.message.reply_text("图片获取错误，找开发者背锅吧~")
+                    update.message.reply_text("图片获取错误，找开发者背锅吧~", reply_markup=ReplyKeyboardRemove())
                     return self.EXAMINE_START
             except BadRequest as TError:
                 Log.error("encounter error with image caption\n%s" % caption)
@@ -121,12 +127,12 @@ class ExamineHandler:
         user = update.message.from_user
         Log.info("examine: result函数请求 %s : %s" % (user["username"], update.message.text))
         if update.message.text == "不够色":
-            update.message.reply_text('那你来发嗷！', reply_markup=ReplyKeyboardRemove())
+            update.message.reply_text('那你来发嗷！')
             update.message.reply_text('退出审核', reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
         elif update.message.text == "hso":
             reply_keyboard = [['通过', '撤销'], ['退出']]
-            update.message.reply_text('一开口就知道老色批了嗷！', reply_markup=ReplyKeyboardRemove())
+            update.message.reply_text('一开口就知道老色批了嗷！')
             update.message.reply_text('认(g)真(k)点(d)，重新审核嗷！',
                                       reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
             return self.EXAMINE_RESULT
@@ -171,12 +177,12 @@ class ExamineHandler:
         art_id = context.chat_data.get("image_key", None)
         audit_type = AuditType(context.chat_data.get("audit_type", None))
         if update.message.text == "不够色":
-            update.message.reply_text('那你来发嗷！', reply_markup=ReplyKeyboardRemove())
+            update.message.reply_text('那你来发嗷！')
             update.message.reply_text('退出审核', reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
         elif update.message.text == "hso":
             reply_keyboard = [['通过', '撤销'], ['退出']]
-            update.message.reply_text('一开口就知道老色批了嗷！', reply_markup=ReplyKeyboardRemove())
+            update.message.reply_text('一开口就知道老色批了嗷！')
             update.message.reply_text('认(g)真(k)点(d)，重新审核嗷！',
                                       reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
             return self.EXAMINE_RESULT

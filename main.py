@@ -54,28 +54,35 @@ def main() -> None:
         entry_points=[CommandHandler('examine', examine.command_handler)],
         states={
             examine.EXAMINE: [MessageHandler(Filters.text, examine.setup_handler),
-                              CommandHandler('skip', examine.cancel_handler)],
+                              CommandHandler('skip', examine.skip_handler)],
             examine.EXAMINE_START: [MessageHandler(Filters.text, examine.start_handler),
-                                    CommandHandler('skip', examine.cancel_handler)],
+                                    CommandHandler('skip', examine.skip_handler)],
             examine.EXAMINE_RESULT: [MessageHandler(Filters.text, examine.result_handler),
-                                     CommandHandler('skip', examine.cancel_handler)],
+                                     CommandHandler('skip', examine.skip_handler)],
             examine.EXAMINE_REASON: [MessageHandler(Filters.text, examine.reason_handler),
-                                     CommandHandler('skip', examine.cancel_handler)],
+                                     CommandHandler('skip', examine.skip_handler)],
         },
         fallbacks=[CommandHandler('cancel', examine.cancel_handler)],
     )
-
     set_audit = SetAuditHandler(pixiv=pixiv)
-    updater.dispatcher.add_handler(CommandHandler('set', set_audit.command_handler))
     set_audit_handler = ConversationHandler(
-        entry_points=[CallbackQueryHandler(set_audit.set_audit_info)],
+        entry_points=[CommandHandler('set', set_audit.command_handler)],
         states={
-            set_audit.QUERY: [CallbackQueryHandler(set_audit.set_audit_info)],
+            set_audit.ONE: [
+                MessageHandler(Filters.text, set_audit.set_start),
+                CommandHandler('skip', cancel)
+            ],
+            set_audit.TWO: [
+                MessageHandler(Filters.text, set_audit.set_operation),
+                CommandHandler('skip', cancel)
+            ],
+            set_audit.THREE: [
+                MessageHandler(Filters.text, set_audit.set_audit_info),
+                CommandHandler('skip', cancel)
+            ]
         },
-        fallbacks=[CommandHandler('cancel', examine.cancel_handler)],
-        per_message=True,
+        fallbacks=[CommandHandler('cancel', cancel)],
     )
-
     push = PushHandler(pixiv=pixiv)
     push_handler = ConversationHandler(
         entry_points=[CommandHandler('push', push.command_handler)],

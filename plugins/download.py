@@ -1,6 +1,6 @@
 import asyncio
 
-from telegram import ReplyKeyboardMarkup, Update
+from telegram import ReplyKeyboardMarkup, Update, ReplyKeyboardRemove
 from telegram.ext import ConversationHandler, CallbackContext
 
 from src.base.config import config
@@ -50,15 +50,15 @@ class Download:
 
     def start_download(self, update: Update, context: CallbackContext) -> int:
         if update.message.text == "退出":
-            update.message.reply_text(text="退出任务")
+            update.message.reply_text(text="退出任务", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
         context.bot_data["download_chat_id"] = update.message.chat_id
         try:
             update.message.reply_text(text="请耐心等待任务完成")
             run = [self.pixiv.work(self.loop, sleep_time=-1)]
             self.loop.run_until_complete(asyncio.wait(run))
-            update.message.reply_text(text="执行成功")
+            update.message.reply_text(text="执行成功", reply_markup=ReplyKeyboardRemove())
         except BaseException as err:
             Log.error(err)
-            update.message.reply_text(text="发生错误，执行失败")
+            update.message.reply_text(text="发生错误，执行失败", reply_markup=ReplyKeyboardRemove())
         return ConversationHandler.END
