@@ -42,9 +42,10 @@ class ExamineHandler:
         context.chat_data["audit_type"] = audit_type.value
         count = self.pixiv.audit_start(audit_type)
         reply_keyboard = [['OK', '退出']]
-        message = "嗯，我看见了，%s 。审核类型是 %s 吧。\n" \
+        message = "%s ，目前审核类型是%s 。\n" \
+                  "目前缓存池有%s件作品  \n" \
                   "审核完毕后，可以使用 /push 命令推送。\n" \
-                  "接下来进入审核模式，请回复OK继续。" % (user["username"], update.message.text)
+                  "接下来进入审核模式，请回复OK继续。" % (user["username"], update.message.text, count)
         context.user_data["examine_count"] = {
             "count": 0,
             "pass": 0,
@@ -109,12 +110,15 @@ class ExamineHandler:
                                                reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
                 else:
                     Log.error("图片%s获取失败" % art_id)
-                    update.message.reply_text("图片获取错误，找开发者背锅吧~", reply_markup=ReplyKeyboardRemove())
+                    reply_keyboard = [['OK', '退出']]
+                    update.message.reply_text("图片获取错误，回复OK尝试重新获取",
+                                              reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
                     return self.EXAMINE_START
             except BadRequest as TError:
                 Log.error("encounter error with image caption\n%s" % caption)
                 Log.error(TError)
-                return self.EXAMINE_START
+                update.message.reply_text('程序发生致命错误，退出审核', reply_markup=ReplyKeyboardRemove())
+                return ConversationHandler.END
             return self.EXAMINE_RESULT
         elif update.message.text == "退出":
             update.message.reply_text('退出审核', reply_markup=ReplyKeyboardRemove())
@@ -197,7 +201,7 @@ class ExamineHandler:
         context.user_data["examine_count"]["count"] += 1
         context.user_data["examine_count"]["cancel"] += 1
         message = "你选择了：%s，已经确认。你已经审核%s个，通过%s个，撤销%s个。缓存池仍有%s件作品。请选择退出还是下一个。" % (
-                update.message.text, context.user_data["examine_count"]["count"],
-                context.user_data["examine_count"]["pass"], context.user_data["examine_count"]["cancel"], remaining)
+            update.message.text, context.user_data["examine_count"]["count"],
+            context.user_data["examine_count"]["pass"], context.user_data["examine_count"]["cancel"], remaining)
         update.message.reply_text(message, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
         return self.EXAMINE_START
