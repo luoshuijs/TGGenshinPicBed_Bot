@@ -61,7 +61,7 @@ class PixivService:
             return data
         data = get_audit()
         if data is None:
-            if self.pixivcache.audit_size() == 0:
+            if self.pixivcache.audit_size(audit_type) == 0:
                 return None
             self.audit_start()
             data = get_audit()
