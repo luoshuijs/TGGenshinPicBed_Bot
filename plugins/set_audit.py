@@ -35,6 +35,9 @@ class SetAuditHandler:
 
     def set_start(self, update: Update, context: CallbackContext):
         user = update.effective_user
+        if update.message.text == "退出":
+            update.message.reply_text(text="退出任务", reply_markup=ReplyKeyboardRemove())
+            return ConversationHandler.END
         # update.message.reply_text("正在获取作品信息", reply_markup=ReplyKeyboardRemove())
         try:
             art_id_str = ExtractArtid(update.message.text)
