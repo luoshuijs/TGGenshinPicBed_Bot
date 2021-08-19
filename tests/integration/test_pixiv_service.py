@@ -431,21 +431,38 @@ class TestPixivService(unittest.TestCase):
 
     def test_auto_approve_succeeds(self):
         # 1. Setup
-        data = {
-            "art_id": 90751154,
-            "title": "甘雨",
-            "tags": "#甘雨(原神)#甘雨#原神#GenshinImpact#チャイナドレス#尻神様#原神5000users入り#可愛い女の子",
-            "view_count": 25505,
-            "like_count": 5476,
-            "love_count": 8929,
-            "author_id": 25447095,
-            "upload_timestamp": 1624417521,
-        }
-        new_artwork = ArtworkInfo(**data)
-        self.create_artwork(new_artwork)
+        data_list = [
+            {
+                "art_id": 90670263,
+                "title": "バーバラ",
+                "tags": "#原神#GenshinImpact#Genshin#バーバラ#バーバラ(原神)#水着#海#サマータイムスパークル#原神1000users入り",
+                "view_count": 11342,
+                "like_count": 2146,
+                "love_count": 3632,
+                "author_id": 17156250,
+                "upload_timestamp": 1624114805,
+            },
+            {
+                "art_id": 90806639,
+                "title": "蛍ちゃん",
+                "tags": "#原神#GenshinImpact#Genshin#蛍#蛍(原神)#荧#Lumine#水着#原神1000users入り",
+                "view_count": 13813,
+                "like_count": 2821,
+                "love_count": 5163,
+                "author_id": 17156250,
+                "upload_timestamp": 1624633208,
+            },
+        ]
+        for data in data_list:
+            new_artwork = ArtworkInfo(**data)
+            self.create_artwork(new_artwork)
+        audit_info = AuditInfo(
+                0, 0, data_list[0]["art_id"], audit_type=AuditType.SFW, audit_status=AuditStatus.PASS, audit_reason="")
+        self.create_audit_info(audit_info)
+        data = data_list[1]
         # 2. Execute
         self.service.audit_start(AuditType.SFW)
-        artwork_info_for_audit, images = self.service.audit_next(AuditType.SFW, approve_threshold=0)
+        artwork_info_for_audit, images = self.service.audit_next(AuditType.SFW, approve_threshold=1)
         audit_info_sut = artwork_info_for_audit.audit_info
         # 3. Compare
         artwork_info = self.get_artwork(data["art_id"])

@@ -166,7 +166,7 @@ class PixivRepository:
         data = self._execute_and_fetchall(query, query_args)
         if len(data) == 0:
             return 0
-        approved_art_count, = data
+        approved_art_count, = data[0]
         return approved_art_count
 
 
