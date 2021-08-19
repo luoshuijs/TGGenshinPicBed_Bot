@@ -8,7 +8,7 @@ from src.base.config import config
 from plugins.contribute import ContributeHandler
 from plugins.examine import ExamineHandler
 from plugins.push import PushHandler
-from plugins.start import start, help_command, test
+from plugins.start import start, help_command, test, error_handler
 from src.production.pixiv import PixivService
 from src.base.logger import Log
 from src.base.utils.base import Utils
@@ -134,6 +134,7 @@ def main() -> None:
     dispatcher.add_handler(contribute_handler)
     dispatcher.add_handler(download_handler)
     dispatcher.add_handler(set_audit_handler)
+    dispatcher.add_error_handler(error_handler)
 
     updater.start_polling()
 

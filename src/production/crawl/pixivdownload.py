@@ -165,8 +165,8 @@ class Pixiv:
             task_main = asyncio.ensure_future(self.GetIllustInformation(i))
             self.GetIllustInformationTasks.append(task_main)
 
-        popular_artists_all = await self.repository.get_artists_with_multiple_approved_arts(num=12,
-                                                                                            days_ago=7)  # 从数据库获取全部话说
+        popular_artists_all = await self.repository.get_artists_with_multiple_approved_arts(num=10,
+                                                                                            days_ago=7)
 
         for popular_artists in popular_artists_all:
             all_illusts = await self.BasicRequest.get_user_all_illusts(popular_artists.user_id)
@@ -176,8 +176,9 @@ class Pixiv:
                 all_illusts_f = all_illusts
             for art_id in all_illusts_f:
                 self.artid_queue.put_nowait({"id": art_id})
-            await self.repository.save_artist_last_crawl(user_id=popular_artists.user_id,
-                                                         last_art_id=max(all_illusts_f))
+            if all_illusts_f is None:
+                await self.repository.save_artist_last_crawl(user_id=popular_artists.user_id,
+                                                             last_art_id=max(all_illusts_f))
 
         self.artid_queue.put_nowait({"status": "close"})
         await asyncio.wait(self.GetIllustInformationTasks)

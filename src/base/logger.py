@@ -32,7 +32,7 @@ class Logger():
     def getLogger(self):
         return self.logger
 
-    def __console(self, level, message):
+    def __console(self, level, message, exc_info=None):
         # 创建一个FileHandler，用于写到本地
         fh = RotatingFileHandler(filename=self.logName, maxBytes=1024 * 1024 * 5, backupCount=5,
                                  encoding='utf-8')  # 使用RotatingFileHandler类，滚动备份日志
@@ -46,29 +46,29 @@ class Logger():
         self.logger.addHandler(ch)
 
         if level == 'info':
-            self.logger.info(message)
+            self.logger.info(msg=message, exc_info=exc_info)
         elif level == 'debug':
-            self.logger.debug(message)
+            self.logger.debug(msg=message, exc_info=exc_info)
         elif level == 'warning':
-            self.logger.warning(message)
+            self.logger.warning(msg=message, exc_info=exc_info)
         elif level == 'error':
-            self.logger.error(message)
+            self.logger.error(msg=message, exc_info=exc_info)
         # 这两行代码是为了避免日志输出重复问题
         self.logger.removeHandler(ch)
         self.logger.removeHandler(fh)
         fh.close()  # 关闭打开的文件
 
-    def debug(self, message):
-        self.__console('debug', message)
+    def debug(self, msg, exc_info=None):
+        self.__console('debug', msg, exc_info)
 
-    def info(self, message):
-        self.__console('info', message)
+    def info(self, msg, exc_info=None):
+        self.__console('info', msg, exc_info)
 
-    def warning(self, message):
-        self.__console('warning', message)
+    def warning(self, msg, exc_info=None):
+        self.__console('warning', msg, exc_info)
 
-    def error(self, message):
-        self.__console('error', message)
+    def error(self, msg, exc_info=None):
+        self.__console('error', msg, exc_info)
 
 
 Log = Logger()
