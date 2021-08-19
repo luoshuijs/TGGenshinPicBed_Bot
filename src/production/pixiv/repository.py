@@ -36,6 +36,7 @@ class PixivRepository:
         self.pixiv_audit_table_sfw = f"{self.pixiv_audit_table}_sfw"
         self.pixiv_audit_table_nsfw = f"{self.pixiv_audit_table}_nsfw"
         self.pixiv_audit_table_r18 = f"{self.pixiv_audit_table}_r18"
+        self.pixiv_approved_artist_table = "pixiv_approved_artist"
         self.sql_pool = MySQLConnectionPool(pool_name="",
                                             pool_size=10,
                                             pool_reset_session=False,
@@ -152,6 +153,21 @@ class PixivRepository:
         )
         return self._execute_and_fetchall(query, query_args)
 
+    def get_approved_art_count_by_artistid(self, artistid: int) -> int:
+        """
+        Get number of approved arts by artist id
+        """
+        query = f"""
+            SELECT approved_art_count
+            FROM {self.pixiv_approved_artist_table}
+            WHERE user_id = %s;
+        """
+        query_args = (artistid,)
+        data = self._execute_and_fetchall(query, query_args)
+        if len(data) == 0:
+            return 0
+        approved_art_count, = data
+        return approved_art_count
 
 
 class Transformer:

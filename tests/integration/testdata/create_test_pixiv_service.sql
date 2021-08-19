@@ -1,8 +1,10 @@
+DROP VIEW IF EXISTS `pixiv_approved_artist`;
 DROP VIEW IF EXISTS `genshin_pixiv_audit_r18`;
 DROP VIEW IF EXISTS `genshin_pixiv_audit_nsfw`;
 DROP VIEW IF EXISTS `genshin_pixiv_audit_sfw`;
 DROP VIEW IF EXISTS `genshin_pixiv_audit`;
 
+DROP TABLE IF EXISTS `pixiv_artist`;
 DROP TABLE IF EXISTS `examine`;
 DROP TABLE IF EXISTS `genshin_pixiv`;
 
@@ -30,6 +32,13 @@ CREATE TABLE `examine` (
   CONSTRAINT `examine_ibfk_1` FOREIGN KEY (`illusts_id`) REFERENCES `genshin_pixiv` (`illusts_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE `pixiv_artist` (
+  `user_id` bigint(11) unsigned NOT NULL COMMENT 'Pixiv user id',
+  `last_art_id` bigint(11) unsigned DEFAULT NULL COMMENT 'Last crawled art id',
+  `last_crawled_at` datetime DEFAULT NOW() COMMENT 'Last crawled time',
+  PRIMARY KEY (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE VIEW `genshin_pixiv_audit`
 AS SELECT gp.id, gp.illusts_id, gp.title, gp.tags, gp.view_count,
           gp.like_count, gp.love_count, gp.user_id, gp.upload_timestamp,
@@ -52,3 +61,14 @@ CREATE VIEW genshin_pixiv_audit_r18
 AS SELECT *
 FROM `genshin_pixiv_audit`
 WHERE tags LIKE '%R-18%' OR type LIKE 'R18';
+
+CREATE VIEW `pixiv_approved_artist` AS
+SELECT gp.user_id, pa.last_art_id, pa.last_crawled_at, COUNT(gp.user_id) AS approved_art_count
+FROM `genshin_pixiv` AS gp
+    INNER JOIN `examine` AS ex
+    ON gp.illusts_id = ex.illusts_id
+    LEFT OUTER JOIN `pixiv_artist` AS pa
+    ON gp.user_id = pa.user_id
+WHERE ex.status = 1 OR ex.status = 3
+GROUP BY gp.user_id
+ORDER BY approved_art_count DESC;

@@ -429,6 +429,60 @@ class TestPixivService(unittest.TestCase):
         self.assertRegex(artwork_info_for_push.tags, re.compile("#Keqing #刻晴", re.I))
         self.assertRegex(artwork_info_for_push.tags, re.compile("#Ganyu #甘雨", re.I))
 
+    def test_auto_approve_succeeds(self):
+        # 1. Setup
+        data = {
+            "art_id": 90751154,
+            "title": "甘雨",
+            "tags": "#甘雨(原神)#甘雨#原神#GenshinImpact#チャイナドレス#尻神様#原神5000users入り#可愛い女の子",
+            "view_count": 25505,
+            "like_count": 5476,
+            "love_count": 8929,
+            "author_id": 25447095,
+            "upload_timestamp": 1624417521,
+        }
+        new_artwork = ArtworkInfo(**data)
+        self.create_artwork(new_artwork)
+        # 2. Execute
+        self.service.audit_start(AuditType.SFW)
+        artwork_info_for_audit, images = self.service.audit_next(AuditType.SFW, approve_threshold=0)
+        audit_info_sut = artwork_info_for_audit.audit_info
+        # 3. Compare
+        artwork_info = self.get_artwork(data["art_id"])
+        audit_info = artwork_info.audit_info
+        self.assertEqual(artwork_info.art_id, data["art_id"])
+        self.assertEqual(audit_info_sut.audit_status, AuditStatus.PASS)
+        self.assertEqual(audit_info_sut.audit_type, AuditType.SFW)
+        self.assertEqual(audit_info.audit_status, AuditStatus.PASS)
+        self.assertEqual(audit_info.audit_type, AuditType.SFW)
+
+    def test_auto_approve_is_disabled_by_default(self):
+        # 1. Setup
+        data = {
+            "art_id": 90751154,
+            "title": "甘雨",
+            "tags": "#甘雨(原神)#甘雨#原神#GenshinImpact#チャイナドレス#尻神様#原神5000users入り#可愛い女の子",
+            "view_count": 25505,
+            "like_count": 5476,
+            "love_count": 8929,
+            "author_id": 25447095,
+            "upload_timestamp": 1624417521,
+        }
+        new_artwork = ArtworkInfo(**data)
+        self.create_artwork(new_artwork)
+        # 2. Execute
+        self.service.audit_start(AuditType.SFW)
+        artwork_info_for_audit, images = self.service.audit_next(AuditType.SFW)
+        audit_info_sut = artwork_info_for_audit.audit_info
+        # 3. Compare
+        artwork_info = self.get_artwork(data["art_id"])
+        audit_info = artwork_info.audit_info
+        self.assertEqual(artwork_info.art_id, data["art_id"])
+        self.assertEqual(audit_info_sut.audit_status, AuditStatus.INIT)
+        self.assertEqual(audit_info_sut.audit_type, AuditType.SFW)
+        self.assertEqual(audit_info.audit_status, None)
+        self.assertEqual(audit_info.audit_type, None)
+
     def test_cache_size_stays_up_to_date(self):
         # 1. Setup
         data_list = [

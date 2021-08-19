@@ -53,7 +53,7 @@ class PixivService:
         update = RedisUpdate.add_audit(audit_type, artwork_audit_list)
         return self.pixivcache.apply_update(update)
 
-    def audit_next(self, audit_type: AuditType):
+    def audit_next(self, audit_type: AuditType, approve_threshold: int = -1):
         # 1. Get from redis
         def get_audit():
             update = RedisUpdate.get_audit_one(audit_type)
@@ -76,6 +76,12 @@ class PixivService:
         if images is None:
             images = self.pixivdownloader.download_images(art_id)
             self.pixivcache.save_images_by_artid(art_id, images)
+        # 3. Auto approve
+        if approve_threshold > -1:
+            approved_art_count = self.pixivrepo.get_approved_art_count_by_artistid(artwork_info.author_id)
+            if approved_art_count >= approve_threshold:
+                self.audit_approve(audit_type, artwork_info.art_id)
+                artwork_info = self.pixivrepo.get_art_by_artid(artwork_info.art_id)
         return artwork_info, images
 
     def audit_approve(self, audit_type: AuditType, art_id: int):
