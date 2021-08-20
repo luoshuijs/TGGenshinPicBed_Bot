@@ -81,7 +81,7 @@ class ExamineHandler:
             # *自动审核: 查看 artwork_info.audit_info, 如果 audit_status 为 PASS 则自动审核已通过
             artwork_info, images = result
             if artwork_info.audit_info.audit_status == AuditStatus.PASS:
-                reply_keyboard = [['下一个', '退出']]
+                reply_keyboard = [['下一个', '撤销'], ['退出']]
             art_id = artwork_info.art_id
             Log.info("ExamineStart sending photo...")
             context.chat_data["image_key"] = art_id
