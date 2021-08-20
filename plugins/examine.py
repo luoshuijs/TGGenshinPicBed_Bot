@@ -73,7 +73,7 @@ class ExamineHandler:
         audit_type = AuditType(context.chat_data.get("audit_type", None))
         if update.message.text == "下一个" or update.message.text == "OK":
             # *自动审核: audit_next 传参 approve_threshold, 大于等于该数值自动通过, -1关闭自动通过
-            approve_threshold = 10  # 大于10自动通过
+            approve_threshold = 3  # 大于3自动通过
             result = self.pixiv.audit_next(audit_type, approve_threshold)
             if result is None:
                 update.message.reply_text('已经完成了当前的全部审核，退出审核', reply_markup=ReplyKeyboardRemove())

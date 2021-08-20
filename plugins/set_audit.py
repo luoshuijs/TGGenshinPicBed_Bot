@@ -1,6 +1,7 @@
 from telegram import Update, InputMediaPhoto, ParseMode, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext, ConversationHandler
+import telegram
 
 from src.base.config import config
 from src.base.utils.base import Utils
@@ -20,7 +21,20 @@ class SetAuditHandler:
         self.pixiv = pixiv
 
     def command_handler(self, update: Update, context: CallbackContext):
+        context.chat_data["SetCommand"] = {}
         user = update.effective_user
+        art_id = None
+        if update.message.reply_to_message is not None:
+            for caption_entities in update.message.reply_to_message.caption_entities:
+                if caption_entities.type == telegram.constants.MESSAGEENTITY_TEXT_LINK:
+                    try:
+                        art_id_str = ExtractArtid(caption_entities.url)
+                        art_id = int(art_id_str)
+                    except (IndexError, ValueError, TypeError):
+                        pass
+            if art_id is not None:
+                context.chat_data["SetCommand"]["art_id"] = art_id
+                return self.set_start(update, context)
         Log.info("set命令请求 user %s id %s" % (user.username, user.id))
         if not self.utils.IfAdmin(user["id"]):
             update.message.reply_text("你不是BOT管理员，不能使用此命令！")
@@ -38,10 +52,14 @@ class SetAuditHandler:
         if update.message.text == "退出":
             update.message.reply_text(text="退出任务", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
-        # update.message.reply_text("正在获取作品信息", reply_markup=ReplyKeyboardRemove())
+        update.message.reply_text("正在获取作品信息", reply_markup=ReplyKeyboardRemove())
         try:
-            art_id_str = ExtractArtid(update.message.text)
-            art_id = int(art_id_str)
+            SetCommand = context.chat_data.get("SetCommand")
+            if SetCommand.get("art_id") is None:
+                art_id_str = ExtractArtid(update.message.text)
+                art_id = int(art_id_str)
+            else:
+                art_id = SetCommand.get("art_id")
         except (IndexError, ValueError, TypeError):
             update.message.reply_text("获取作品信息失败，请检连接或者ID是否有误", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
@@ -97,7 +115,6 @@ class SetAuditHandler:
             Log.error(TError)
             return ConversationHandler.END
         art_id = artwork_info.art_id
-        context.chat_data["SetCommand"] = {}
         context.chat_data["SetCommand"]["art_id"] = art_id
         reply_keyboard = [['status', 'type'], ["退出"]]
         update.message.reply_text("请选择你要修改的类型",
