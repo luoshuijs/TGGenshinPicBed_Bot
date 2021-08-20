@@ -8,7 +8,7 @@ from src.base.utils.base import Utils
 from src.base.logger import Log
 from src.base.utils.markdown import markdown_escape
 from src.production.pixiv.service import PixivService
-from src.base.model.artwork import AuditType
+from src.base.model.artwork import AuditType, AuditStatus
 
 
 class ExamineHandler:
@@ -80,6 +80,8 @@ class ExamineHandler:
                 return ConversationHandler.END
             # *自动审核: 查看 artwork_info.audit_info, 如果 audit_status 为 PASS 则自动审核已通过
             artwork_info, images = result
+            if artwork_info.audit_info.audit_status == AuditStatus.PASS:
+                reply_keyboard = [['下一个', '退出']]
             art_id = artwork_info.art_id
             Log.info("ExamineStart sending photo...")
             context.chat_data["image_key"] = art_id
@@ -122,6 +124,9 @@ class ExamineHandler:
                 Log.error(TError)
                 update.message.reply_text('程序发生致命错误，退出审核', reply_markup=ReplyKeyboardRemove())
                 return ConversationHandler.END
+            if artwork_info.audit_info.audit_status == AuditStatus.PASS:
+                update.message.reply_text("审核已经自动通过，请问是下一个还是撤销",
+                                          reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
             return self.EXAMINE_RESULT
         elif update.message.text == "退出":
             update.message.reply_text('退出审核', reply_markup=ReplyKeyboardRemove())
@@ -151,7 +156,7 @@ class ExamineHandler:
                 self.pixiv.audit_cancel(audit_type, art_id)
             update.message.reply_text('退出审核', reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
-        elif update.message.text == "通过":
+        elif update.message.text == "通过" or "下一个":
             IsPass = True
         elif update.message.text == "撤销":
             IsPass = False
@@ -166,6 +171,12 @@ class ExamineHandler:
             message = "你选择了：%s，已经确认。你已经审核%s个，通过%s个，撤销%s个。缓存池仍有%s件作品。请选择退出还是下一个。" % (
                 update.message.text, context.user_data["examine_count"]["count"],
                 context.user_data["examine_count"]["pass"], context.user_data["examine_count"]["cancel"], remaining)
+            if update.message.text == "下一个":
+                message = "你已经审核%s个，通过%s个，撤销%s个。缓存池仍有%s件作品。" % (
+                    context.user_data["examine_count"]["count"], context.user_data["examine_count"]["pass"],
+                    context.user_data["examine_count"]["cancel"], remaining)
+                update.message.reply_text(message)
+                return self.start_handler(update, context)
             update.message.reply_text(message, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
             return self.EXAMINE_START
         reply_keyboard = [["质量差", "类型错误"], ["一般"], ["NSFW", "R18"], ["退出"]]
