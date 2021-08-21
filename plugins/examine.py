@@ -156,7 +156,7 @@ class ExamineHandler:
                 self.pixiv.audit_cancel(audit_type, art_id)
             update.message.reply_text('退出审核', reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
-        elif update.message.text == "通过" or "下一个":
+        elif update.message.text == "通过" or update.message.text == "下一个":
             IsPass = True
         elif update.message.text == "撤销":
             IsPass = False
