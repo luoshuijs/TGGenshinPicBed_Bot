@@ -63,7 +63,7 @@ class PixivService:
         if data is None:
             if self.pixivcache.audit_size(audit_type) == 0:
                 return None
-            self.audit_start()
+            self.audit_start(audit_type)
             data = get_audit()
         if data is None:
             return None
@@ -162,7 +162,7 @@ class PixivService:
             self.pixivcache.save_images_by_artid(art_id, images)
         return artwork_info, images
 
-    def set_art_audit_info(self, art_id: int, info_type: str, data):
+    def set_art_audit_info(self, art_id: int, info_type: str, data, d_reason=None):
         """
         Set art audit status by art_id
         """
@@ -176,12 +176,15 @@ class PixivService:
         audit_info = artwork_info.audit_info
         audit_status = audit_info.audit_status
         audit_type = audit_info.audit_type
+        audit_reason = audit_info.audit_reason
         if info_type == "status":
             audit_status = AuditStatus(data)
         elif info_type == "type":
             audit_type = AuditType(data)
+            if d_reason is not None:
+                audit_reason = str(d_reason)
         update = auditor.ArtworkStatusUpdate(
-                audit_info=audit_info, status=audit_status, type=audit_type)
+                audit_info=audit_info, status=audit_status, type=audit_type, reason=audit_reason)
         self.pixivrepo.apply_update(update)
 
     @contextmanager
