@@ -5,16 +5,16 @@ import ujson
 
 
 class AuditType(Enum):
-    SFW  = "SFW"
+    SFW = "SFW"
     NSFW = "NSFW"
-    R18  = "R18"
+    R18 = "R18"
 
 
 class AuditStatus(Enum):
-    INIT   = 0
-    PASS   = 1
+    INIT = 0
+    PASS = 1
     REJECT = 2
-    PUSH   = 3
+    PUSH = 3
 
 
 class DataAggregator:
@@ -32,7 +32,8 @@ class DataAggregator:
 
 class ArtworkInfo:
 
-    def __init__(self, id=0, art_id=0, title="", tags="", view_count=0, like_count=0, love_count=0, author_id=0, upload_timestamp=0, audit_info=None):
+    def __init__(self, id=0, art_id=0, title="", tags="", view_count=0, like_count=0, love_count=0, author_id=0,
+                 upload_timestamp=0, audit_info=None):
         self.id = id
         self.art_id = art_id
         self.title = title
@@ -54,24 +55,24 @@ class ArtworkInfo:
         audit_info = None
         if data_dict["audit_info"]:
             audit_info = AuditInfo(
-                id = data_dict["audit_info"]["id"],
-                gp_id = data_dict["audit_info"]["gp_id"],
-                gp_art_id = data_dict["audit_info"]["gp_art_id"],
-                audit_type = data_dict["audit_info"]["audit_type"],
-                audit_status = data_dict["audit_info"]["audit_status"],
-                audit_reason = data_dict["audit_info"]["audit_reason"],
+                id=data_dict["audit_info"]["id"],
+                gp_id=data_dict["audit_info"]["gp_id"],
+                gp_art_id=data_dict["audit_info"]["gp_art_id"],
+                audit_type=data_dict["audit_info"]["audit_type"],
+                audit_status=data_dict["audit_info"]["audit_status"],
+                audit_reason=data_dict["audit_info"]["audit_reason"],
             )
         return cls(
-            id =               data_dict["id"],
-            art_id =           data_dict["art_id"],
-            title =            data_dict["title"],
-            tags =             data_dict["tags"],
-            view_count =       data_dict["view_count"],
-            love_count =       data_dict["love_count"],
-            like_count =       data_dict["like_count"],
-            author_id =        data_dict["author_id"],
-            upload_timestamp = data_dict["upload_timestamp"],
-            audit_info =       audit_info,
+            id=data_dict["id"],
+            art_id=data_dict["art_id"],
+            title=data_dict["title"],
+            tags=data_dict["tags"],
+            view_count=data_dict["view_count"],
+            love_count=data_dict["love_count"],
+            like_count=data_dict["like_count"],
+            author_id=data_dict["author_id"],
+            upload_timestamp=data_dict["upload_timestamp"],
+            audit_info=audit_info,
         )
 
     def to_json(self):
@@ -82,22 +83,23 @@ class ArtworkInfo:
         if self.audit_info:
             audit_info = self.audit_info._to_dict()
         return {
-            "id":               self.id,
-            "art_id":           self.art_id,
-            "title":            self.title,
-            "tags":             self.tags,
-            "view_count":       self.view_count,
-            "like_count":       self.like_count,
-            "love_count":       self.love_count,
-            "author_id":        self.author_id,
+            "id": self.id,
+            "art_id": self.art_id,
+            "title": self.title,
+            "tags": self.tags,
+            "view_count": self.view_count,
+            "like_count": self.like_count,
+            "love_count": self.love_count,
+            "author_id": self.author_id,
             "upload_timestamp": self.upload_timestamp,
-            "audit_info":       audit_info,
+            "audit_info": audit_info,
         }
 
 
 class AuditInfo:
 
-    def __init__(self, id, gp_id, gp_art_id, audit_type=AuditType.SFW, audit_status=AuditStatus.INIT, audit_reason=None):
+    def __init__(self, id, gp_id, gp_art_id, audit_type=AuditType.SFW, audit_status=AuditStatus.INIT,
+                 audit_reason=None):
         self.id = id
         self.gp_id = gp_id
         self.gp_art_id = gp_art_id
@@ -114,10 +116,10 @@ class AuditInfo:
 
     def _to_dict(self):
         return {
-            "id":           self.id,
-            "gp_id":        self.gp_id,
-            "gp_art_id":    self.gp_art_id,
-            "audit_type":   AuditType(self.audit_type).value if self.audit_type is not None else None,
+            "id": self.id,
+            "gp_id": self.gp_id,
+            "gp_art_id": self.gp_art_id,
+            "audit_type": AuditType(self.audit_type).value if self.audit_type is not None else None,
             "audit_status": AuditStatus(self.audit_status).value if self.audit_status is not None else None,
             "audit_reason": self.audit_reason,
         }
@@ -136,8 +138,8 @@ class ArtworkImage:
     def to_dict(self):
         return {
             "art_id": self.art_id,
-            "uri":    self.uri,
-            "data":   base64.b64encode(self.data).decode(),
+            "uri": self.uri,
+            "data": base64.b64encode(self.data).decode(),
         }
 
     @classmethod

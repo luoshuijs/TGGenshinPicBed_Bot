@@ -1,0 +1,97 @@
+{
+  "lang": "hi",
+  "favorite_count": 31771,
+  "created_at": "2021-08-22T08:02:26.000Z",
+  "display_text_range": [
+    0,
+    39
+  ],
+  "entities": {
+    "hashtags": [
+      {
+        "indices": [
+          20,
+          23
+        ],
+        "text": "原神"
+      },
+      {
+        "indices": [
+          24,
+          38
+        ],
+        "text": "GenshinImpact"
+      }
+    ],
+    "urls": [],
+    "user_mentions": [],
+    "symbols": [],
+    "media": [
+      {
+        "display_url": "pic.twitter.com/1aoHQn8Blx",
+        "expanded_url": "https://twitter.com/daefny/status/1429353251955044356/photo/1",
+        "indices": [
+          39,
+          62
+        ],
+        "url": "https://t.co/1aoHQn8Blx"
+      }
+    ]
+  },
+  "id_str": "1429353251955044356",
+  "text": "🌸Yae Miko smug ¬‿¬\n\n#原神 #GenshinImpact https://t.co/1aoHQn8Blx",
+  "user": {
+    "id_str": "2841764329",
+    "name": "Daefny ✧˖°",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1372519039830958082/qjWyTHOk_normal.jpg",
+    "screen_name": "daefny",
+    "verified": false
+  },
+  "photos": [
+    {
+      "backgroundColor": {
+        "red": 204,
+        "green": 214,
+        "blue": 221
+      },
+      "cropCandidates": [
+        {
+          "x": 0,
+          "y": 540,
+          "w": 2480,
+          "h": 1389
+        },
+        {
+          "x": 0,
+          "y": 0,
+          "w": 2480,
+          "h": 2480
+        },
+        {
+          "x": 0,
+          "y": 0,
+          "w": 2480,
+          "h": 2827
+        },
+        {
+          "x": 580,
+          "y": 0,
+          "w": 1900,
+          "h": 3800
+        },
+        {
+          "x": 0,
+          "y": 0,
+          "w": 2480,
+          "h": 3800
+        }
+      ],
+      "expandedUrl": "https://twitter.com/daefny/status/1429353251955044356/photo/1",
+      "url": "https://pbs.twimg.com/media/E9YT4EfVgAEDXCy.jpg",
+      "width": 2480,
+      "height": 3800
+    }
+  ],
+  "conversation_count": 52,
+  "news_action_type": "conversation"
+}

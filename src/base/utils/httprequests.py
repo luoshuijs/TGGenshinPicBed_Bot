@@ -115,32 +115,10 @@ class HttpRequests(object):
         while True:
             i += 1
             Rsp = await self.ARequest(method, url, headers, data, params)
-            # 判断请求是否出错
             if Rsp.code < 1:
                 try:
                     Rsp.data = ujson.loads(Rsp.data)
                 except BaseException as TError:
                     Rsp.code = 2
                     Rsp.message = "解析JSON失败"
-                try:
-                    code = Rsp.data.get('status')
-                    if code != None:
-                        if code == 412:
-                            if i >= 3:
-                                Rsp.code = 1
-                                Rsp.message = "频繁请求触发风控"
-                            Log.warning("Url: %s 请求错误" % url)
-                            Log.warning("频繁请求触发风控，暂停所有请求60s后重试，请耐心等待")
-                            await asyncio.sleep(60)
-                            continue
-                        elif code == 1024:
-                            if i >= 3:
-                                Rsp.code = 1
-                                Rsp.message = "服务器炸了"
-                            Log.warning("Url: %s 请求错误" % url)
-                            Log.warning('服务器炸了，暂停所有请求2s后重试，请耐心等待')
-                            await asyncio.sleep(2)
-                            continue
-                except BaseException as TError:
-                    Rsp.code = 0
             return Rsp

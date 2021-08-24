@@ -7,7 +7,21 @@ from src.base.model.artwork import ArtworkImage, ArtworkInfo
 
 # Forward declaration
 def CreateArtworkInfoFromAPIResponse(data):
-    pass
+    try:
+        details = data["body"]["illust_details"]
+    except (AttributeError, TypeError):
+        return None
+    tags = "#" + "#".join(details["tags"]) if details["tags"] and len(details["tags"]) > 0 else ""
+    return ArtworkInfo(
+        art_id=details["id"],
+        title=details["title"],
+        tags=tags,
+        view_count=details["rating_view"],
+        like_count=details["rating_count"],
+        love_count=details["bookmark_user_total"],
+        author_id=details["user_id"],
+        upload_timestamp=details["upload_timestamp"]
+    )
 
 
 class PixivDownloader:
@@ -57,23 +71,3 @@ class PixivDownloader:
         res = requests.get(uri, headers=headers)
         data = res.json()
         return tuple(img_info["urls"]["regular"] for img_info in data["body"])
-
-
-def CreateArtworkInfoFromAPIResponse(data):
-    try:
-        details = data["body"]["illust_details"]
-    except (AttributeError, TypeError):
-        return None
-    tags = "#" + "#".join(details["tags"]) if details["tags"] and len(details["tags"]) > 0 else ""
-    return ArtworkInfo(
-        art_id=details["id"],
-        title=details["title"],
-        tags=tags,
-        view_count=details["rating_view"],
-        like_count=details["rating_count"],
-        love_count=details["bookmark_user_total"],
-        author_id=details["user_id"],
-        upload_timestamp=details["upload_timestamp"]
-    )
-
-

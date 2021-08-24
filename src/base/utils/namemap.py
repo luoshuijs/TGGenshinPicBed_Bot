@@ -2,6 +2,7 @@ from typing import Iterable
 import json
 import re
 
+
 def tag_split(tag_str):
     # 1. Split, strip, filter blank
     tags = tag_str.split("#")
@@ -60,6 +61,3 @@ class NameMap:
         names = {self.get_character_names(c) for c in characters}
         names = {n for n in names if n != tuple()}
         return names
-
-
-
