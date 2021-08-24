@@ -1,0 +1,153 @@
+{
+  "retcode": 0,
+  "message": "OK",
+  "data": {
+    "post": {
+      "post": {
+        "game_id": 2,
+        "post_id": "8808224",
+        "f_forum_id": 29,
+        "uid": "5605099",
+        "subject": "因为抽不出雷神而将自己打扮成雷神的刻晴你会喜欢吗",
+        "content": "{\"describe\":\"此版为全年龄版 还有另外版本原贴下找我的评论\",\"imgs\":[\"https://upload-bbs.mihoyo.com/upload/2021/08/23/5605099/9082222068c076ac7acbb02e8f471062_2690184795824856621.png\",\"https://upload-bbs.mihoyo.com/upload/2021/08/23/5605099/6f5e5365315115f06748a3c46c838048_3211347623921703138.png\"]}",
+        "cover": "https://upload-bbs.mihoyo.com/upload/2021/08/23/5605099/6f5e5365315115f06748a3c46c838048_3211347623921703138.png",
+        "view_type": 2,
+        "created_at": 1629715324,
+        "images": [
+          "https://upload-bbs.mihoyo.com/upload/2021/08/23/5605099/9082222068c076ac7acbb02e8f471062_2690184795824856621.png",
+          "https://upload-bbs.mihoyo.com/upload/2021/08/23/5605099/6f5e5365315115f06748a3c46c838048_3211347623921703138.png"
+        ],
+        "post_status": {
+          "is_top": false,
+          "is_good": false,
+          "is_official": false
+        },
+        "topic_ids": [
+          418,
+          545,
+          692
+        ],
+        "view_status": 1,
+        "max_floor": 509,
+        "is_original": 1,
+        "republish_authorization": 2,
+        "reply_time": "2021-08-25 01:16:45",
+        "is_deleted": 0,
+        "is_interactive": false,
+        "structured_content": "",
+        "structured_content_rows": [],
+        "review_id": 0,
+        "is_profit": false,
+        "is_in_profit": true
+      },
+      "forum": {
+        "id": 29,
+        "name": "同人图",
+        "icon": "https://upload-bbs.mihoyo.com/upload/2020/04/05/f8b71f0c5b81976d7e36c8ae014f9e5b.png",
+        "game_id": 2
+      },
+      "topics": [
+        {
+          "id": 418,
+          "name": "刻晴",
+          "cover": "https://upload-bbs.mihoyo.com/upload/2020/11/20/02d33d2d3e77efca4aa5589496e924da.jpeg",
+          "is_top": false,
+          "is_good": false,
+          "is_interactive": false,
+          "game_id": 0,
+          "content_type": 1
+        },
+        {
+          "id": 545,
+          "name": "同人绘画",
+          "cover": "https://upload-bbs.mihoyo.com/upload/2021/03/16/cff0e3c56cc22cb0458d31bcb2db1617.png",
+          "is_top": false,
+          "is_good": false,
+          "is_interactive": false,
+          "game_id": 0,
+          "content_type": 2
+        },
+        {
+          "id": 692,
+          "name": "雷电将军",
+          "cover": "https://upload-bbs.mihoyo.com/upload/2021/08/05/60facc289b639d62d6e56c79d0402b0d_1535305758840930520.jpg",
+          "is_top": false,
+          "is_good": false,
+          "is_interactive": false,
+          "game_id": 0,
+          "content_type": 1
+        }
+      ],
+      "user": {
+        "uid": "5605099",
+        "nickname": "拉秀子",
+        "introduce": "破画画的 b站和微博都叫nahaki拉秀子",
+        "avatar": "100265",
+        "gender": 0,
+        "certification": {
+          "type": 2,
+          "label": "画师"
+        },
+        "level_exp": {
+          "level": 11,
+          "exp": 16625
+        },
+        "is_following": false,
+        "is_followed": false,
+        "avatar_url": "https://img-static.mihoyo.com/communityweb/upload/7fb7eb581bb3f2b7e550fe3467f182b9.png",
+        "pendant": "https://upload-bbs.mihoyo.com/upload/2021/07/13/83c6fc5e692786f86322c8d1ce5dca95_7367419973851345723.png"
+      },
+      "self_operation": {
+        "attitude": 0,
+        "is_collected": false
+      },
+      "stat": {
+        "view_num": 206199,
+        "reply_num": 1109,
+        "like_num": 25605,
+        "bookmark_num": 907,
+        "forward_num": 31
+      },
+      "help_sys": null,
+      "cover": {
+        "url": "https://upload-bbs.mihoyo.com/upload/2021/08/23/5605099/6f5e5365315115f06748a3c46c838048_3211347623921703138.png",
+        "height": 1736,
+        "width": 2456,
+        "format": "png",
+        "size": "5281347",
+        "crop": null,
+        "is_user_set_cover": true
+      },
+      "image_list": [
+        {
+          "url": "https://upload-bbs.mihoyo.com/upload/2021/08/23/5605099/9082222068c076ac7acbb02e8f471062_2690184795824856621.png",
+          "height": 654,
+          "width": 1200,
+          "format": "png",
+          "size": "777599",
+          "crop": null,
+          "is_user_set_cover": false
+        },
+        {
+          "url": "https://upload-bbs.mihoyo.com/upload/2021/08/23/5605099/6f5e5365315115f06748a3c46c838048_3211347623921703138.png",
+          "height": 1736,
+          "width": 2456,
+          "format": "png",
+          "size": "5281347",
+          "crop": null,
+          "is_user_set_cover": false
+        }
+      ],
+      "is_official_master": false,
+      "is_user_master": false,
+      "hot_reply_exist": true,
+      "vote_count": 0,
+      "last_modify_time": 1629720760,
+      "recommend_type": "",
+      "collection": null,
+      "vod_list": [],
+      "is_block_on": false,
+      "forum_rank_info": null
+    }
+  }
+}
