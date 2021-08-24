@@ -1,0 +1,46 @@
+{
+  "item": {
+    "at_control": "[{\"data\":\"5\",\"length\":0,\"location\":0,\"type\":2},{\"location\":120,\"type\":1,\"length\":4,\"data\":\"401742377\"}]",
+    "category": "daily",
+    "description": "#互动抽奖 #原神# #B站粉丝突破700W# \n\n「B站粉丝数700W达成！」 \n\n旅行者们大家好，《原神》官方B站粉丝数现已突破700W，为了感谢旅行者们的支持与陪伴，我们将抽选700名旅行者，每人赠送【B站-季度大会员】1份。\n\n关注@原神 并转发，我们将抽选共700名旅行者赠送【B站-季度大会员】1份。（由于抽奖数量限制，本条动态送出300份，第二条动态送出300份，第三条动态送出100份。）\n本次活动将于8月28日14:00开奖，请关注官方消息。 ",
+    "id": 160693655,
+    "is_fav": 0,
+    "pictures": [
+      {
+        "img_height": 1688,
+        "img_size": 4497.294921875,
+        "img_src": "https:\/\/i0.hdslb.com\/bfs\/album\/85f420ac2a1ec112faf103a8ca214beb77dbc383.jpg",
+        "img_tags": null,
+        "img_width": 3000
+      }
+    ],
+    "pictures_count": 1,
+    "reply": 8283,
+    "role": [],
+    "settings": {
+      "copy_forbidden": "0"
+    },
+    "source": [],
+    "title": "",
+    "upload_time": 1629519001
+  },
+  "user": {
+    "head_url": "https:\/\/i2.hdslb.com\/bfs\/face\/86a6575eb0c9116df498a4baf85daaf9a3611310.jpg",
+    "name": "原神",
+    "uid": 401742377,
+    "vip": {
+      "avatar_subscript": 1,
+      "due_date": 1652371200000,
+      "label": {
+        "label_theme": "annual_vip",
+        "path": "",
+        "text": "年度大会员"
+      },
+      "nickname_color": "#FB7299",
+      "status": 1,
+      "theme_type": 0,
+      "type": 2,
+      "vip_pay_type": 0
+    }
+  }
+}
