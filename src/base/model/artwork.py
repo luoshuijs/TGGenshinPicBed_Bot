@@ -143,11 +143,11 @@ class ArtworkImage:
         }
 
     @classmethod
-    def create_from_json(Cls, data):
+    def create_from_json(cls, data):
         if data is None:
             return None
         data_dict = ujson.loads(data)
-        return Cls(
+        return cls(
             data_dict["art_id"],
             uri=data_dict["uri"],
             data=base64.b64decode(data_dict["data"].encode()),

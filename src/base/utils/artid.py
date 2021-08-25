@@ -21,3 +21,5 @@ def ExtractArtid(text: str) -> str:
     if "art_id" not in m.groupdict():
         return None
     return m.groupdict()["art_id"]
+
+

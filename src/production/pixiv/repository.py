@@ -1,27 +1,25 @@
-# pixivrepo.py
-#
 # Maintains an out of process shared dependency
 
 
 import copy
-from typing import Iterable, Any
+from typing import Iterable
 from mysql.connector.pooling import MySQLConnectionPool
 
 from src.base.model.artwork import AuditType, AuditStatus, ArtworkInfo, AuditInfo
 from src.production.pixiv.auditor import ArtworkStatusUpdate
 
 
-
 def CreateArtworkFromSQLData(data) -> ArtworkInfo:
     (id, art_id, title, tags, view_count, like_count,
-            love_count, author_id, upload_timestamp,
-            type, status, reason) = data
+     love_count, author_id, upload_timestamp,
+     type, status, reason) = data
     audit_info = AuditInfo(0, 0, id, audit_type=type, audit_status=status, audit_reason=reason)
     return ArtworkInfo(id, art_id, title=title, tags=tags,
-               view_count=view_count, like_count=like_count,
-               love_count=love_count, author_id=author_id,
-               upload_timestamp=upload_timestamp,
-               audit_info=audit_info)
+                       view_count=view_count, like_count=like_count,
+                       love_count=love_count, author_id=author_id,
+                       upload_timestamp=upload_timestamp,
+                       audit_info=audit_info)
+
 
 def CreateArtworkManyFromSQLData(data) -> Iterable[ArtworkInfo]:
     return [CreateArtworkFromSQLData(i) for i in data]
@@ -83,7 +81,7 @@ class PixivRepository:
             table = self.pixiv_audit_table_sfw
         elif AuditType(audit_type) == AuditType.NSFW:
             table = self.pixiv_audit_table_nsfw
-        else: # R18
+        else:  # R18
             table = self.pixiv_audit_table_r18
         query = rf"""
             SELECT id, illusts_id, title, tags, view_count,
@@ -171,7 +169,6 @@ class PixivRepository:
 
 
 class Transformer:
-
     class Singular:
         @staticmethod
         def audit_type(info: ArtworkInfo, audit_type: AuditType, override_if_exists=False):

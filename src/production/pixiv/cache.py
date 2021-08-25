@@ -14,20 +14,20 @@ from src.base.model.artwork import AuditType, ArtworkImage, ArtworkImageFactory,
 
 
 class QueueType(Enum):
-    AUDIT   = "audit_keys_queue"
+    AUDIT = "audit_keys_queue"
     PENDING = "pending_keys_queue"
-    PUSH    = "push_keys_queue"
-    DIFF    = "diff_queue"
+    PUSH = "push_keys_queue"
+    DIFF = "diff_queue"
 
 
 class QueueName:
 
     def __init__(self, audit_type: AuditType, key_prefix=""):
         self._key_prefix = key_prefix
-        self.audit = self._queue_name(QueueType.AUDIT, audit_type)      # sorted set
+        self.audit = self._queue_name(QueueType.AUDIT, audit_type)  # sorted set
         self.pending = self._queue_name(QueueType.PENDING, audit_type)  # sorted set
-        self.push = self._queue_name(QueueType.PUSH, audit_type)        # set
-        self.diff = self._queue_name(QueueType.DIFF, audit_type)        # sorted set
+        self.push = self._queue_name(QueueType.PUSH, audit_type)  # set
+        self.diff = self._queue_name(QueueType.DIFF, audit_type)  # sorted set
 
     def _queue_name(self, queue_type: QueueType, audit_type: AuditType):
         # e.g. "genshin_pixiv:SFW:audit_queue"
@@ -41,10 +41,10 @@ class PixivCache:
 
     def __init__(self, host="127.0.0.1", port=6379, db=0):
         self.rdb = redis.Redis(host=host, port=port, db=db)
-        self.ttl = 600 #seconds
+        self.ttl = 600  # seconds
         self.key_prefix = "genshin_picbed"
-        self.artwork_info = f"{self.key_prefix}:artwork_info"   # hash
-        self.image_cache = f"{self.key_prefix}:image_cache"     # hash
+        self.artwork_info = f"{self.key_prefix}:artwork_info"  # hash
+        self.image_cache = f"{self.key_prefix}:image_cache"  # hash
 
     def _artwork_to_dict(self, artwork_audit_list: Iterable[ArtworkInfo]):
         arts_dict = dict()
@@ -94,6 +94,7 @@ class PixivCache:
                 pipe.expire(self.artwork_info, self.ttl)
                 if len(pending) > 0:
                     pipe.zrem(qname.audit, *pending)
+
             art_count = self.rdb.transaction(update_queue, qname.audit)[1]
             return art_count
         return 0
@@ -102,6 +103,7 @@ class PixivCache:
         qname = QueueName(audit_type, self.key_prefix)
         if not art_key:
             return
+
         def update_queue(pipe):
             result = pipe.zrem(qname.pending, art_key)
             pipe.multi()
@@ -110,10 +112,12 @@ class PixivCache:
                 pipe.expire(qname.pending, self.ttl)
                 return 1
             return 0
+
         return self.rdb.transaction(update_queue, qname.audit, value_from_callable=True)
 
     def get_audit_one(self, audit_type: AuditType) -> str:
         qname = QueueName(audit_type, self.key_prefix)
+
         def update_queue(pipe):
             art_with_score = pipe.zrevrange(qname.audit, 0, 0, withscores=True, score_cast_func=int)
             art = art_key = art_score = None
@@ -128,6 +132,7 @@ class PixivCache:
                 pipe.expire(qname.pending, self.ttl)
             pipe.expire(self.artwork_info, self.ttl)
             return art
+
         return self.rdb.transaction(update_queue, qname.audit, qname.pending, value_from_callable=True)
 
     def remove_pending_audit(self, audit_type, art_key: str):
@@ -143,15 +148,16 @@ class PixivCache:
         if len(arts_to_add) > 0:
             with self.rdb.pipeline(transaction=True) as pipe:
                 _, art_count, _, _ = pipe.sadd(qname.push, *arts_to_add.keys()) \
-                                         .scard(qname.push) \
-                                         .hset(self.artwork_info, mapping=arts_to_add) \
-                                         .expire(self.artwork_info, self.ttl) \
-                                         .execute()
+                    .scard(qname.push) \
+                    .hset(self.artwork_info, mapping=arts_to_add) \
+                    .expire(self.artwork_info, self.ttl) \
+                    .execute()
                 return art_count
         return 0
 
     def get_push_one(self, audit_type: AuditType) -> str:
         qname = QueueName(audit_type, self.key_prefix)
+
         def update_queue(pipe):
             artwork_info = self.artwork_info
             art_key = pipe.srandmember(qname.push)
@@ -163,8 +169,9 @@ class PixivCache:
             pipe.expire(self.artwork_info, self.ttl)
             if art_key is not None:
                 pipe.srem(qname.push, art_key)
-                return art, count-1
+                return art, count - 1
             return None, count
+
         return self.rdb.transaction(update_queue, qname.push, value_from_callable=True)
 
     def _get_artwork_info(self, key: str):
@@ -187,4 +194,3 @@ class PixivCache:
 
     def _image_key_name_by_art(self, art_id: int):
         return f"{self.image_cache}:{art_id}"
-

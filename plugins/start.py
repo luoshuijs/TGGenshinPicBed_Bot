@@ -35,12 +35,15 @@ def help_command(update: Update, _: CallbackContext) -> None:
                   "可以使用一下命令   \n" \
                   "内部命令   \n" \
                   "/examine 进入审核  \n" \
+                  "/set 修改图片信息  \n" \
+                  "/download 爬取图片  \n" \
                   "/push 推送频道"
     elif utils.IfAdmin(user["id"]):
         message = "好啊嗷 ✿✿ヽ（°▽°）ノ✿   \n" \
                   "可以使用一下命令   \n" \
                   "内部命令   \n" \
                   "/examine 进入审核  \n" \
+                  "/set 修改图片信息  \n" \
                   "/push 推送频道"
     else:
         message = "懒得写.jpg"

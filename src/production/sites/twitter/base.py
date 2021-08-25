@@ -2,7 +2,7 @@ import time
 
 
 class TArtworkInfo:
-    def __init__(self, database_id: int = 0, art_id: int = 0, title: str = "", tags: list = [], urls: list = [],
+    def __init__(self, database_id: int = 0, tid: int = 0, text: str = "", tags: list = [], urls: list = [],
                  favorite_count: int = 0, height: int = 0, width: int = 0, author_id: int = 0,
                  created_at: int = 0):
         self.urls = urls
@@ -12,8 +12,8 @@ class TArtworkInfo:
         self.favorite_count = favorite_count
         self.author_id = author_id
         self.database_id = database_id
-        self.title = title
-        self.art_id = art_id
+        self.title = text
+        self.tid = tid
         self.tags = tags
 
 
@@ -25,7 +25,7 @@ def CreateArtworkInfoFromAPIResponse(data: dict) -> TArtworkInfo:
         id_str = data["id_str"]
         hashtags = data["entities"]["hashtags"]
         favorite_count = data["favorite_count"]
-        text = data["text"]
+        text = data["text"]  # 标题
         height = photos[0]["height"]
         width = photos[0]["width"]
         art_id = int(id_str)
@@ -43,8 +43,8 @@ def CreateArtworkInfoFromAPIResponse(data: dict) -> TArtworkInfo:
         created_timestamp = int(time.mktime(time.strptime(created_at, "%Y-%m-%dT%H:%M:%S.%fZ")))
     except ValueError:
         created_timestamp = 0
-    return TArtworkInfo(art_id=art_id,
-                        title=text,
+    return TArtworkInfo(tid=art_id,
+                        text=text,
                         tags=tag_list,
                         urls=url_list,
                         favorite_count=favorite_count,
@@ -53,3 +53,19 @@ def CreateArtworkInfoFromAPIResponse(data: dict) -> TArtworkInfo:
                         width=width,
                         created_at=created_timestamp
                         )
+
+
+def CreateTArtworkFromSQLData(data) -> TArtworkInfo:
+    (id, tid, text, tags, favorite_count, width,
+     height, user_id, created_at) = data
+    return TArtworkInfo(
+        database_id=id,
+        tid=tid,
+        text=text,
+        tags=tags,
+        favorite_count=favorite_count,
+        author_id=user_id,
+        height=height,
+        width=width,
+        created_at=created_at
+    )
