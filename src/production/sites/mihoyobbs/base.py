@@ -50,6 +50,7 @@ def CreateArtworkInfoFromAPIResponse(response: dict) -> MArtworkInfo:
 def CreatePostInfoFromAPIResponse(data_post: dict) -> MArtworkInfo:
     try:
         post = data_post["post"]  # 投稿信息
+        post_id = post["post_id"]
         subject = post["subject"]  # 介绍，类似title标题
         created_at = post["created_at"]  # 创建时间
         user = data_post["user"]  # 用户数据
@@ -79,5 +80,6 @@ def CreatePostInfoFromAPIResponse(data_post: dict) -> MArtworkInfo:
         stat=stat,
         tags=topics_list,
         height=height,
-        width=width
+        width=width,
+        post_id=post_id
     )

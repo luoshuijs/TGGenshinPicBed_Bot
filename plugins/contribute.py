@@ -50,7 +50,7 @@ class ContributeHandler:
         if artwork_info is None:
             update.message.reply_text("插画信息获取错误，找开发者背锅吧~", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
-        if not "原神" in artwork_info.tags:
+        if "原神" not in artwork_info.tags:
             update.message.reply_text("插画标签不符合投稿要求，如果确认没问题请联系管理员", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
         url = "https://www.pixiv.net/artworks/%s" % art_id

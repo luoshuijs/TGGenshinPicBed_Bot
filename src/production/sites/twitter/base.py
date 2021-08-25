@@ -2,7 +2,7 @@ import time
 
 
 class TArtworkInfo:
-    def __init__(self, database_id: int = 0, tid: int = 0, text: str = "", tags: list = [], urls: list = [],
+    def __init__(self, tid: int = 0, text: str = "", tags: list = [], urls: list = [],
                  favorite_count: int = 0, height: int = 0, width: int = 0, author_id: int = 0,
                  created_at: int = 0):
         self.urls = urls
@@ -11,7 +11,6 @@ class TArtworkInfo:
         self.created_at = created_at
         self.favorite_count = favorite_count
         self.author_id = author_id
-        self.database_id = database_id
         self.title = text
         self.tid = tid
         self.tags = tags

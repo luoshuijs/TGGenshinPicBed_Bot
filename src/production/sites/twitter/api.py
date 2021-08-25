@@ -1,5 +1,5 @@
 import httpx
-from collections import Iterable
+from typing import Iterable
 
 from src.base.model.artwork import ArtworkImage
 from src.production.sites.twitter.base import CreateArtworkInfoFromAPIResponse
@@ -37,5 +37,5 @@ class TwitterDownloader:
             response = httpx.get(url=url, headers=headers)
             if response.is_error:
                 return None
-            art_list.append(ArtworkImage(artwork_info.tid, uri=url, data=response.content))
+            art_list.append(ArtworkImage(artwork_info.tid, data=response.content))
         return art_list

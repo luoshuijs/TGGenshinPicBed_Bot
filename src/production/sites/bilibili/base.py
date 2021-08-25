@@ -9,7 +9,7 @@ class BStat:
         self.view = view  # 观看数
 
 
-class MArtworkInfo:
+class BArtworkInfo:
     def __init__(self, dynamic_id: int = 0, description: str = "", tags: list = [], image_list: list = [],
                  Stat: BStat = None, height: int = 0, width: int = 0, uid: int = 0, timestamp: int = 0):
         self.Stat = Stat
@@ -23,7 +23,7 @@ class MArtworkInfo:
         self.tags = tags
 
 
-def CreateArtworkInfoFromAPIResponse(response: dict) -> MArtworkInfo:
+def CreateArtworkInfoFromAPIResponse(response: dict) -> BArtworkInfo:
     try:
         if response["code"] != 0:
             return None
@@ -56,7 +56,7 @@ def CreateArtworkInfoFromAPIResponse(response: dict) -> MArtworkInfo:
         tag_list.append(topic_detail["topic_name"])
     for picture in pictures:
         url_list.append(picture['img_src'])
-    return MArtworkInfo(
+    return BArtworkInfo(
         dynamic_id=dynamic_id,
         description=description,
         timestamp=timestamp,
