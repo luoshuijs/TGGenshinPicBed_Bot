@@ -1,6 +1,6 @@
 class MStat:
     # 我在想以后统一是使用这个
-    def __init__(self, view_num: int = 0, reply_num=0, like_num: int = 0, bookmark_num: int = 0, forward_num: int = 0):
+    def __init__(self, view_num: int = 0, reply_num: int = 0, like_num: int = 0, bookmark_num: int = 0, forward_num: int = 0):
         self.forward_num = forward_num  # 关注数
         self.bookmark_num = bookmark_num  # 收藏数
         self.like_num = like_num  # 喜欢数
