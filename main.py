@@ -3,6 +3,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
     CallbackQueryHandler
 
 from plugins.download import Download
+from plugins.send import SendHandler
 from plugins.set_audit import SetAuditHandler
 from src.base.config import config
 from plugins.contribute import ContributeHandler
@@ -12,6 +13,7 @@ from plugins.start import start, help_command, test, error_handler
 from src.production.pixiv import PixivService
 from src.base.logger import Log
 from src.base.utils.base import Utils
+from src.production.sites.twitter.service import TwitterService
 
 utils = Utils(config)
 logger = Log.getLogger()  # 必须初始化log，不然卡死机
@@ -48,6 +50,14 @@ def main() -> None:
             "cookie": config.PIXIV["cookie"],
         },
     )
+
+    twitter = TwitterService(sql_config={
+            "host": config.MYSQL["host"],
+            "port": config.MYSQL["port"],
+            "user": config.MYSQL["user"],
+            "password": config.MYSQL["pass"],
+            "database": config.MYSQL["database"],
+        })
 
     examine = ExamineHandler(pixiv=pixiv)
     conv_handler = ConversationHandler(
@@ -126,6 +136,21 @@ def main() -> None:
         },
         fallbacks=[CommandHandler('cancel', cancel)],
     )
+    Send = SendHandler(twitter=twitter)
+    send_handler = ConversationHandler(
+        entry_points=[CommandHandler('send', Send.send_command)],
+        states={
+            contribute.ONE: [
+                MessageHandler(Filters.text, Send.get_info),
+                CommandHandler('skip', cancel)
+            ],
+            contribute.TWO: [
+                MessageHandler(Filters.text, Send.end),
+                CommandHandler('skip', cancel)
+            ]
+        },
+        fallbacks=[CommandHandler('cancel', cancel)],
+    )
     dispatcher.add_handler(CommandHandler("start", start))
     dispatcher.add_handler(CommandHandler("help", help_command))
     dispatcher.add_handler(CommandHandler("test", test))
@@ -134,6 +159,7 @@ def main() -> None:
     dispatcher.add_handler(contribute_handler)
     dispatcher.add_handler(download_handler)
     dispatcher.add_handler(set_audit_handler)
+    dispatcher.add_handler(send_handler)
     dispatcher.add_error_handler(error_handler)
 
     updater.start_polling()

@@ -16,5 +16,5 @@ class TwitterService:
         if temp_artwork_info is not None:
             return None
         artwork_image = self.TwitterDownloader.get_images_by_artid(art_id)
-        artwork_info = ArtworkInfo()
+        artwork_info = ArtworkInfo(data=temp_artwork_info)
         return artwork_info, artwork_image

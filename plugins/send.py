@@ -10,7 +10,7 @@ from src.production.sites.twitter.interface import ExtractTid
 from src.production.sites.twitter.service import TwitterService
 
 
-class ContributeHandler:
+class SendHandler:
     ONE, TWO, THREE, FOUR = range(4)
 
     def __init__(self, twitter: TwitterService = None):
