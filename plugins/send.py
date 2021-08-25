@@ -55,10 +55,11 @@ class SendHandler:
         caption = "Title %s   \n" \
                   "%s   \n" \
                   "Tags %s   \n" \
-                  "From [Pixiv](%s)" % (
+                  "From [%s](%s)" % (
                       markdown_escape(artwork_info.title),
                       artwork_info.GetStringStat(),
                       markdown_escape(artwork_info.GetStringTags()),
+                      artwork_info.site_name,
                       artwork_info.origin_url
                   )
         try:

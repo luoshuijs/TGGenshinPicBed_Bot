@@ -29,6 +29,7 @@ class ArtworkInfo:
         self.site: int = 0
         self.title: str = ""
         self.origin_url: str = ""
+        self.site_name: str = ""
         self.tags: list = []
         self.stat: Stat = Stat()
         self.info: [TArtworkInfo, MArtworkInfo] = None
@@ -60,6 +61,7 @@ class ArtworkInfo:
 
     def SetTArtworkInfo(self, data: TArtworkInfo = None):
         self.origin_url = "https://twitter.com/i/web/status/%s" % data.tid
+        self.site_name = "Twitter"
         self.site = ArtworkInfoSite.twitter
         self.info = data
         self.title = data.title
