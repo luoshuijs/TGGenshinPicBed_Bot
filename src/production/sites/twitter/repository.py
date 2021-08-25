@@ -34,7 +34,7 @@ class TwitterRepository:
             FROM `twitter`
             WHERE tid=%s;
         """
-        query_args = art_id
+        query_args = (art_id,)
         data = self._execute_and_fetchall(query, query_args)
         if len(data) == 0:
             return None

@@ -2,7 +2,7 @@ import httpx
 from typing import Iterable
 
 from src.base.model.artwork import ArtworkImage
-from src.production.sites.twitter.base import CreateArtworkInfoFromAPIResponse
+from src.production.sites.twitter.base import CreateArtworkInfoFromAPIResponse, TArtworkInfo
 
 
 class TwitterApi:
@@ -18,7 +18,7 @@ class TwitterApi:
                           "Chrome/90.0.4430.72 Safari/537.36",
         }
 
-    def get_artwork_info(self, tid: int):
+    def get_artwork_info(self, tid: int) -> TArtworkInfo:
         url = self.get_api_uri(tid)
         headers = self.get_headers()
         response = httpx.get(url=url, headers=headers).json()
@@ -31,6 +31,8 @@ class TwitterDownloader:
 
     def get_images_by_artid(self, tid: int) -> Iterable[ArtworkImage]:
         artwork_info = self.TwitterApi.get_artwork_info(tid)
+        if artwork_info is None:
+            return None
         art_list = []
         for url in artwork_info.urls:
             headers = self.TwitterApi.get_headers()

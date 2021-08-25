@@ -25,12 +25,17 @@ def CreateArtworkInfoFromAPIResponse(data: dict) -> TArtworkInfo:
         hashtags = data["entities"]["hashtags"]
         favorite_count = data["favorite_count"]
         text = data["text"]  # 标题
+        userid_str = user["id_str"]
         height = photos[0]["height"]
         width = photos[0]["width"]
         art_id = int(id_str)
-        user_id = int(user)
+        user_id = int(userid_str)
     except (AttributeError, TypeError):
         return None
+    try:
+        temp_text = text.splitlines()[0]
+    except (AttributeError, TypeError, ValueError):
+        temp_text = text
     url_list: list = []
     tag_list: list = []
     for photo in photos:
@@ -43,7 +48,7 @@ def CreateArtworkInfoFromAPIResponse(data: dict) -> TArtworkInfo:
     except ValueError:
         created_timestamp = 0
     return TArtworkInfo(tid=art_id,
-                        text=text,
+                        text=temp_text,
                         tags=tag_list,
                         urls=url_list,
                         favorite_count=favorite_count,

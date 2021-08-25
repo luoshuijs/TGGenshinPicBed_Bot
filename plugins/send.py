@@ -24,7 +24,7 @@ class SendHandler:
             update.message.reply_text("你不是BOT管理员，不能使用此命令！")
             return ConversationHandler.END
         message = "✿✿ヽ（°▽°）ノ✿ 你好！ %s ，欢迎 \n" \
-                  "当前直投稿只支持Twitter \n" \
+                  "当前直投只支持Twitter \n" \
                   "只需复制URL回复即可 \n" \
                   "退出投稿只需回复退出" % (user["username"])
         reply_keyboard = [['退出']]
@@ -43,7 +43,7 @@ class SendHandler:
                 message = "获取作品信息失败，请检连接或者ID是否有误"
                 update.message.reply_text(message, reply_markup=ReplyKeyboardRemove())
                 return ConversationHandler.END
-            artwork_data = self.twitter.contribute_start()
+            artwork_data = self.twitter.contribute_start(tid)
             if artwork_data is None:
                 update.message.reply_text("插画信息获取错误，找开发者背锅吧~", reply_markup=ReplyKeyboardRemove())
                 return ConversationHandler.END

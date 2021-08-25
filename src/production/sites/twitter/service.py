@@ -11,9 +11,11 @@ class TwitterService:
         self.TwitterDownloader = TwitterDownloader()
 
     def contribute_start(self, art_id: int) -> Tuple[ArtworkInfo, Iterable[ArtworkImage]]:
-        # 1. Check database
         temp_artwork_info = self.TwitterRepository.get_art_by_artid(art_id)
         if temp_artwork_info is not None:
+            return None
+        temp_artwork_info = self.TwitterDownloader.TwitterApi.get_artwork_info(art_id)
+        if temp_artwork_info is None:
             return None
         artwork_image = self.TwitterDownloader.get_images_by_artid(art_id)
         artwork_info = ArtworkInfo(data=temp_artwork_info)

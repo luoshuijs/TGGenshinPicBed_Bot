@@ -16,7 +16,7 @@ from src.base.utils.base import Utils
 from src.production.sites.twitter.service import TwitterService
 
 utils = Utils(config)
-logger = Log.getLogger()  # 必须初始化log，不然卡死机
+logger = Log.getLogger()  # 必须在这初始化log 不然...其实也没有到达死机的程度，运行不了不知道为啥
 
 
 def cancel(update: Update, _: CallbackContext) -> int:

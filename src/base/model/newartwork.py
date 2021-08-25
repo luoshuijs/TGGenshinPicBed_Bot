@@ -51,7 +51,7 @@ class ArtworkInfo:
 
     def GetStringTags(self) -> str:
         tags_str: str = ""
-        if self.tags.count() == 0:
+        if len(self.tags) == 0:
             return ""
         for tag in self.tags:
             temp_tag = "#%s " % tag
