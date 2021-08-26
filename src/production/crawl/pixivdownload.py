@@ -165,18 +165,18 @@ class Pixiv:
             task_main = asyncio.ensure_future(self.GetIllustInformation(i))
             self.GetIllustInformationTasks.append(task_main)
 
-        popular_artists_all = await self.repository.get_artists_with_multiple_approved_arts(num=10,
+        popular_artists_all = await self.repository.get_artists_with_multiple_approved_arts(num=9,
                                                                                             days_ago=7)
 
         for popular_artists in popular_artists_all:
             all_illusts = await self.BasicRequest.get_user_all_illusts(popular_artists.user_id)
-            if not popular_artists.last_art_id is None:
+            if popular_artists.last_art_id is not None:
                 all_illusts_f = [i for i in all_illusts if i > popular_artists.last_art_id]
             else:
                 all_illusts_f = all_illusts
             for art_id in all_illusts_f:
                 self.artid_queue.put_nowait({"id": art_id})
-            if all_illusts_f is None:
+            if len(all_illusts_f) != 0 or all_illusts_f is not None:
                 await self.repository.save_artist_last_crawl(user_id=popular_artists.user_id,
                                                              last_art_id=max(all_illusts_f))
 
