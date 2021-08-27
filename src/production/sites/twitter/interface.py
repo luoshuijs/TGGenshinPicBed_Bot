@@ -1,15 +1,14 @@
-# 接口
 import re
 
 
 def ExtractTid(text: str) -> int:
     """
     :param text:
+        # https://twitter.com/i/web/status/1429353251955044356
+        # https://twitter.com/abcdefg/status/1429353251955044356
+        # https://www.twitter.com/abcdefg/status/1429353251955044356
+        # https://mobile.twitter.com/abcdefg/status/1429353251955044356
     :return:
-    # https://twitter.com/i/web/status/1429353251955044356
-    # https://twitter.com/abcdefg/status/1429353251955044356
-    # https://www.twitter.com/abcdefg/status/1429353251955044356
-    # https://mobile.twitter.com/abcdefg/status/1429353251955044356
     """
     rgx = re.compile(
         r"(?:mobile\.|www\.)?twitter\.com/[^.]+/status/(\d+)")

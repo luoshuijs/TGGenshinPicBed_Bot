@@ -2,9 +2,10 @@ import time
 
 
 class TArtworkInfo:
-    def __init__(self, tid: int = 0, text: str = "", tags: list = [], urls: list = [],
+    def __init__(self, database_id: int = 0, tid: int = 0, text: str = "", tags: list = [], urls: list = [],
                  favorite_count: int = 0, height: int = 0, width: int = 0, author_id: int = 0,
                  created_at: int = 0):
+        self.database_id = database_id
         self.urls = urls
         self.width = width
         self.height = height
@@ -14,6 +15,20 @@ class TArtworkInfo:
         self.title = text
         self.tid = tid
         self.tags = tags
+
+    def GetStringTags(self) -> str:
+        tags_str: str = ""
+        if len(self.tags) == 0:
+            return ""
+        for tag in self.tags:  # 之前考虑过使用 string.join(seq) 但是还是算了
+            temp_tag = "#%s" % tag
+            tags_str += temp_tag
+        return tags_str
+
+    def SetStringTags(self, tags: str):
+        tags_list = tags.split("#")
+        tags_list.remove("")
+        self.tags = tags_list
 
 
 def CreateArtworkInfoFromAPIResponse(data: dict) -> TArtworkInfo:
@@ -62,14 +77,7 @@ def CreateArtworkInfoFromAPIResponse(data: dict) -> TArtworkInfo:
 def CreateTArtworkFromSQLData(data) -> TArtworkInfo:
     (id, tid, text, tags, favorite_count, width,
      height, user_id, created_at) = data
-    return TArtworkInfo(
-        database_id=id,
-        tid=tid,
-        text=text,
-        tags=tags,
-        favorite_count=favorite_count,
-        author_id=user_id,
-        height=height,
-        width=width,
-        created_at=created_at
-    )
+    data = TArtworkInfo(database_id=id, tid=tid, text=text, favorite_count=favorite_count, author_id=user_id,
+                        height=height, width=width, created_at=created_at)
+    data.SetStringTags(tags)
+    return data

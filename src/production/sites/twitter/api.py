@@ -1,7 +1,7 @@
 import httpx
 from typing import Iterable
 
-from src.base.model.artwork import ArtworkImage
+from src.base.model.newartwork import ArtworkImage
 from src.production.sites.twitter.base import CreateArtworkInfoFromAPIResponse, TArtworkInfo
 
 

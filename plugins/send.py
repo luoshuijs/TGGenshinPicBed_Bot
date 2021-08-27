@@ -1,9 +1,13 @@
+import uuid
+from typing import Tuple, Iterable
+
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, InputMediaPhoto, ParseMode
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext, ConversationHandler
 
 from src.base.logger import Log
 from src.base.config import config
+from src.base.model.newartwork import ArtworkImage, ArtworkInfo
 from src.base.utils.base import Utils
 from src.base.utils.markdown import markdown_escape
 from src.production.sites.twitter.interface import ExtractTid
@@ -16,6 +20,30 @@ class SendHandler:
     def __init__(self, twitter: TwitterService = None):
         self.utils = Utils(config)
         self.twitter = twitter
+        self.data = []
+
+    def get_data(self, data_id: int):
+        for data in self.data:
+            try:
+                if data[0] == data_id:
+                    self.data.remove(data)
+                    return data[1]
+            except ValueError:
+                return None
+        return None
+
+    def save_data(self, data_id: int, data):
+        temp = [data_id, data]
+        self.data.append(temp)
+
+    def remove_data(self, data_id: int):
+        for data in self.data:
+            try:
+                if data[0] == data_id:
+                    self.data.remove(data)
+                    return
+            except ValueError:
+                pass
 
     def send_command(self, update: Update, _: CallbackContext) -> int:
         user = update.effective_user
@@ -45,7 +73,7 @@ class SendHandler:
                 return ConversationHandler.END
             artwork_data = self.twitter.contribute_start(tid)
             if artwork_data is None:
-                update.message.reply_text("插画信息获取错误，找开发者背锅吧~", reply_markup=ReplyKeyboardRemove())
+                update.message.reply_text("已经存在数据库或者频道，退出投稿", reply_markup=ReplyKeyboardRemove())
                 return ConversationHandler.END
             artwork_info, images = artwork_data
         else:
@@ -83,14 +111,83 @@ class SendHandler:
             Log.error("encounter error with image caption\n%s" % caption)
             Log.error(TError)
             return ConversationHandler.END
-        reply_keyboard = [['确认', '取消']]
-        message = "请确认作品的信息"
+        data_uuid = int(uuid.uuid4())
+        self.save_data(data_uuid, artwork_data)
+        context.chat_data["send_data_uuid"] = data_uuid
+        reply_keyboard = [['SFW', 'NSFW'], ['R18', '退出']]
+        message = "请选择你推送到的频道"
         update.message.reply_text(message, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
         return self.TWO
 
-    def end(self, update: Update, context: CallbackContext) -> int:
-        if update.message.text == "取消":
-            update.message.reply_text(text="退出投稿", reply_markup=ReplyKeyboardRemove())
+    def get_channel(self, update: Update, context: CallbackContext) -> int:
+        user = update.effective_user
+        if update.message.text == "退出":
+            update.message.reply_text(text="退出任务", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
-        update.message.reply_text('投稿成功！✿✿ヽ（°▽°）ノ✿', reply_markup=ReplyKeyboardRemove())
+        try:
+            channel_type = update.message.text
+            channel_name = config.TELEGRAM["channel"][channel_type]["name"]
+            channel_id = config.TELEGRAM["channel"][channel_type]["char_id"]
+            context.chat_data["channel_id"] = channel_id
+        except KeyError:
+            update.message.reply_text(text="发生错误，退出任务", reply_markup=ReplyKeyboardRemove())
+            return ConversationHandler.END
+        update.message.reply_text("你选择的频道名称为 %s 类型为 %s" % (channel_name, channel_type))
+        reply_keyboard = [['确认', '取消']]
+        message = "请确认推送的频道和作品的信息"
+        update.message.reply_text(
+            message,
+            reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True),
+        )
+        return self.THREE
+
+    def send_message(self, update: Update, context: CallbackContext) -> int:
+        update.message.reply_text("正在推送", reply_markup=ReplyKeyboardRemove())
+        user = update.effective_user
+        data_id = context.chat_data.get("send_data_uuid", -1)
+        channel_id = context.chat_data.get("channel_id", -1)
+        if data_id == -1 or channel_id == -1:
+            update.message.reply_text(text="发生错误，退出任务", reply_markup=ReplyKeyboardRemove())
+            return ConversationHandler.END
+        if update.message.text == "取消":
+            update.message.reply_text(text="退出任务", reply_markup=ReplyKeyboardRemove())
+            self.remove_data(data_id)
+            return ConversationHandler.END
+        artwork_data: Tuple[ArtworkInfo, Iterable[ArtworkImage]] = self.get_data(data_id)
+        if artwork_data is None:
+            update.message.reply_text("插画信息获取错误，找开发者背锅吧~", reply_markup=ReplyKeyboardRemove())
+            return ConversationHandler.END
+        artwork_info, images = artwork_data
+        caption = "Title %s   \n" \
+                  "Tags %s   \n" \
+                  "From [%s](%s)" % (
+                      markdown_escape(artwork_info.title),
+                      markdown_escape(artwork_info.GetStringTags()),
+                      artwork_info.site_name,
+                      artwork_info.origin_url
+                  )
+        try:
+            if len(images) > 1:
+                media = [InputMediaPhoto(media=img_info.data) for img_info in images]
+                media = media[:10]
+                media[0] = InputMediaPhoto(media=images[0].data, caption=caption,
+                                           parse_mode=ParseMode.MARKDOWN_V2)
+                context.bot.send_media_group(channel_id, media=media, timeout=30)
+            elif len(images) == 1:
+                photo = images[0].data
+                context.bot.send_photo(channel_id,
+                                       photo=photo,
+                                       caption=caption,
+                                       timeout=30,
+                                       parse_mode=ParseMode.MARKDOWN_V2)
+            else:
+                update.message.reply_text("图片获取错误，找开发者背锅吧~", reply_markup=ReplyKeyboardRemove())
+                return ConversationHandler.END
+        except BadRequest as TError:
+            update.message.reply_text("图片获取错误，找开发者背锅吧~", reply_markup=ReplyKeyboardRemove())
+            Log.error("encounter error with image caption\n%s" % caption)
+            Log.error(TError)
+            return ConversationHandler.END
+        update.message.reply_text("推送完成", reply_markup=ReplyKeyboardRemove())
+        self.twitter.contribute_confirm(artwork_info.post_id)
         return ConversationHandler.END

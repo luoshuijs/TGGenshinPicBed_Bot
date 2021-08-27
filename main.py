@@ -145,7 +145,11 @@ def main() -> None:
                 CommandHandler('skip', cancel)
             ],
             contribute.TWO: [
-                MessageHandler(Filters.text, Send.end),
+                MessageHandler(Filters.text, Send.get_channel),
+                CommandHandler('skip', cancel)
+            ],
+            contribute.THREE: [
+                MessageHandler(Filters.text, Send.send_message),
                 CommandHandler('skip', cancel)
             ]
         },

@@ -32,6 +32,7 @@ class ArtworkInfo:
         self.site_name: str = ""
         self.tags: list = []
         self.stat: Stat = Stat()
+        self.create_timestamp: int = 0
         self.info: [TArtworkInfo, MArtworkInfo] = None
         if type(data) == TArtworkInfo:
             self.SetTArtworkInfo(data)
@@ -68,6 +69,7 @@ class ArtworkInfo:
         self.tags = data.tags
         self.post_id = data.tid
         self.stat.like_num = data.favorite_count
+        self.create_timestamp = data.created_at
 
 
 class ArtworkImage:
