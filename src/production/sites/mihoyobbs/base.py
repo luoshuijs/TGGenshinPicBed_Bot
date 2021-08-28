@@ -1,20 +1,18 @@
 class MStat:
-    # 我在想以后统一是使用这个
     def __init__(self, view_num: int = 0, reply_num: int = 0, like_num: int = 0, bookmark_num: int = 0, forward_num: int = 0):
         self.forward_num = forward_num  # 关注数
         self.bookmark_num = bookmark_num  # 收藏数
         self.like_num = like_num  # 喜欢数
         self.reply_num = reply_num  # 回复数
         self.view_num = view_num  # 观看数
+        # **No heights and widtih. Inconsistent across images.**
 
 
 class MArtworkInfo:
     def __init__(self, post_id: int = 0, subject: str = "", tags: list = [], image_list: list = [], Stat: MStat = None,
-                 height: int = 0, width: int = 0, uid: int = 0, created_at: int = 0):
+                 uid: int = 0, created_at: int = 0):
         self.Stat = Stat
         self.image_list = image_list
-        self.width = width
-        self.height = height
         self.created_at = created_at
         self.uid = uid
         self.subject = subject
@@ -57,8 +55,6 @@ def CreatePostInfoFromAPIResponse(data_post: dict) -> MArtworkInfo:
         uid = user["uid"]  # 用户ID
         topics = data_post["topics"]  # 存放 Tag
         image_list = data_post["image_list"]  # image_list
-        height = image_list[0]["height"]
-        width = image_list[0]["width"]
     except (AttributeError, TypeError):
         return None
     topics_list = []
@@ -79,7 +75,5 @@ def CreatePostInfoFromAPIResponse(data_post: dict) -> MArtworkInfo:
         uid=uid,
         stat=stat,
         tags=topics_list,
-        height=height,
-        width=width,
         post_id=post_id
     )
