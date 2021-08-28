@@ -39,7 +39,7 @@ CREATE TABLE `pixiv_artist` (
   PRIMARY KEY (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE VIEW `genshin_pixiv_audit`
+CREATE OR REPLACE VIEW `genshin_pixiv_audit`
 AS SELECT gp.id, gp.illusts_id, gp.title, gp.tags, gp.view_count,
           gp.like_count, gp.love_count, gp.user_id, gp.upload_timestamp,
           ad.type, ad.status, ad.reason
@@ -47,22 +47,22 @@ FROM `genshin_pixiv` AS gp
 LEFT OUTER JOIN `examine` AS ad
     ON gp.illusts_id = ad.illusts_id;
 
-CREATE VIEW genshin_pixiv_audit_sfw
+CREATE OR REPLACE VIEW genshin_pixiv_audit_sfw
 AS SELECT *
 FROM `genshin_pixiv_audit`
-WHERE tags NOT LIKE '%R-18%' AND (type LIKE 'SFW' OR type IS NULL);
+WHERE type LIKE 'SFW' OR (tags NOT LIKE '%R-18%' AND type IS NULL);
 
-CREATE VIEW genshin_pixiv_audit_nsfw
+CREATE OR REPLACE VIEW genshin_pixiv_audit_nsfw
 AS SELECT *
 FROM `genshin_pixiv_audit`
-WHERE tags NOT LIKE '%R-18%' AND type LIKE 'NSFW';
+WHERE type LIKE 'NSFW';
 
-CREATE VIEW genshin_pixiv_audit_r18
+CREATE OR REPLACE VIEW genshin_pixiv_audit_r18
 AS SELECT *
 FROM `genshin_pixiv_audit`
-WHERE tags LIKE '%R-18%' OR type LIKE 'R18';
+WHERE type LIKE 'R18' OR (tags LIKE '%R-18%' AND type IS NULL);
 
-CREATE VIEW `pixiv_approved_artist` AS
+CREATE OR REPLACE VIEW `pixiv_approved_artist` AS
 SELECT gp.user_id, pa.last_art_id, pa.last_crawled_at, COUNT(gp.user_id) AS approved_art_count
 FROM `genshin_pixiv` AS gp
     INNER JOIN `examine` AS ex
