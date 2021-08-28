@@ -1,6 +1,6 @@
 from mysql.connector.pooling import MySQLConnectionPool
 
-from src.production.sites.twitter.base import CreateTArtworkFromSQLData, TArtworkInfo
+from src.production.sites.bilibili.base import CreateTArtworkFromSQLData, BArtworkInfo
 
 
 class TwitterRepository:
@@ -25,12 +25,13 @@ class TwitterRepository:
             conn.commit()
             return result
 
-    def get_art_by_artid(self, art_id: int) -> TArtworkInfo:
+    def get_art_by_artid(self, art_id: int) -> BArtworkInfo:
         query = f"""
-            SELECT id, tid, text, tags,favorite_count, width,
-                   height, user_id, created_at
-            FROM `twitter`
-            WHERE tid=%s;
+            SELECT id, `dynamic_id`, `description`, `tags`,
+             `view`, `like`, `comment`, `repos`, `height`, `width`,
+              `uid`, `timestamp`
+            FROM `bilibili`
+            WHERE `dynamic_id`=%s;
         """
         query_args = (art_id,)
         data = self._execute_and_fetchall(query, query_args)
@@ -39,27 +40,34 @@ class TwitterRepository:
         artwork_info = CreateTArtworkFromSQLData(data[0])
         return artwork_info
 
-    def save_art_one(self, artwork_info: TArtworkInfo):
+    def save_art_one(self, artwork_info: BArtworkInfo):
         query = rf"""
-            INSERT INTO `twitter` (
-                tid, text, tags, favorite_count, width, height, user_id, created_at
+            INSERT INTO `bilibili` (
+                `dynamic_id`, `description`, `tags`,
+             `view`, `like`, `comment`, `repos`, `height`, `width`,
+              `uid`, `timestamp`
             ) VALUES (
-                %s, %s, %s, %s, %s, %s, %s, %s
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
             ) ON DUPLICATE KEY UPDATE
-                text=VALUES(text),
+                dynamic_id=VALUES(dynamic_id),
                 tags=VALUES(tags),
-                favorite_count=VALUES(favorite_count),
-                user_id=VALUES(user_id),
-                created_at=VALUES(created_at);
+                view=VALUES(view),
+                like=VALUES(like),
+                comment=VALUES(comment),
+                repos=VALUES(repos)
         """
         query_args = (
-            artwork_info.tid,
-            artwork_info.title,
+            artwork_info.dynamic_id,
+            artwork_info.description,
             artwork_info.GetStringTags(),
-            artwork_info.favorite_count,
+            artwork_info.view,
+            artwork_info.like,
+            artwork_info.comment,
+            artwork_info.view,
+            artwork_info.repos,
             artwork_info.width,
             artwork_info.height,
-            artwork_info.author_id,
-            artwork_info.created_at,
+            artwork_info.uid,
+            artwork_info.timestamp,
         )
         return self._execute_and_fetchall(query, query_args)

@@ -10,8 +10,10 @@ class BStat:
 
 
 class BArtworkInfo:
-    def __init__(self, dynamic_id: int = 0, description: str = "", tags: list = [], image_list: list = [],
-                 Stat: BStat = None, height: int = 0, width: int = 0, uid: int = 0, timestamp: int = 0):
+    def __init__(self, database_id: int = 0, dynamic_id: int = 0, description: str = "", tags: list = [],
+                 image_list: list = [], Stat: BStat = None, height: int = 0, width: int = 0, uid: int = 0,
+                 timestamp: int = 0):
+        self.database_id = database_id
         self.Stat = Stat
         self.image_list = image_list
         self.width = width
@@ -67,3 +69,13 @@ def CreateArtworkInfoFromAPIResponse(response: dict) -> BArtworkInfo:
         tags=tag_list,
         image_list=url_list
     )
+
+
+def CreateTArtworkFromSQLData(data) -> BArtworkInfo:
+    (id, dynamic_id, description, tags, view, like, comment, repos, height,
+     width, uid, timestamp) = data
+    stat: BStat = BStat(view=view, like=like, comment=comment, repos=repos)
+    data = BArtworkInfo(database_id=id, dynamic_id=dynamic_id, description=description,
+                        stat=stat, uid=uid, height=height, width=width, timestamp=timestamp)
+    data.SetStringTags(tags)
+    return data
