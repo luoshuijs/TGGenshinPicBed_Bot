@@ -176,7 +176,7 @@ class Pixiv:
                 all_illusts_f = all_illusts
             for art_id in all_illusts_f:
                 self.artid_queue.put_nowait({"id": art_id})
-            if len(all_illusts_f) != 0 or all_illusts_f is not None:
+            if len(all_illusts_f) != 0 and all_illusts_f is not None:
                 await self.repository.save_artist_last_crawl(user_id=popular_artists.user_id,
                                                              last_art_id=max(all_illusts_f))
 
