@@ -11,6 +11,21 @@ from src.base.model.artwork import AuditType, AuditStatus
 from src.production.pixiv.service import PixivService
 
 
+class ExamineCount:
+    def __init__(self):
+        self.all_count: int = 0
+        self.pass_count: int = 0
+        self.cancel_count: int = 0
+
+    def is_pass(self):
+        self.all_count += 1
+        self.pass_count += 1
+
+    def is_cancel(self):
+        self.all_count += 1
+        self.pass_count += 1
+
+
 class ExamineHandler:
     EXAMINE, EXAMINE_START, EXAMINE_RESULT, EXAMINE_REASON = range(4)
 
@@ -46,11 +61,8 @@ class ExamineHandler:
                   "目前缓存池有%s件作品  \n" \
                   "审核完毕后，可以使用 /push 命令推送。\n" \
                   "接下来进入审核模式，请回复OK继续。" % (user["username"], update.message.text, count)
-        context.user_data["examine_count"] = {
-            "count": 0,
-            "pass": 0,
-            "cancel": 0
-        }
+        examine_count = ExamineCount()
+        context.chat_data["examine_count"] = examine_count
         update.message.reply_text(message, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
         return self.EXAMINE_START
 
@@ -137,6 +149,7 @@ class ExamineHandler:
 
     def result_handler(self, update: Update, context: CallbackContext) -> int:
         user = update.message.from_user
+        examine_count: ExamineCount = context.chat_data["examine_count"]
         Log.info("examine: result函数请求 %s : %s" % (user["username"], update.message.text))
         if update.message.text == "不够色":
             update.message.reply_text('那你来发嗷！')
@@ -164,17 +177,15 @@ class ExamineHandler:
             update.message.reply_text('命令错误，请重新回复')
             return self.EXAMINE_RESULT
         if IsPass:
-            context.user_data["examine_count"]["count"] += 1
-            context.user_data["examine_count"]["pass"] += 1
+            examine_count.is_cancel()
             self.pixiv.audit_approve(audit_type, art_id)
             remaining = self.pixiv.cache_size(audit_type)
             message = "你选择了：%s，已经确认。你已经审核%s个，通过%s个，撤销%s个。缓存池仍有%s件作品。请选择退出还是下一个。" % (
-                update.message.text, context.user_data["examine_count"]["count"],
-                context.user_data["examine_count"]["pass"], context.user_data["examine_count"]["cancel"], remaining)
+                update.message.text, examine_count.all_count, examine_count.pass_count, examine_count.cancel_count,
+                remaining)
             if update.message.text == "下一个":
                 message = "你已经审核%s个，通过%s个，撤销%s个。缓存池仍有%s件作品。" % (
-                    context.user_data["examine_count"]["count"], context.user_data["examine_count"]["pass"],
-                    context.user_data["examine_count"]["cancel"], remaining)
+                    examine_count.all_count, examine_count.pass_count, examine_count.cancel_count, remaining)
                 update.message.reply_text(message)
                 return self.start_handler(update, context)
             update.message.reply_text(message, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
@@ -194,7 +205,8 @@ class ExamineHandler:
         if audit_type == "R18":
             reply_keyboard = [
                 ["质量差", "类型错误"],
-                ["NSFW"], ["XP兼容性低"],
+                ["NSFW"],
+                ["XP兼容性低"],
                 ["退出"]
             ]
         message = "你选择了：%s，已经确认。请选撤销择原因或者输入原因。" % update.message.text
@@ -203,6 +215,7 @@ class ExamineHandler:
 
     def reason_handler(self, update: Update, context: CallbackContext) -> int:
         user = update.message.from_user
+        examine_count: ExamineCount = context.chat_data["examine_count"]
         Log.info("examine: reason函数请求 of %s: %s" % (user["username"], update.message.text))
         reply_keyboard = [['下一个', '退出']]
         art_id = context.chat_data.get("image_key", None)
@@ -225,10 +238,8 @@ class ExamineHandler:
         reason = update.message.text
         self.pixiv.audit_reject(audit_type, art_id, reason)
         remaining = self.pixiv.cache_size(audit_type)
-        context.user_data["examine_count"]["count"] += 1
-        context.user_data["examine_count"]["cancel"] += 1
+        examine_count.is_pass()
         message = "你选择了：%s，已经确认。你已经审核%s个，通过%s个，撤销%s个。缓存池仍有%s件作品。请选择退出还是下一个。" % (
-            update.message.text, context.user_data["examine_count"]["count"],
-            context.user_data["examine_count"]["pass"], context.user_data["examine_count"]["cancel"], remaining)
+            update.message.text,  examine_count.all_count, examine_count.pass_count, examine_count.cancel_count, remaining)
         update.message.reply_text(message, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
         return self.EXAMINE_START
