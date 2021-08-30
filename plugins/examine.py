@@ -7,8 +7,8 @@ from src.base.config import config
 from src.base.utils.base import Utils
 from src.base.logger import Log
 from src.base.utils.markdown import markdown_escape
-from src.production.pixiv.service import PixivService
 from src.base.model.artwork import AuditType, AuditStatus
+from src.production.pixiv.service import PixivService
 
 
 class ExamineHandler:
@@ -179,11 +179,24 @@ class ExamineHandler:
                 return self.start_handler(update, context)
             update.message.reply_text(message, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
             return self.EXAMINE_START
-        reply_keyboard = [["质量差", "类型错误"], ["一般"], ["NSFW", "R18"], ["退出"]]
+        reply_keyboard = [
+            ["质量差", "类型错误"],
+            ["一般"],
+            ["NSFW", "R18"],
+            ["退出"]
+        ]
         if audit_type == "NSFW":
-            reply_keyboard = [["质量差", "类型错误"], ["一般"], ["R18", "退出"]]
+            reply_keyboard = [
+                ["质量差", "类型错误"],
+                ["一般"],
+                ["R18", "退出"]
+            ]
         if audit_type == "R18":
-            reply_keyboard = [["质量差", "类型错误"], ["XP兼容性低", "退出"]]
+            reply_keyboard = [
+                ["质量差", "类型错误"],
+                ["NSFW"], ["XP兼容性低"],
+                ["退出"]
+            ]
         message = "你选择了：%s，已经确认。请选撤销择原因或者输入原因。" % update.message.text
         update.message.reply_text(message, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
         return self.EXAMINE_REASON

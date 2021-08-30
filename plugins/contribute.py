@@ -96,8 +96,11 @@ class ContributeHandler:
     def StartContribute(self, update: Update, context: CallbackContext) -> int:
         if update.message.text == "取消":
             update.message.reply_text(text="退出投稿", reply_markup=ReplyKeyboardRemove())
-            return ConversationHandler.END
-        art_id = context.chat_data["contribute_art_id"]
-        self.pixiv.contribute_confirm(art_id)
-        update.message.reply_text('投稿成功！✿✿ヽ（°▽°）ノ✿', reply_markup=ReplyKeyboardRemove())
+        elif update.message.text == "确认":
+            art_id = context.chat_data["contribute_art_id"]
+            self.pixiv.contribute_confirm(art_id)
+            update.message.reply_text('投稿成功！✿✿ヽ（°▽°）ノ✿', reply_markup=ReplyKeyboardRemove())
+        else:
+            update.message.reply_text('命令错误，请重新回复')
+            return self.TWO
         return ConversationHandler.END

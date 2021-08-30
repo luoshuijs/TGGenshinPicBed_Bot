@@ -39,7 +39,7 @@ def CreateArtworkInfoFromAPIResponse(response: dict) -> BArtworkInfo:
     dynamic_id = desc["dynamic_id"]
     uid = desc["uid"]
     view = desc["view"]
-    repos = desc["repos"]
+    repos = desc["repost"]
     comment = desc["comment"]
     like = desc["like"]
     timestamp = desc["timestamp"]

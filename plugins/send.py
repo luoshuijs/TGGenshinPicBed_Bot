@@ -20,32 +20,8 @@ class SendHandler:
     def __init__(self, twitter: TwitterService = None):
         self.utils = Utils(config)
         self.twitter = twitter
-        self.data = []
 
-    def get_data(self, data_id: int):
-        for data in self.data:
-            try:
-                if data[0] == data_id:
-                    self.data.remove(data)
-                    return data[1]
-            except ValueError:
-                return None
-        return None
-
-    def save_data(self, data_id: int, data):
-        temp = [data_id, data]
-        self.data.append(temp)
-
-    def remove_data(self, data_id: int):
-        for data in self.data:
-            try:
-                if data[0] == data_id:
-                    self.data.remove(data)
-                    return
-            except ValueError:
-                pass
-
-    def send_command(self, update: Update, _: CallbackContext) -> int:
+    def send_command(self, update: Update, context: CallbackContext) -> int:
         user = update.effective_user
         Log.info("send命令请求 user %s id %s" % (user["username"], user["id"]))
         if not self.utils.IfAdmin(user["id"]):
@@ -76,6 +52,8 @@ class SendHandler:
                 update.message.reply_text("已经存在数据库或者频道，退出投稿", reply_markup=ReplyKeyboardRemove())
                 return ConversationHandler.END
             artwork_info, images = artwork_data
+            context.chat_data["send_command_artwork_info"] = artwork_info
+            context.chat_data["send_command_images_data"] = images
         else:
             message = "获取作品信息失败，请检连接或者ID是否有误"
             update.message.reply_text(message, reply_markup=ReplyKeyboardRemove())
@@ -111,9 +89,6 @@ class SendHandler:
             Log.error("encounter error with image caption\n%s" % caption)
             Log.error(TError)
             return ConversationHandler.END
-        data_uuid = int(uuid.uuid4())
-        self.save_data(data_uuid, artwork_data)
-        context.chat_data["send_data_uuid"] = data_uuid
         reply_keyboard = [['SFW', 'NSFW'], ['R18', '退出']]
         message = "请选择你推送到的频道"
         update.message.reply_text(message, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
@@ -143,21 +118,12 @@ class SendHandler:
 
     def send_message(self, update: Update, context: CallbackContext) -> int:
         update.message.reply_text("正在推送", reply_markup=ReplyKeyboardRemove())
-        user = update.effective_user
-        data_id = context.chat_data.get("send_data_uuid", -1)
         channel_id = context.chat_data.get("channel_id", -1)
-        if data_id == -1 or channel_id == -1:
-            update.message.reply_text(text="发生错误，退出任务", reply_markup=ReplyKeyboardRemove())
-            return ConversationHandler.END
         if update.message.text == "取消":
             update.message.reply_text(text="退出任务", reply_markup=ReplyKeyboardRemove())
-            self.remove_data(data_id)
             return ConversationHandler.END
-        artwork_data: Tuple[ArtworkInfo, Iterable[ArtworkImage]] = self.get_data(data_id)
-        if artwork_data is None:
-            update.message.reply_text("插画信息获取错误，找开发者背锅吧~", reply_markup=ReplyKeyboardRemove())
-            return ConversationHandler.END
-        artwork_info, images = artwork_data
+        artwork_info: ArtworkInfo = context.chat_data["send_command_artwork_info"]
+        images: Iterable[ArtworkImage] = context.chat_data["send_command_images_data"]
         caption = "Title %s   \n" \
                   "Tags %s   \n" \
                   "From [%s](%s)" % (

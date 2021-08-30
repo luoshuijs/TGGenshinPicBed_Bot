@@ -1,5 +1,7 @@
 import httpx
 
+from src.production.sites.bilibili.base import CreateArtworkInfoFromAPIResponse, BArtworkInfo
+
 
 def get_info_url(dynamic_id: int) -> str:
     return f"https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/get_dynamic_detail?dynamic_id=={dynamic_id}"
@@ -14,7 +16,8 @@ def get_headers():
 
 class BilibiliApi:
 
-    def get_artwork_info(self, dynamic_id: int):
+    def get_artwork_info(self, dynamic_id: int) -> BArtworkInfo:
         url = get_info_url(dynamic_id)
         headers = get_headers()
         response = httpx.get(url=url, headers=headers).json()
+        return CreateArtworkInfoFromAPIResponse(response)
