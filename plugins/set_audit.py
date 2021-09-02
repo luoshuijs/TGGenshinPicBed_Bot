@@ -202,13 +202,12 @@ class SetAuditHandler:
             update.message.reply_text("发生未知错误, 联系开发者", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
         forward_from_message_id = SetAuditHandlerData.forward_from_message_id
-        if forward_from_message_id != -1:
-            channel_id = SetAuditHandlerData.channel_id
-            forward_date = SetAuditHandlerData.forward_date
-            if update.message.date.timestamp() - forward_date < 48 * 60 * 60:
-                # https://python-telegram-bot.readthedocs.io/en/stable/telegram.bot.html?highlight=delete_message#telegram.Bot.delete_message
-                # A message can only be deleted if it was sent less than 48 hours ago.
-                if info_type == "status" and update_data == AuditStatus.REJECT.value:
+        if info_type == "status" and update_data == AuditStatus.REJECT.value:
+            if forward_from_message_id != -1:
+                channel_id = SetAuditHandlerData.channel_id
+                forward_date = SetAuditHandlerData.forward_date
+                if update.message.date.timestamp() - forward_date < 48 * 60 * 60:
+                    # A message can only be deleted if it was sent less than 48 hours ago.
                     try:
                         context.bot.delete_message(channel_id, forward_from_message_id)
                     except BadRequest as err:
@@ -218,9 +217,9 @@ class SetAuditHandler:
                     context.bot.send_message(update.message.chat_id, f"作品 {art_id} 已更新 {info_type} 为 {update_data}"
                                                                      f"并且已经从频道删除",
                                              reply_markup=ReplyKeyboardRemove())
-            else:
-                update.message.reply_text(f"作品 {art_id} 已更新 {info_type} 为 {update_data}"
-                                          f"注意：推送时间已经超过48H，请手动删除", reply_markup=ReplyKeyboardRemove())
+                else:
+                    update.message.reply_text(f"作品 {art_id} 已更新 {info_type} 为 {update_data}"
+                                              f"注意：推送时间已经超过48H，请手动删除", reply_markup=ReplyKeyboardRemove())
         else:
             update.message.reply_text(f"作品 {art_id} 已更新 {info_type} 为 {update_data}",
                                       reply_markup=ReplyKeyboardRemove())
