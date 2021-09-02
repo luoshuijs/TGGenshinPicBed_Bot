@@ -7,9 +7,19 @@ from src.base.config import config
 from src.base.utils.base import Utils
 from src.base.utils.markdown import markdown_escape
 from src.base.utils.artid import ExtractArtid
-from src.base.model.artwork import AuditStatus, AuditType, ArtworkInfo
+from src.base.model.artwork import AuditStatus, AuditType
 from src.base.logger import Log
 from src.production.pixiv import PixivService
+
+
+class SetHandlerData:
+    def __init__(self):
+        self.art_id: int = -1
+        self.channel_id: int = -1
+        self.forward_from_message_id: int = -1
+        self.forward_date: int = -1
+        self.channel_id: int = -1
+        self.operation: str = ""
 
 
 class SetAuditHandler:
@@ -21,9 +31,10 @@ class SetAuditHandler:
         self.pixiv = pixiv
 
     def command_handler(self, update: Update, context: CallbackContext):
-        context.chat_data["SetCommand"] = {}
+        SetAuditHandlerData = SetHandlerData()
+        context.chat_data["SetAuditHandlerData"] = SetAuditHandlerData
         user = update.effective_user
-        art_id = None
+        art_id: int = -1
         if update.message.reply_to_message is not None:
             for caption_entities in update.message.reply_to_message.caption_entities:
                 if caption_entities.type == telegram.constants.MESSAGEENTITY_TEXT_LINK:
@@ -32,16 +43,14 @@ class SetAuditHandler:
                         art_id = int(art_id_str)
                     except (IndexError, ValueError, TypeError):
                         pass
-            if art_id is not None:
-                context.chat_data["SetCommand"]["art_id"] = art_id
-                if update.message.reply_to_message.forward_from_chat.type == "channel":
-                    forward_date = update.message.reply_to_message.forward_date.timestamp()
-                    forward_from_message_id = update.message.reply_to_message.forward_from_message_id
-                    channel_id = update.message.reply_to_message.forward_from_chat.id
-                    context.chat_data["SetCommand"]["forward_from_message_id"] = forward_from_message_id
-                    context.chat_data["SetCommand"]["channel_id"] = channel_id
-                    context.chat_data["SetCommand"]["forward_date"] = forward_date
-                    return self.set_start(update, context)
+            if art_id != -1:
+                SetAuditHandlerData.art_id = art_id
+                reply_to_message = update.message.reply_to_message
+                if reply_to_message.forward_from_chat is not None:
+                    if reply_to_message.forward_from_chat.type == "channel":
+                        SetAuditHandlerData.forward_date = reply_to_message.forward_date.timestamp()
+                        SetAuditHandlerData.forward_from_message_id = reply_to_message.forward_from_message_id
+                        SetAuditHandlerData.channel_id = reply_to_message.forward_from_chat.id
                 return self.set_start(update, context)
             else:
                 update.message.reply_text("回复的信息无连接信息，请重新回复")
@@ -59,28 +68,27 @@ class SetAuditHandler:
         return self.ONE
 
     def set_start(self, update: Update, context: CallbackContext):
+        SetAuditHandlerData: SetHandlerData = context.chat_data["SetAuditHandlerData"]
         user = update.effective_user
         if update.message.text == "退出":
             update.message.reply_text(text="退出任务", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
         update.message.reply_text("正在获取作品信息", reply_markup=ReplyKeyboardRemove())
-        try:
-            SetCommand = context.chat_data.get("SetCommand")
-            if SetCommand.get("art_id") is None:
+        if SetAuditHandlerData.art_id == -1:
+            try:
                 art_id_str = ExtractArtid(update.message.text)
                 art_id = int(art_id_str)
-            else:
-                art_id = SetCommand.get("art_id")
-        except (IndexError, ValueError, TypeError):
-            update.message.reply_text("获取作品信息失败，请检连接或者ID是否有误", reply_markup=ReplyKeyboardRemove())
-            return ConversationHandler.END
+            except (IndexError, ValueError, TypeError):
+                update.message.reply_text("获取作品信息失败，请检连接或者ID是否有误", reply_markup=ReplyKeyboardRemove())
+                return ConversationHandler.END
+        else:
+            art_id = SetAuditHandlerData.art_id
         Log.info("用户 %s 请求修改作品(%s)" % (user.username, art_id))
         artwork_data = self.pixiv.get_artwork_image_by_art_id(art_id)
         if artwork_data is None:
             update.message.reply_text(f"作品 {art_id} 不存在或出现未知错误", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
-        forward_from_message_id = context.chat_data["SetCommand"].get("forward_from_message_id", -1)
-        if forward_from_message_id != -1:
+        if SetAuditHandlerData.forward_from_message_id != -1:
             reply_keyboard = [['status', 'type'], ["退出"]]
             update.message.reply_text("获取作品信息成功，请选择你要修改的类型",
                                       reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
@@ -124,14 +132,14 @@ class SetAuditHandler:
             Log.error("encounter error with image caption\n%s" % caption)
             Log.error(TError)
             return ConversationHandler.END
-        art_id = artwork_info.art_id
-        context.chat_data["SetCommand"]["art_id"] = art_id
+        SetAuditHandlerData.art_id = artwork_info.art_id
         reply_keyboard = [['status', 'type'], ["退出"]]
         update.message.reply_text("请选择你要修改的类型",
                                   reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
         return self.TWO
 
     def set_operation(self, update: Update, context: CallbackContext):
+        SetAuditHandlerData: SetHandlerData = context.chat_data["SetAuditHandlerData"]
         if update.message.text == "退出":
             update.message.reply_text(text="退出任务", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
@@ -148,20 +156,20 @@ class SetAuditHandler:
         else:
             update.message.reply_text("命令错误", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
-        context.chat_data["SetCommand"]["operation"] = update.message.text
+        SetAuditHandlerData.operation = update.message.text
         update.message.reply_text("请选择你要修改的数据",
                                   reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
         return self.THREE
 
     def set_audit_info(self, update: Update, context: CallbackContext):
+        SetAuditHandlerData: SetHandlerData = context.chat_data["SetAuditHandlerData"]
         user = update.effective_user
         if update.message.text == "退出":
             update.message.reply_text(text="退出任务", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
         try:
-            art_id = context.chat_data["SetCommand"]["art_id"]
-            info_type = context.chat_data["SetCommand"]["operation"]
-            update_data = -1
+            art_id = SetAuditHandlerData.art_id
+            info_type = SetAuditHandlerData.operation
             if info_type == "status":
                 if update.message.text == "通过(1)":
                     update_data = AuditStatus.PASS.value
@@ -185,15 +193,14 @@ class SetAuditHandler:
             else:
                 update.message.reply_text("命令错误", reply_markup=ReplyKeyboardRemove())
                 return ConversationHandler.END
-        except Exception as TError:
-            Log.error(TError)
-            update.message.reply_text(f"发生未知错误, 联系开发者 - "
-                                      f"(art_id {art_id}, info_type {info_type}, "
-                                      f"update_data {update_data})", reply_markup=ReplyKeyboardRemove())
-        forward_from_message_id = context.chat_data["SetCommand"].get("forward_from_message_id", -1)
+        except Exception as err:
+            Log.error(err)
+            update.message.reply_text("发生未知错误, 联系开发者", reply_markup=ReplyKeyboardRemove())
+            return ConversationHandler.END
+        forward_from_message_id = SetAuditHandlerData.forward_from_message_id
         if forward_from_message_id != -1:
-            channel_id = context.chat_data["SetCommand"].get("channel_id", -1)
-            forward_date = context.chat_data["SetCommand"].get("forward_date", -1)
+            channel_id = SetAuditHandlerData.channel_id
+            forward_date = SetAuditHandlerData.forward_date
             if update.message.date.timestamp() - forward_date < 48 * 60 * 60:
                 # https://python-telegram-bot.readthedocs.io/en/stable/telegram.bot.html?highlight=delete_message#telegram.Bot.delete_message
                 # A message can only be deleted if it was sent less than 48 hours ago.
