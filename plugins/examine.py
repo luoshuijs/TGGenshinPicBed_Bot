@@ -177,7 +177,7 @@ class ExamineHandler:
             update.message.reply_text('命令错误，请重新回复')
             return self.EXAMINE_RESULT
         if IsPass:
-            examine_count.is_cancel()
+            examine_count.is_pass()
             self.pixiv.audit_approve(audit_type, art_id)
             remaining = self.pixiv.cache_size(audit_type)
             message = "你选择了：%s，已经确认。你已经审核%s个，通过%s个，撤销%s个。缓存池仍有%s件作品。请选择退出还是下一个。" % (
@@ -238,7 +238,7 @@ class ExamineHandler:
         reason = update.message.text
         self.pixiv.audit_reject(audit_type, art_id, reason)
         remaining = self.pixiv.cache_size(audit_type)
-        examine_count.is_pass()
+        examine_count.is_cancel()
         message = "你选择了：%s，已经确认。你已经审核%s个，通过%s个，撤销%s个。缓存池仍有%s件作品。请选择退出还是下一个。" % (
             update.message.text,  examine_count.all_count, examine_count.pass_count, examine_count.cancel_count, remaining)
         update.message.reply_text(message, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
