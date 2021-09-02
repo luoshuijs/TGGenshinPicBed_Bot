@@ -31,9 +31,13 @@ class SetAuditHandler:
         self.pixiv = pixiv
 
     def command_handler(self, update: Update, context: CallbackContext):
+        user = update.effective_user
+        Log.info("examine命令请求 user %s id %s" % (user["username"], user["id"]))
+        if not self.utils.IfAdmin(user["id"]):
+            update.message.reply_text("你不是BOT管理员，不能使用此命令！")
+            return ConversationHandler.END
         SetAuditHandlerData = SetHandlerData()
         context.chat_data["SetAuditHandlerData"] = SetAuditHandlerData
-        user = update.effective_user
         art_id: int = -1
         if update.message.reply_to_message is not None:
             for caption_entities in update.message.reply_to_message.caption_entities:
