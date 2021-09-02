@@ -23,7 +23,7 @@ class ExamineCount:
 
     def is_cancel(self):
         self.all_count += 1
-        self.pass_count += 1
+        self.cancel_count += 1
 
 
 class ExamineHandler:

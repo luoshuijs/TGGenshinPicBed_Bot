@@ -34,7 +34,18 @@ class SetAuditHandler:
                         pass
             if art_id is not None:
                 context.chat_data["SetCommand"]["art_id"] = art_id
+                if update.message.reply_to_message.forward_from_chat.type == "channel":
+                    forward_date = update.message.reply_to_message.forward_date.timestamp()
+                    forward_from_message_id = update.message.reply_to_message.forward_from_message_id
+                    channel_id = update.message.reply_to_message.forward_from_chat.id
+                    context.chat_data["SetCommand"]["forward_from_message_id"] = forward_from_message_id
+                    context.chat_data["SetCommand"]["channel_id"] = channel_id
+                    context.chat_data["SetCommand"]["forward_date"] = forward_date
+                    return self.set_start(update, context)
                 return self.set_start(update, context)
+            else:
+                update.message.reply_text("回复的信息无连接信息，请重新回复")
+                return ConversationHandler.END
         Log.info("set命令请求 user %s id %s" % (user.username, user.id))
         if not self.utils.IfAdmin(user["id"]):
             update.message.reply_text("你不是BOT管理员，不能使用此命令！")
@@ -64,17 +75,16 @@ class SetAuditHandler:
             update.message.reply_text("获取作品信息失败，请检连接或者ID是否有误", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
         Log.info("用户 %s 请求修改作品(%s)" % (user.username, art_id))
-        try:
-            artwork_data = self.pixiv.get_artwork_image_by_art_id(art_id)
-            if artwork_data is None:
-                update.message.reply_text(f"作品 {art_id} 不存在或出现未知错误", reply_markup=ReplyKeyboardRemove())
-                return ConversationHandler.END
-        except (IndexError, ValueError):
-            update.message.reply_text("```\n"
-                                      "Usage: /set status <art_id>\n"
-                                      "       /set type <art_id>```",
-                                      parse_mode=ParseMode.MARKDOWN_V2)
+        artwork_data = self.pixiv.get_artwork_image_by_art_id(art_id)
+        if artwork_data is None:
+            update.message.reply_text(f"作品 {art_id} 不存在或出现未知错误", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
+        forward_from_message_id = context.chat_data["SetCommand"].get("forward_from_message_id", -1)
+        if forward_from_message_id != -1:
+            reply_keyboard = [['status', 'type'], ["退出"]]
+            update.message.reply_text("获取作品信息成功，请选择你要修改的类型",
+                                      reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
+            return self.TWO
         artwork_info, images = artwork_data
         url = "https://www.pixiv.net/artworks/%s" % art_id
         caption = "Type: %s   \n" \
@@ -175,13 +185,34 @@ class SetAuditHandler:
             else:
                 update.message.reply_text("命令错误", reply_markup=ReplyKeyboardRemove())
                 return ConversationHandler.END
-            self.pixiv.set_art_audit_info(art_id, info_type, update_data)
-            update.message.reply_text(f"作品 {art_id} 已更新 {info_type} 为 {update_data}",
-                                      reply_markup=ReplyKeyboardRemove())
         except Exception as TError:
             Log.error(TError)
             update.message.reply_text(f"发生未知错误, 联系开发者 - "
                                       f"(art_id {art_id}, info_type {info_type}, "
-                                      f"update_data {update_data})")
+                                      f"update_data {update_data})", reply_markup=ReplyKeyboardRemove())
+        forward_from_message_id = context.chat_data["SetCommand"].get("forward_from_message_id", -1)
+        if forward_from_message_id != -1:
+            channel_id = context.chat_data["SetCommand"].get("channel_id", -1)
+            forward_date = context.chat_data["SetCommand"].get("forward_date", -1)
+            if update.message.date.timestamp() - forward_date < 48 * 60 * 60:
+                # https://python-telegram-bot.readthedocs.io/en/stable/telegram.bot.html?highlight=delete_message#telegram.Bot.delete_message
+                # A message can only be deleted if it was sent less than 48 hours ago.
+                if info_type == "status" and update_data == AuditStatus.REJECT.value:
+                    try:
+                        context.bot.delete_message(channel_id, forward_from_message_id)
+                    except BadRequest as err:
+                        Log.error(err)
+                        update.message.reply_text("删除失败，请检查是否授权管理员权限", reply_markup=ReplyKeyboardRemove())
+                        return ConversationHandler.END
+                    context.bot.send_message(update.message.chat_id, f"作品 {art_id} 已更新 {info_type} 为 {update_data}"
+                                                                     f"并且已经从频道删除",
+                                             reply_markup=ReplyKeyboardRemove())
+            else:
+                update.message.reply_text(f"作品 {art_id} 已更新 {info_type} 为 {update_data}"
+                                          f"注意：推送时间已经超过48H，请手动删除", reply_markup=ReplyKeyboardRemove())
+        else:
+            update.message.reply_text(f"作品 {art_id} 已更新 {info_type} 为 {update_data}",
+                                      reply_markup=ReplyKeyboardRemove())
+        self.pixiv.set_art_audit_info(art_id, info_type, update_data)
         Log.info("用户 %s 请求修改作品(%s): [%s]" % (user.username, art_id, info_type))
         return ConversationHandler.END
