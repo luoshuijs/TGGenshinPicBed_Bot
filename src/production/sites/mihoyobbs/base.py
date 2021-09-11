@@ -9,10 +9,10 @@ class MStat:
 
 
 class MArtworkInfo:
-    def __init__(self, database_id: int = 0, post_id: int = 0, subject: str = "", tags: list = [], stat: MStat = None,
-                 image_list: list = [], Stat: MStat = None, uid: int = 0, created_at: int = 0):
+    def __init__(self, database_id: int = 0, post_id: int = 0, subject: str = "", tags: list = [],
+                 image_list: list = [], stat: MStat = None, uid: int = 0, created_at: int = 0):
         self.database_id = database_id
-        self.Stat = Stat
+        self.Stat = stat
         self.image_list = image_list
         self.created_at = created_at
         self.uid = uid
