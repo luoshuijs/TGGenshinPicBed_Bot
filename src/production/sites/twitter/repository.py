@@ -28,7 +28,7 @@ class TwitterRepository:
     def get_art_by_artid(self, art_id: int) -> TArtworkInfo:
         query = f"""
             SELECT id, tid, text, tags,favorite_count, width,
-                   height, user_id, created_at
+                   height, uidz, created_at
             FROM `twitter`
             WHERE tid=%s;
         """

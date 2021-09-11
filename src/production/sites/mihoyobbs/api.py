@@ -31,7 +31,7 @@ def get_headers():
     }
 
 
-class MihoyonbbsApi:
+class MihoyobbsApi:
     def get_artwork_list(self, forum_id: int, is_good: bool = False, is_hot: bool = False, page_size: int = 20):
         url = get_list_uri()
         headers = get_headers()
@@ -44,3 +44,11 @@ class MihoyonbbsApi:
         headers = get_headers()
         response = httpx.get(url=url, headers=headers).json()
         return CreateArtworkInfoFromAPIResponse(response)
+
+
+class MihoyobbsDownloader:
+    def __init__(self):
+        self.MihoyobbsApi = MihoyobbsApi()
+
+    def get_images_by_artid(self, post_id: int):
+        pass

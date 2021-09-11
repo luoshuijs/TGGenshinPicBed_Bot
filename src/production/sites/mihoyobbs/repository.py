@@ -1,10 +1,10 @@
 from typing import Iterable
 from mysql.connector.pooling import MySQLConnectionPool
 
-from src.production.sites.mihoyobbs.base import MArtworkInfo
+from src.production.sites.mihoyobbs.base import MArtworkInfo, CreateMArtworkFromSQLData
 
 
-class Repository:
+class MihoyobbsRepository:
 
     # TODO: Too many repositories. Start using inheritance so that
     #       this __init__ doesn't need to look like this everywhere
@@ -30,25 +30,36 @@ class Repository:
             conn.commit()
             return result
 
+    def get_art_by_artid(self, art_id: int) -> MArtworkInfo:
+        query = f"""
+            SELECT id, post_id, title, tags, view_num, reply_num, like_num, bookmark_num, forward_num, uid, created_at
+            FROM `mihoyobbs`
+            WHERE post_id=%s;
+        """
+        query_args = (art_id,)
+        data = self._execute_and_fetchall(query, query_args)
+        if len(data) == 0:
+            return None
+        artwork_info = CreateMArtworkFromSQLData(data[0])
+        return artwork_info
+
     def save_art_one(self, artwork_info: MArtworkInfo):
-        return self.save_art_many([ artwork_info ])
+        return self.save_art_many([artwork_info])
 
     def save_art_many(self, artwork_info_list: Iterable[MArtworkInfo]):
         query = rf"""
-            INSERT INTO `{self.mihoyo_table}` (
-                post_id, title, tags, views, likes, replies, forwards, bookmarks, created_at, user_id
+            INSERT INTO mihoyobbs (
+                post_id, title, tags, view_num, reply_num, like_num, bookmark_num, forward_num, uid, created_at
             ) VALUES (
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
             ) ON DUPLICATE KEY UPDATE
                 title=VALUES(title),
                 tags=VALUES(tags),
-                views=VALUES(views),
-                likes=VALUES(likes),
-                replies=VALUES(replies),
-                forwards=VALUES(forwards),
-                bookmarks=VALUES(bookmarks),
-                created_at=VALUES(created_at),
-                user_id=VALUES(user_id);
+                view_num=VALUES(view_num),
+                reply_num=VALUES(reply_num),
+                like_num=VALUES(like_num),
+                bookmark_num=VALUES(bookmark_num),
+                forward_num=VALUES(forward_num)
         """
         query_args = tuple(
             [
