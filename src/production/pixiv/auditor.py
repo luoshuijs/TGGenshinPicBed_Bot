@@ -47,10 +47,16 @@ def reject(audit_info: AuditInfo, reason: str = None):
         new_type = audit_info.audit_type
     if reason == AuditType.NSFW.value:
         if new_type == AuditType.SFW:
+            # [Reason]NSFW + [Type]SFW => [Status]INIT + [Type]NSFW
             new_status = AuditStatus.INIT
+            new_type = AuditType.NSFW
+        if new_type == AuditType.R18:
+            # [Reason]NSFW + [Type]R18 => [Status]PASS + [Type]NSFW
+            new_status = AuditStatus.PASS
             new_type = AuditType.NSFW
     elif reason == AuditType.R18.value:
         if new_type != AuditType.R18:
+            # [Reason]R18 + [Type]SFW/NSFW => [Status]INIT + [Type]R18
             new_status = AuditStatus.INIT
             new_type = AuditType.R18
     elif reason is None:
