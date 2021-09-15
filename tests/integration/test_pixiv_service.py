@@ -340,6 +340,35 @@ class TestPixivService(unittest.TestCase):
         self.assertEqual(audit_info.audit_status, AuditStatus.INIT)
         self.assertEqual(audit_info.audit_type, AuditType.R18)
 
+    def test_reject_r18_artwork_for_nsfw_does_succeed_as_nsfw_pass(self):
+        # 1. Setup
+        data = {
+            "art_id": 91008306,
+            "title": "ganqing?? その2",
+            "tags": "#R-18#原神#刻晴#甘雨#百合#ganqing#刻甘#甘雨(原神)",
+            "view_count": 11600,
+            "like_count": 1830,
+            "love_count": 3042,
+            "author_id": 1238753,
+            "upload_timestamp": 1625387844,
+        }
+        reason = "NSFW"
+        new_artwork = ArtworkInfo(**data)
+        new_audit = AuditInfo(0, 0, data["art_id"], audit_type=AuditType.R18, audit_status=AuditStatus.INIT)
+        self.create_artwork(new_artwork)
+        self.create_audit_info(new_audit)
+        # 2. Execute
+        self.service.audit_start(AuditType.R18)
+        artwork_info_for_audit, images = self.service.audit_next(AuditType.R18)
+        self.service.audit_reject(AuditType.R18, artwork_info_for_audit.art_id, reason)
+        # 3. Compare
+        artwork_info = self.get_artwork(data["art_id"])
+        audit_info = artwork_info.audit_info
+        self.assertEqual(artwork_info.art_id, data["art_id"])
+        self.assertEqual(audit_info.audit_reason, reason)
+        self.assertEqual(audit_info.audit_status, AuditStatus.PASS)
+        self.assertEqual(audit_info.audit_type, AuditType.NSFW)
+
     def test_push_sfw_artwork_does_succeed(self):
         # 1. Setup
         data = {
