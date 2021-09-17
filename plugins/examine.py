@@ -69,13 +69,13 @@ class ExamineHandler:
     def skip_handler(self, update: Update, _: CallbackContext) -> int:
         user = update.message.from_user
         Log.info("User %s canceled the conversation.", user.first_name)
-        update.message.reply_text('命令取消.', reply_markup=ReplyKeyboardRemove())
+        update.message.reply_text('命令取消', reply_markup=ReplyKeyboardRemove())
         return ConversationHandler.END
 
     def cancel_handler(self, update: Update, _: CallbackContext) -> int:
         user = update.message.from_user
         Log.info("User %s canceled the conversation.", user.first_name)
-        update.message.reply_text('命令取消.', reply_markup=ReplyKeyboardRemove())
+        update.message.reply_text('命令取消', reply_markup=ReplyKeyboardRemove())
         return ConversationHandler.END
 
     def start_handler(self, update: Update, context: CallbackContext) -> int:

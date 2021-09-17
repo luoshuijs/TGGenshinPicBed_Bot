@@ -54,6 +54,9 @@ def reject(audit_info: AuditInfo, reason: str = None):
             # [Reason]NSFW + [Type]R18 => [Status]PASS + [Type]NSFW
             new_status = AuditStatus.PASS
             new_type = AuditType.NSFW
+        elif new_type == AuditType.R18:
+            new_status = AuditStatus.INIT
+            new_type = AuditType.NSFW
     elif reason == AuditType.R18.value:
         if new_type != AuditType.R18:
             # [Reason]R18 + [Type]SFW/NSFW => [Status]INIT + [Type]R18

@@ -92,11 +92,6 @@ class SetAuditHandler:
         if artwork_data is None:
             update.message.reply_text(f"作品 {art_id} 不存在或出现未知错误", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
-        if SetAuditHandlerData.forward_from_message_id != -1:
-            reply_keyboard = [['status', 'type'], ["退出"]]
-            update.message.reply_text("获取作品信息成功，请选择你要修改的类型",
-                                      reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
-            return self.TWO
         artwork_info, images = artwork_data
         url = "https://www.pixiv.net/artworks/%s" % art_id
         caption = "Type: %s   \n" \
@@ -114,6 +109,13 @@ class SetAuditHandler:
                       markdown_escape(artwork_info.tags),
                       url
                   )
+        if "/set" in update.message.text:
+            reply_keyboard = [['status', 'type'], ["退出"]]
+            update.message.reply_text(caption, parse_mode=ParseMode.MARKDOWN_V2,
+                                      reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
+            update.message.reply_text("获取作品信息成功，请选择你要修改的类型",
+                                      reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
+            return self.TWO
         try:
             if len(images) > 1:
                 media = [InputMediaPhoto(media=img_info.data) for img_info in images]
