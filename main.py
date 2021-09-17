@@ -29,7 +29,7 @@ def cancel(update: Update, _: CallbackContext) -> int:
 def main() -> None:
     """Start the bot."""
     Log.info("Start the bot")
-    updater = Updater(token=config.TELEGRAM["token"])
+    updater = Updater(token=config.TELEGRAM["token"], workers=10)
 
     dispatcher = updater.dispatcher
 
@@ -52,24 +52,24 @@ def main() -> None:
     )
 
     twitter = TwitterService(sql_config={
-            "host": config.MYSQL["host"],
-            "port": config.MYSQL["port"],
-            "user": config.MYSQL["user"],
-            "password": config.MYSQL["pass"],
-            "database": config.MYSQL["database"],
-        })
+        "host": config.MYSQL["host"],
+        "port": config.MYSQL["port"],
+        "user": config.MYSQL["user"],
+        "password": config.MYSQL["pass"],
+        "database": config.MYSQL["database"],
+    })
 
     examine = ExamineHandler(pixiv=pixiv)
-    conv_handler = ConversationHandler(
+    examine_handler = ConversationHandler(
         entry_points=[CommandHandler('examine', examine.command_handler)],
         states={
-            examine.EXAMINE: [MessageHandler(Filters.text, examine.setup_handler),
+            examine.EXAMINE: [MessageHandler(Filters.text, examine.setup_handler, run_async=True),
                               CommandHandler('skip', examine.skip_handler)],
-            examine.EXAMINE_START: [MessageHandler(Filters.text, examine.start_handler),
+            examine.EXAMINE_START: [MessageHandler(Filters.text, examine.start_handler, run_async=True),
                                     CommandHandler('skip', examine.skip_handler)],
-            examine.EXAMINE_RESULT: [MessageHandler(Filters.text, examine.result_handler),
+            examine.EXAMINE_RESULT: [MessageHandler(Filters.text, examine.result_handler, run_async=True),
                                      CommandHandler('skip', examine.skip_handler)],
-            examine.EXAMINE_REASON: [MessageHandler(Filters.text, examine.reason_handler),
+            examine.EXAMINE_REASON: [MessageHandler(Filters.text, examine.reason_handler, run_async=True),
                                      CommandHandler('skip', examine.skip_handler)],
         },
         fallbacks=[CommandHandler('cancel', examine.cancel_handler)],
@@ -98,13 +98,13 @@ def main() -> None:
         entry_points=[CommandHandler('push', push.command_handler)],
         states={
             push.ONE: [
-                CallbackQueryHandler(push.setup_handler)
+                CallbackQueryHandler(push.setup_handler, run_async=True)
             ],
             push.TWO: [
-                CallbackQueryHandler(push.start_handler)
+                CallbackQueryHandler(push.start_handler, run_async=True)
             ],
             push.THREE: [
-                CallbackQueryHandler(push.end_handler)
+                CallbackQueryHandler(push.end_handler, run_async=True)
             ]
         },
         fallbacks=[CommandHandler('cancel', cancel)],
@@ -158,7 +158,7 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler("start", start))
     dispatcher.add_handler(CommandHandler("help", help_command))
     dispatcher.add_handler(CommandHandler("test", test))
-    dispatcher.add_handler(conv_handler)
+    dispatcher.add_handler(examine_handler)
     dispatcher.add_handler(push_handler)
     dispatcher.add_handler(contribute_handler)
     dispatcher.add_handler(download_handler)
