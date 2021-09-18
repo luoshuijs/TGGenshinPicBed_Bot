@@ -1,7 +1,13 @@
 # 参考了miHoYoBBS、Twitter、Pixiv以及现有的数据结构
+import pathlib
 from enum import Enum
+
+from src.base.utils.namemap import NameMap
 from src.production.sites.mihoyobbs.base import MArtworkInfo
 from src.production.sites.twitter.base import TArtworkInfo
+
+name_map_file = pathlib.Path(__file__).parent.joinpath("../../../data/namemap.json").resolve()
+name_map = NameMap(name_map_file)
 
 
 class ArtworkInfoSite(Enum):
@@ -22,6 +28,7 @@ class AuditStatus(Enum):
     PASS = 1
     REJECT = 2
     PUSH = 3
+
 
 class Stat:
     def __init__(self, view_num: int = 0, reply_num: int = 0, like_num: int = 0, bookmark_num: int = 0,
@@ -81,13 +88,15 @@ class ArtworkInfo:
             stat_str += "Reply %s " % self.stat.reply_num
         return stat_str
 
-    def GetStringTags(self) -> str:
+    def GetStringTags(self, filter_character_tags: bool = False) -> str:
         tags_str: str = ""
         if len(self.tags) == 0:
             return ""
         for tag in self.tags:
             temp_tag = "#%s " % tag
             tags_str += temp_tag
+        if filter_character_tags:
+            tags_str = name_map.filter_character_tags(tags_str)
         return tags_str
 
     def SetTArtworkInfo(self, data: TArtworkInfo = None):

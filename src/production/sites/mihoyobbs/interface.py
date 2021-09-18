@@ -5,6 +5,7 @@ def MExtractTid(text: str) -> int:
     """
     :param text:
         # https://bbs.mihoyo.com/ys/article/8808224
+        # https://m.bbs.mihoyo.com/ys/article/8808224
     :return:
     """
     rgx = re.compile(

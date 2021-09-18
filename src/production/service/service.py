@@ -27,8 +27,8 @@ class AuditService:
 
 class SendService:
     def __init__(self, sql_config: dict = None):
-        # name_map_file = pathlib.Path(__file__).parent.joinpath("../../../data/namemap.json").resolve()
-        # self.name_map = NameMap(name_map_file)
+        name_map_file = pathlib.Path(__file__).parent.joinpath("../../../data/namemap.json").resolve()
+        self.name_map = NameMap(name_map_file)
         self.twitter = TwitterService(sql_config)
         self.mihoyobbs = MihoyobbsService(sql_config)
 

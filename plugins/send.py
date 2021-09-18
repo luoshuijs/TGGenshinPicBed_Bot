@@ -26,7 +26,7 @@ class SendHandler:
             update.message.reply_text("你不是BOT管理员，不能使用此命令！")
             return ConversationHandler.END
         message = "✿✿ヽ（°▽°）ノ✿ 你好！ %s ，欢迎 \n" \
-                  "当前直投只支持Twitter \n" \
+                  "当前直投只支持Twitter和MihoyoBBS \n" \
                   "只需复制URL回复即可 \n" \
                   "退出投稿只需回复退出" % (user["username"])
         reply_keyboard = [['退出']]
@@ -54,7 +54,7 @@ class SendHandler:
                   "From [%s](%s)" % (
                       markdown_escape(artwork_info.title),
                       artwork_info.GetStringStat(),
-                      markdown_escape(artwork_info.GetStringTags()),
+                      markdown_escape(artwork_info.GetStringTags(filter_character_tags=True)),
                       artwork_info.site_name,
                       artwork_info.origin_url
                   )
@@ -74,7 +74,7 @@ class SendHandler:
             else:
                 update.message.reply_text("图片获取错误，找开发者背锅吧~", reply_markup=ReplyKeyboardRemove())  # excuse?
                 return ConversationHandler.END
-        except BadRequest as TError:
+        except (BadRequest, TypeError) as TError:
             update.message.reply_text("图片获取错误，找开发者背锅吧~", reply_markup=ReplyKeyboardRemove())
             Log.error("encounter error with image caption\n%s" % caption)
             Log.error(TError)

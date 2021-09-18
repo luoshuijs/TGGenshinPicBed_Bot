@@ -65,7 +65,7 @@ class MihoyobbsRepository:
             [
                 a.post_id,
                 a.subject,
-                a.tags,
+                a.GetStringTags(),
                 a.Stat.view_num,
                 a.Stat.like_num,
                 a.Stat.reply_num,
