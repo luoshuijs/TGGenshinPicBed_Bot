@@ -3,13 +3,14 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
     CallbackQueryHandler
 
 from plugins.download import Download
+from plugins.errorhandler import error_handler
 from plugins.send import SendHandler
 from plugins.set_audit import SetAuditHandler
 from src.base.config import config
 from plugins.contribute import ContributeHandler
 from plugins.examine import ExamineHandler
 from plugins.push import PushHandler
-from plugins.start import start, help_command, test, error_handler
+from plugins.start import start, help_command, test
 from src.production.pixiv import PixivService
 from src.base.logger import Log
 from src.base.utils.base import Utils
