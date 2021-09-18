@@ -1,5 +1,4 @@
-import uuid
-from typing import Tuple, Iterable
+from typing import Iterable
 
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, InputMediaPhoto, ParseMode
 from telegram.error import BadRequest
@@ -10,16 +9,15 @@ from src.base.config import config
 from src.base.model.newartwork import ArtworkImage, ArtworkInfo
 from src.base.utils.base import Utils
 from src.base.utils.markdown import markdown_escape
-from src.production.sites.twitter.interface import ExtractTid
-from src.production.sites.twitter.service import TwitterService
+from src.production.service.service import SendService
 
 
 class SendHandler:
     ONE, TWO, THREE, FOUR = range(4)
 
-    def __init__(self, twitter: TwitterService = None):
+    def __init__(self, send_service: SendService = None):
         self.utils = Utils(config)
-        self.twitter = twitter
+        self.send_service = send_service
 
     def send_command(self, update: Update, context: CallbackContext) -> int:
         user = update.effective_user
@@ -40,24 +38,16 @@ class SendHandler:
         if update.message.text == "退出":
             update.message.reply_text(text="退出投稿", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
-        # 获取作品信息并发送
-        if "twitter" in update.message.text:
-            tid = ExtractTid(update.message.text)
-            if tid is None:
-                message = "获取作品信息失败，请检连接或者ID是否有误"
-                update.message.reply_text(message, reply_markup=ReplyKeyboardRemove())
-                return ConversationHandler.END
-            artwork_data = self.twitter.contribute_start(tid)
-            if artwork_data is None:
-                update.message.reply_text("已经存在数据库或者频道，退出投稿", reply_markup=ReplyKeyboardRemove())
-                return ConversationHandler.END
-            artwork_info, images = artwork_data
-            context.chat_data["send_command_artwork_info"] = artwork_info
-            context.chat_data["send_command_images_data"] = images
-        else:
-            message = "获取作品信息失败，请检连接或者ID是否有误"
-            update.message.reply_text(message, reply_markup=ReplyKeyboardRemove())
+        if update.message.text is None:
+            update.message.reply_text(text="回复错误", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
+        artwork_data = self.send_service.get_info(update.message.text)
+        if artwork_data is None:
+            update.message.reply_text("已经存在数据库或者频道，退出投稿", reply_markup=ReplyKeyboardRemove())
+            return ConversationHandler.END
+        artwork_info, images = artwork_data
+        context.chat_data["send_command_artwork_info"] = artwork_info
+        context.chat_data["send_command_images_data"] = images
         caption = "Title %s   \n" \
                   "%s   \n" \
                   "Tags %s   \n" \
@@ -155,5 +145,5 @@ class SendHandler:
             Log.error(TError)
             return ConversationHandler.END
         update.message.reply_text("推送完成", reply_markup=ReplyKeyboardRemove())
-        self.twitter.contribute_confirm(artwork_info.post_id)
+        self.send_service.contribute(artwork_info)
         return ConversationHandler.END

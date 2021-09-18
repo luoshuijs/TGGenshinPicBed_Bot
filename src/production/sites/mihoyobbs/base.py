@@ -101,5 +101,6 @@ def CreatePostInfoFromAPIResponse(data_post: dict) -> MArtworkInfo:
         uid=uid,
         stat=stat,
         tags=topics_list,
-        post_id=post_id
+        post_id=post_id,
+        image_list=images_list
     )

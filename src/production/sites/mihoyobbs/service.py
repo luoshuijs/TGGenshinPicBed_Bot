@@ -21,11 +21,6 @@ class MihoyobbsService:
         artwork_info = ArtworkInfo(data=temp_artwork_info)
         return artwork_info, artwork_image
 
-    def contribute_confirm(self, post_id: int):
-        # 1. Get artwork info
-        result = self.contribute_start(post_id)
-        if result is None:
-            return None
-        artwork_info, images = result
-        # 2. Save to database
+    def contribute_confirm(self, artwork_info: ArtworkInfo):
+        # Save to database
         self.MihoyobbsRepository.save_art_one(artwork_info.info)

@@ -63,7 +63,7 @@ class ArtworkInfo:
         if type(data) == TArtworkInfo:
             self.SetTArtworkInfo(data)
         elif type(data) == MArtworkInfo:
-            self.SetTArtworkInfo(data)
+            self.SetMArtworkInfo(data)
         else:
             pass
 
@@ -102,7 +102,7 @@ class ArtworkInfo:
         self.create_timestamp = data.created_at
 
     def SetMArtworkInfo(self, data: MArtworkInfo = None):
-        self.origin_url = "https://bbs.mihoyo.com/ys/article/%s" % data.tid
+        self.origin_url = "https://bbs.mihoyo.com/ys/article/%s" % data.post_id
         self.site_name = "MiHoYoBBS"
         self.site = ArtworkInfoSite.mihuyoubbs
         self.info = data

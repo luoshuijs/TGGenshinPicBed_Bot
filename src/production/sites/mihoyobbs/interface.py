@@ -1,7 +1,7 @@
 import re
 
 
-def MxtractTid(text: str) -> int:
+def MExtractTid(text: str) -> int:
     """
     :param text:
         # https://bbs.mihoyo.com/ys/article/8808224

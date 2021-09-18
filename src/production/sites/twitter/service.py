@@ -21,11 +21,6 @@ class TwitterService:
         artwork_info = ArtworkInfo(data=temp_artwork_info)
         return artwork_info, artwork_image
 
-    def contribute_confirm(self, art_id: int):
-        # 1. Get artwork info
-        result = self.contribute_start(art_id)
-        if result is None:
-            return None
-        artwork_info, images = result
-        # 2. Save to database
+    def contribute_confirm(self, artwork_info: ArtworkInfo):
+        # Save to database
         self.TwitterRepository.save_art_one(artwork_info.info)

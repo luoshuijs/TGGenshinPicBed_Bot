@@ -4,7 +4,7 @@ import pathlib
 from src.base.model.newartwork import AuditType, ArtworkInfoSite
 from src.base.utils.namemap import NameMap
 from src.base.model.newartwork import ArtworkImage, ArtworkInfo
-from src.production.sites.mihoyobbs.interface import MxtractTid
+from src.production.sites.mihoyobbs.interface import MExtractTid
 from src.production.sites.mihoyobbs.service import MihoyobbsService
 from src.production.sites.twitter.interface import ExtractTid
 from src.production.sites.twitter.service import TwitterService
@@ -26,29 +26,30 @@ class AuditService:
 
 
 class SendService:
-    def __init__(self, sql_config=None):
-        name_map_file = pathlib.Path(__file__).parent.joinpath("../../../data/namemap.json").resolve()
-        self.name_map = NameMap(name_map_file)
-        self.twitter = TwitterService()
-        self.mihoyobbs = MihoyobbsService()
+    def __init__(self, sql_config: dict = None):
+        # name_map_file = pathlib.Path(__file__).parent.joinpath("../../../data/namemap.json").resolve()
+        # self.name_map = NameMap(name_map_file)
+        self.twitter = TwitterService(sql_config)
+        self.mihoyobbs = MihoyobbsService(sql_config)
 
     def get_info(self, url: str) -> Optional[Tuple[ArtworkInfo, Iterable[ArtworkImage]]]:
-        if "twitter" in url:
-            tid = ExtractTid(url)
-            if tid is None:
-                return None
+        """
+        :param url: 地址
+        :return: ArtworkInfo ArtworkImage: 图片信息 图片地址
+        """
+        tid = ExtractTid(url)
+        if tid is not None:
             return self.twitter.contribute_start(tid)
-        elif "mihoyo" in url:
-            post_id = MxtractTid(url)
-            if post_id is None:
-                return None
+        post_id = MExtractTid(url)
+        if post_id is not None:
             return self.mihoyobbs.contribute_start(post_id)
-        else:
-            pass
         return None
 
     def contribute(self, artwork_info: ArtworkInfo) -> bool:
         if artwork_info.site == ArtworkInfoSite.twitter:
-            self.twitter.contribute_confirm(artwork_info.post_id)
-
+            self.twitter.contribute_confirm(artwork_info)
+        elif artwork_info.site == ArtworkInfoSite.mihuyoubbs:
+            self.mihoyobbs.contribute_confirm(artwork_info)
+        else:
+            return False
         return True

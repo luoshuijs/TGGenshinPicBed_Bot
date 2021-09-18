@@ -1,4 +1,4 @@
-from collections import Iterable
+from typing import Iterable
 
 import httpx
 
@@ -33,20 +33,30 @@ class MihoyobbsApi:
         return {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
                           "Chrome/90.0.4430.72 Safari/537.36",
+            "Referer": "https://bbs.mihoyo.com/"
+        }
+
+    def get_images_params(self):
+        return {
+            "x-oss-process": "image/resize,s_600/quality,q_80/auto-orient,0/interlace,1/format,jpg"
         }
 
     def get_artwork_list(self, forum_id: int, is_good: bool = False, is_hot: bool = False, page_size: int = 20):
         url = get_list_uri()
         headers = self.get_headers()
         params = get_list_url_params(forum_id=forum_id, is_good=is_good, is_hot=is_hot, page_size=page_size)
-        response = httpx.get(url=url, headers=headers, params=params).json()
-        return CreateArtworkListFromAPIResponse(response)
+        response = httpx.get(url=url, headers=headers, params=params)
+        if response.is_error:
+            return None
+        return CreateArtworkListFromAPIResponse(response.json())
 
     def get_artwork_info(self, post_id: int) -> MArtworkInfo:
         url = get_info_url(post_id)
         headers = self.get_headers()
-        response = httpx.get(url=url, headers=headers).json()
-        return CreateArtworkInfoFromAPIResponse(response)
+        response = httpx.get(url=url, headers=headers)
+        if response.is_error:
+            return None
+        return CreateArtworkInfoFromAPIResponse(response.json())
 
 
 class MihoyobbsDownloader:
@@ -60,7 +70,8 @@ class MihoyobbsDownloader:
         art_list = []
         for url in artwork_info.image_list:
             headers = self.MihoyobbsApi.get_headers()
-            response = httpx.get(url=url, headers=headers)
+            params = self.MihoyobbsApi.get_images_params()
+            response = httpx.get(url=url, headers=headers, params=params)
             if response.is_error:
                 return None
             art_list.append(ArtworkImage(artwork_info.post_id, data=response.content))

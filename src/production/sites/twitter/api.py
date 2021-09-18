@@ -21,8 +21,10 @@ class TwitterApi:
     def get_artwork_info(self, tid: int) -> TArtworkInfo:
         url = self.get_api_uri(tid)
         headers = self.get_headers()
-        response = httpx.get(url=url, headers=headers).json()
-        return CreateArtworkInfoFromAPIResponse(response)
+        response = httpx.get(url=url, headers=headers)
+        if response.is_error:
+            return None
+        return CreateArtworkInfoFromAPIResponse(response.json())
 
 
 class TwitterDownloader:
