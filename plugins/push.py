@@ -102,7 +102,7 @@ class PushHandler:
                         photo = images[0].data
                         sendReq = context.bot.send_photo(char_id, photo, caption=caption,
                                                          parse_mode=ParseMode.MARKDOWN_V2)
-                        time.sleep(1)
+                        time.sleep(2)
                 except BadRequest as TError:
                     Log.error("encountered error with image caption\n%s" % caption)
                     Log.error(TError)
@@ -127,6 +127,7 @@ class PushHandler:
                            "%s" % (audit_type.name, audit_type.name, caption)
                     context.bot.send_message(channel_id, text=text, reply_markup=InlineKeyboardMarkup(reply_keyboard),
                                              parse_mode=ParseMode.MARKDOWN_V2, disable_web_page_preview=True)
+                    time.sleep(1)
         keyboard = [
             [
                 InlineKeyboardButton("确认", callback_data=str(self.THREE)),

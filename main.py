@@ -61,7 +61,7 @@ def main() -> None:
 
     examine = ExamineHandler(pixiv=pixiv)
     examine_handler = ConversationHandler(
-        entry_points=[CommandHandler('examine', examine.command_handler)],
+        entry_points=[CommandHandler('examine', examine.command_handler, run_async=True)],
         states={
             examine.EXAMINE: [MessageHandler(Filters.text, examine.setup_handler, run_async=True),
                               CommandHandler('skip', examine.skip_handler)],
@@ -72,30 +72,30 @@ def main() -> None:
             examine.EXAMINE_REASON: [MessageHandler(Filters.text, examine.reason_handler, run_async=True),
                                      CommandHandler('skip', examine.skip_handler)],
         },
-        fallbacks=[CommandHandler('cancel', examine.cancel_handler)],
+        fallbacks=[CommandHandler('cancel', examine.cancel_handler, run_async=True)],
     )
     set_audit = SetAuditHandler(pixiv=pixiv)
     set_audit_handler = ConversationHandler(
-        entry_points=[CommandHandler('set', set_audit.command_handler)],
+        entry_points=[CommandHandler('set', set_audit.command_handler, run_async=True)],
         states={
             set_audit.ONE: [
-                MessageHandler(Filters.text, set_audit.set_start),
+                MessageHandler(Filters.text, set_audit.set_start, run_async=True),
                 CommandHandler('skip', cancel)
             ],
             set_audit.TWO: [
-                MessageHandler(Filters.text, set_audit.set_operation),
+                MessageHandler(Filters.text, set_audit.set_operation, run_async=True),
                 CommandHandler('skip', cancel)
             ],
             set_audit.THREE: [
-                MessageHandler(Filters.text, set_audit.set_audit_info),
+                MessageHandler(Filters.text, set_audit.set_audit_info, run_async=True),
                 CommandHandler('skip', cancel)
             ]
         },
-        fallbacks=[CommandHandler('cancel', cancel)],
+        fallbacks=[CommandHandler('cancel', cancel, run_async=True)],
     )
     push = PushHandler(pixiv=pixiv)
     push_handler = ConversationHandler(
-        entry_points=[CommandHandler('push', push.command_handler)],
+        entry_points=[CommandHandler('push', push.command_handler, run_async=True)],
         states={
             push.ONE: [
                 CallbackQueryHandler(push.setup_handler, run_async=True)
@@ -107,57 +107,57 @@ def main() -> None:
                 CallbackQueryHandler(push.end_handler, run_async=True)
             ]
         },
-        fallbacks=[CommandHandler('cancel', cancel)],
+        fallbacks=[CommandHandler('cancel', cancel, run_async=True)],
     )
 
     contribute = ContributeHandler(pixiv=pixiv)
     contribute_handler = ConversationHandler(
-        entry_points=[CommandHandler('contribute', contribute.contribute_command)],
+        entry_points=[CommandHandler('contribute', contribute.contribute_command, run_async=True)],
         states={
             contribute.ONE: [
-                MessageHandler(Filters.text, contribute.ContributeInfo),
+                MessageHandler(Filters.text, contribute.ContributeInfo, run_async=True),
                 CommandHandler('skip', cancel)
             ],
             contribute.TWO: [
-                MessageHandler(Filters.text, contribute.StartContribute),
+                MessageHandler(Filters.text, contribute.StartContribute, run_async=True),
                 CommandHandler('skip', cancel)
             ]
         },
-        fallbacks=[CommandHandler('cancel', cancel)],
+        fallbacks=[CommandHandler('cancel', cancel, run_async=True)],
     )
     download = Download(update=updater)
     download_handler = ConversationHandler(
-        entry_points=[CommandHandler('download', download.download)],
+        entry_points=[CommandHandler('download', download.download, run_async=True)],
         states={
             contribute.ONE: [
-                MessageHandler(Filters.text, download.start_download),
-                CommandHandler('skip', cancel)
+                MessageHandler(Filters.text, download.start_download, run_async=True),
+                CommandHandler('skip', cancel, run_async=True)
             ]
         },
-        fallbacks=[CommandHandler('cancel', cancel)],
+        fallbacks=[CommandHandler('cancel', cancel, run_async=True)],
     )
     Send = SendHandler(twitter=twitter)
     send_handler = ConversationHandler(
-        entry_points=[CommandHandler('send', Send.send_command)],
+        entry_points=[CommandHandler('send', Send.send_command, run_async=True)],
         states={
             contribute.ONE: [
-                MessageHandler(Filters.text, Send.get_info),
+                MessageHandler(Filters.text, Send.get_info, run_async=True),
                 CommandHandler('skip', cancel)
             ],
             contribute.TWO: [
-                MessageHandler(Filters.text, Send.get_channel),
+                MessageHandler(Filters.text, Send.get_channel, run_async=True),
                 CommandHandler('skip', cancel)
             ],
             contribute.THREE: [
-                MessageHandler(Filters.text, Send.send_message),
+                MessageHandler(Filters.text, Send.send_message, run_async=True),
                 CommandHandler('skip', cancel)
             ]
         },
-        fallbacks=[CommandHandler('cancel', cancel)],
+        fallbacks=[CommandHandler('cancel', cancel, run_async=True)],
     )
-    dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(CommandHandler("help", help_command))
-    dispatcher.add_handler(CommandHandler("test", test))
+    dispatcher.add_handler(CommandHandler("start", start, run_async=True))
+    dispatcher.add_handler(CommandHandler("help", help_command, run_async=True))
+    dispatcher.add_handler(CommandHandler("test", test, run_async=True))
     dispatcher.add_handler(examine_handler)
     dispatcher.add_handler(push_handler)
     dispatcher.add_handler(contribute_handler)
