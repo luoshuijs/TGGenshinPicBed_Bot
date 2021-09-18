@@ -165,7 +165,7 @@ class Pixiv:
             task_main = asyncio.ensure_future(self.GetIllustInformation(i))
             self.GetIllustInformationTasks.append(task_main)
 
-        popular_artists_all = await self.repository.get_artists_with_multiple_approved_arts(num=9,
+        popular_artists_all = await self.repository.get_artists_with_multiple_approved_arts(num=8,
                                                                                             days_ago=7)
 
         for popular_artists in popular_artists_all:
