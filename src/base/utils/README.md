@@ -6,4 +6,4 @@
 | httprequests  | 请求模块 |
 | makedown  | makedown的格式化模块  |
 | namemap  | tag标签映射模块  |
-| redisaction  | redis工具模块  |
+| redisaction  | redis映射模块  |

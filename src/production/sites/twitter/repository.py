@@ -64,9 +64,8 @@ class TwitterRepository:
         )
         return self._execute_and_fetchall(query, query_args)
 
-    def get_art_for_audit(self, audit_type: int) -> list:
+    def get_art_for_audit(self) -> list:
         """
-        :param audit_type: type
         :return: 返回带有作品具体信息的列表
         """
         query = rf"""

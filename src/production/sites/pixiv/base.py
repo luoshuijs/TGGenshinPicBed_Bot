@@ -1,3 +1,6 @@
+from typing import Optional
+
+
 class PArtworkInfo:
 
     def __init__(self, database_id: int = 0, art_id: int = 0, title: str = "", tags: list = [], view_count: int = 0,
@@ -27,7 +30,7 @@ class PArtworkInfo:
         self.tags = tags_list
 
 
-def CreateArtworkInfoFromAPIResponse(response: dict) -> PArtworkInfo:
+def CreateArtworkInfoFromAPIResponse(response: dict) -> Optional[PArtworkInfo]:
     if response["error"]:
         return None
     try:

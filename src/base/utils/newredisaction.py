@@ -1,6 +1,6 @@
 from typing import Iterable
 from enum import Enum
-from src.base.model.artwork import AuditType, ArtworkInfo
+from src.base.model.newartwork import AuditType, ArtworkInfo
 
 
 class RedisActionType(Enum):

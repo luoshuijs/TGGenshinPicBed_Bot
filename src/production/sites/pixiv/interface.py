@@ -1,7 +1,8 @@
 import re
+from typing import Optional
 
 
-def ExtractPId(text: str) -> int:
+def ExtractPId(text: str) -> Optional[int]:
     """
     :param text:
         # https://pixiv.net/i/123456

@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, Optional
 
 from mysql.connector.pooling import MySQLConnectionPool
 from src.production.sites.pixiv.base import CreateArtworkFromSQLData, PArtworkInfo
@@ -34,7 +34,7 @@ class PixivRepository:
             conn.commit()
             return result
 
-    def get_art_by_artid(self, art_id: int) -> PArtworkInfo:
+    def get_art_by_artid(self, art_id: int) -> Optional[PArtworkInfo]:
         query = f"""
             SELECT id, illusts_id, title, tags, view_count,
                    like_count, love_count, user_id, upload_timestamp
@@ -66,7 +66,7 @@ class PixivRepository:
         query_args = (
             artwork_info.art_id,
             artwork_info.title,
-            artwork_info.tags,
+            artwork_info.GetStringTags(),
             artwork_info.view_count,
             artwork_info.like_count,
             artwork_info.love_count,
@@ -75,19 +75,19 @@ class PixivRepository:
         )
         return self._execute_and_fetchall(query, query_args)
 
-    def get_art_for_audit(self, audit_type: int) -> list:
+    def get_art_for_audit(self) -> list:
         """
-        :param audit_type: type
         :return: 返回带有作品具体信息的列表
         """
         query = rf"""
-                    SELECT illusts_id, type, status, reason
+                    SELECT illusts_id, status
                     FROM `pixiv_audit`
-                    WHERE type=%s and (status IS NULL or status = 0)
+                    WHERE status IS NULL or status = 0
                 """
-        query_args = (audit_type,)
+        query_args = ()
         data = self._execute_and_fetchall(query, query_args)
         if len(data) == 0:
             return []
         return [i[0] for i in data]
+
 

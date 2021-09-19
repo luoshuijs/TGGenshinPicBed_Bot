@@ -5,6 +5,7 @@ from src.production.sites.mihoyobbs.interface import ExtractMid
 from src.production.sites.mihoyobbs.service import MihoyobbsService
 from src.production.sites.twitter.interface import ExtractTid
 from src.production.sites.twitter.service import TwitterService
+from src.production.sites.pixiv.service import PixivService
 
 
 class BaseService:
@@ -37,10 +38,11 @@ class BaseService:
 
 class AuditService(BaseService):
 
-    def __init__(self, twitter: TwitterService, mihoyobbs: MihoyobbsService):
+    def __init__(self, twitter: TwitterService, mihoyobbs: MihoyobbsService, pixiv: PixivService):
         super().__init__(twitter, mihoyobbs)
         self.twitter = twitter
         self.mihoyobbs = mihoyobbs
+        self.pixiv = pixiv
 
     def audit_start(self, audit_type: AuditType) -> int:
         """
@@ -48,4 +50,4 @@ class AuditService(BaseService):
         :return: 审核数量
         """
         # 1. Get from database  从数据库获取到要审核的数据
-        pass
+        self.pixiv.get_art_for_audit(audit_type.value)
