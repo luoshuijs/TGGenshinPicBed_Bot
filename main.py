@@ -14,7 +14,7 @@ from plugins.start import start, help_command, test
 from src.production.pixiv import PixivService
 from src.base.logger import Log
 from src.base.utils.base import Utils
-from src.production.service.service import SendService
+from src.production.service import StartService
 
 utils = Utils(config)
 logger = Log.getLogger()  # 必须在这初始化log 不然...其实也没有到达死机的程度，运行不了不知道为啥
@@ -52,7 +52,7 @@ def main() -> None:
         },
     )
 
-    send_service = SendService(sql_config={
+    service = StartService(sql_config={
         "host": config.MYSQL["host"],
         "port": config.MYSQL["port"],
         "user": config.MYSQL["user"],
@@ -137,7 +137,7 @@ def main() -> None:
         },
         fallbacks=[CommandHandler('cancel', cancel, run_async=True)],
     )
-    Send = SendHandler(send_service=send_service)
+    Send = SendHandler(send_service=service)
     send_handler = ConversationHandler(
         entry_points=[CommandHandler('send', Send.send_command, run_async=True)],
         states={

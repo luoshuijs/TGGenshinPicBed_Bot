@@ -63,3 +63,19 @@ class TwitterRepository:
             artwork_info.created_at,
         )
         return self._execute_and_fetchall(query, query_args)
+
+    def get_art_for_audit(self, audit_type: int) -> list:
+        """
+        :param audit_type: type
+        :return: 返回带有作品具体信息的列表
+        """
+        query = rf"""
+                    SELECT tid, type, status, reason
+                    FROM `twitter_audit`
+                    WHERE status IS NULL or status = 0
+                """
+        query_args = ()
+        data = self._execute_and_fetchall(query, query_args)
+        if len(data) == 0:
+            return []
+        return [i[0] for i in data]

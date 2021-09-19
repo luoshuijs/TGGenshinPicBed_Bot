@@ -3,6 +3,7 @@ from mysql.connector.pooling import MySQLConnectionPool
 
 from src.base.model.newartwork import AuditType, ArtworkInfo
 
+
 class AuditService:
 
     def __init__(self, host="127.0.0.1", port=3306, user="", password="", database=""):
@@ -15,8 +16,18 @@ class AuditService:
                                             password=password,
                                             database=database)
 
-    def get_art_for_audit(self, audit_type: AuditType) -> Iterable[ArtworkInfo]:
-        """
-        :param audit_type: 从数据库获取到未审核的数据
-        :return: 返回带有作品具体信息的列表
-        """
+    def _execute_and_fetchall(self, query, args):
+        with self.sql_pool.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(query, args)
+                result = cur.fetchall()
+            conn.commit()
+            return result
+
+    def _executemany_and_fetchall(self, query, args):
+        with self.sql_pool.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.executemany(query, args)
+                result = cur.fetchall()
+            conn.commit()
+            return result

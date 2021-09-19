@@ -1,3 +1,5 @@
+from typing import Iterable
+
 from mysql.connector.pooling import MySQLConnectionPool
 from src.production.sites.pixiv.base import CreateArtworkFromSQLData, PArtworkInfo
 
@@ -72,3 +74,20 @@ class PixivRepository:
             artwork_info.upload_timestamp,
         )
         return self._execute_and_fetchall(query, query_args)
+
+    def get_art_for_audit(self, audit_type: int) -> list:
+        """
+        :param audit_type: type
+        :return: 返回带有作品具体信息的列表
+        """
+        query = rf"""
+                    SELECT illusts_id, type, status, reason
+                    FROM `pixiv_audit`
+                    WHERE type=%s and (status IS NULL or status = 0)
+                """
+        query_args = (audit_type,)
+        data = self._execute_and_fetchall(query, query_args)
+        if len(data) == 0:
+            return []
+        return [i[0] for i in data]
+

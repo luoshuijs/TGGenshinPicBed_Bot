@@ -9,13 +9,13 @@ from src.base.config import config
 from src.base.model.newartwork import ArtworkImage, ArtworkInfo
 from src.base.utils.base import Utils
 from src.base.utils.markdown import markdown_escape
-from src.production.service.service import SendService
+from src.production.service import Service
 
 
 class SendHandler:
     ONE, TWO, THREE, FOUR = range(4)
 
-    def __init__(self, send_service: SendService = None):
+    def __init__(self, send_service: Service = None):
         self.utils = Utils(config)
         self.send_service = send_service
 
@@ -85,7 +85,6 @@ class SendHandler:
         return self.TWO
 
     def get_channel(self, update: Update, context: CallbackContext) -> int:
-        user = update.effective_user
         if update.message.text == "退出":
             update.message.reply_text(text="退出任务", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
@@ -118,7 +117,7 @@ class SendHandler:
                   "Tags %s   \n" \
                   "From [%s](%s)" % (
                       markdown_escape(artwork_info.title),
-                      markdown_escape(artwork_info.GetStringTags()),
+                      markdown_escape(artwork_info.GetStringTags(filter_character_tags=True)),
                       artwork_info.site_name,
                       artwork_info.origin_url
                   )

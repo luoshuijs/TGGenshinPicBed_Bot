@@ -80,7 +80,7 @@ class ExamineHandler:
 
     def start_handler(self, update: Update, context: CallbackContext) -> int:
         user = update.message.from_user
-        Log.info("examine: start函数请求 %s : %s" % (user["username"], update.message.text))
+        # Log.info("examine: start函数请求 %s : %s" % (user["username"], update.message.text))
         reply_keyboard = [['通过', '撤销'], ['退出']]
         audit_type = AuditType(context.chat_data.get("audit_type", None))
         if update.message.text == "下一个" or update.message.text == "OK":
@@ -150,7 +150,7 @@ class ExamineHandler:
     def result_handler(self, update: Update, context: CallbackContext) -> int:
         user = update.message.from_user
         examine_count: ExamineCount = context.chat_data["examine_count"]
-        Log.info("examine: result函数请求 %s : %s" % (user["username"], update.message.text))
+        # Log.info("examine: result函数请求 %s : %s" % (user["username"], update.message.text))
         if update.message.text == "不够色":
             update.message.reply_text('那你来发嗷！')
             update.message.reply_text('退出审核', reply_markup=ReplyKeyboardRemove())
@@ -216,7 +216,7 @@ class ExamineHandler:
     def reason_handler(self, update: Update, context: CallbackContext) -> int:
         user = update.message.from_user
         examine_count: ExamineCount = context.chat_data["examine_count"]
-        Log.info("examine: reason函数请求 of %s: %s" % (user["username"], update.message.text))
+        # Log.info("examine: reason函数请求 of %s: %s" % (user["username"], update.message.text))
         reply_keyboard = [['下一个', '退出']]
         art_id = context.chat_data.get("image_key", None)
         audit_type = AuditType(context.chat_data.get("audit_type", None))

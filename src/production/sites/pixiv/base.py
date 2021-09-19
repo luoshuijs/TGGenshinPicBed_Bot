@@ -34,9 +34,10 @@ def CreateArtworkInfoFromAPIResponse(response: dict) -> PArtworkInfo:
         details = response["body"]["illust_details"]
     except (AttributeError, TypeError):
         return None
-    return PArtworkInfo(art_id=details["id"], title=details["title"], tags=details["tags"], view_count=details["rating_view"],
-                        like_count=details["rating_count"], love_count=details["bookmark_user_total"],
-                        author_id=details["user_id"], upload_timestamp=details["upload_timestamp"]
+    return PArtworkInfo(art_id=details["id"], title=details["title"], tags=details["tags"],
+                        view_count=details["rating_view"], like_count=details["rating_count"],
+                        love_count=details["bookmark_user_total"], author_id=details["user_id"],
+                        upload_timestamp=details["upload_timestamp"]
                         )
 
 

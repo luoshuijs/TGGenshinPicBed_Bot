@@ -1,7 +1,7 @@
 import re
 
 
-def MExtractTid(text: str) -> int:
+def ExtractMid(text: str) -> int:
     """
     :param text:
         # https://bbs.mihoyo.com/ys/article/8808224
@@ -18,6 +18,3 @@ def MExtractTid(text: str) -> int:
     except (IndexError, ValueError):
         return None
     return art_id
-
-
-
