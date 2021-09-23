@@ -2,7 +2,7 @@ from typing import Iterable
 
 import httpx
 
-from src.base.model.newartwork import ArtworkImage
+from src.base.model.artwork import ArtworkImage
 from src.production.sites.mihoyobbs.base import CreateArtworkInfoFromAPIResponse, CreateArtworkListFromAPIResponse, \
     MArtworkInfo
 

@@ -11,7 +11,6 @@ from plugins.contribute import ContributeHandler
 from plugins.examine import ExamineHandler
 from plugins.push import PushHandler
 from plugins.start import start, help_command, test
-from src.production.pixiv import PixivService
 from src.base.logger import Log
 from src.base.utils.base import Utils
 from src.production.service import StartService
@@ -34,7 +33,7 @@ def main() -> None:
 
     dispatcher = updater.dispatcher
 
-    pixiv = PixivService(
+    service = StartService(
         sql_config={
             "host": config.MYSQL["host"],
             "port": config.MYSQL["port"],
@@ -46,21 +45,9 @@ def main() -> None:
             "host": config.REDIS["host"],
             "port": config.REDIS["port"],
             "db": config.REDIS["database"],
-        },
-        px_config={
-            "cookie": config.PIXIV["cookie"],
-        },
-    )
+        })
 
-    service = StartService(sql_config={
-        "host": config.MYSQL["host"],
-        "port": config.MYSQL["port"],
-        "user": config.MYSQL["user"],
-        "password": config.MYSQL["pass"],
-        "database": config.MYSQL["database"],
-    })
-
-    examine = ExamineHandler(pixiv=pixiv)
+    examine = ExamineHandler(service=service)
     examine_handler = ConversationHandler(
         entry_points=[CommandHandler('examine', examine.command_handler, run_async=True)],
         states={
@@ -75,7 +62,7 @@ def main() -> None:
         },
         fallbacks=[CommandHandler('cancel', examine.cancel_handler, run_async=True)],
     )
-    set_audit = SetAuditHandler(pixiv=pixiv)
+    set_audit = SetAuditHandler(service=service)
     set_audit_handler = ConversationHandler(
         entry_points=[CommandHandler('set', set_audit.command_handler, run_async=True)],
         states={
@@ -94,7 +81,7 @@ def main() -> None:
         },
         fallbacks=[CommandHandler('cancel', cancel, run_async=True)],
     )
-    push = PushHandler(pixiv=pixiv)
+    push = PushHandler(service=service)
     push_handler = ConversationHandler(
         entry_points=[CommandHandler('push', push.command_handler, run_async=True)],
         states={
@@ -111,7 +98,7 @@ def main() -> None:
         fallbacks=[CommandHandler('cancel', cancel, run_async=True)],
     )
 
-    contribute = ContributeHandler(pixiv=pixiv)
+    contribute = ContributeHandler(service=service)
     contribute_handler = ConversationHandler(
         entry_points=[CommandHandler('contribute', contribute.contribute_command, run_async=True)],
         states={
@@ -126,7 +113,7 @@ def main() -> None:
         },
         fallbacks=[CommandHandler('cancel', cancel, run_async=True)],
     )
-    download = Download(update=updater)
+    download = Download()
     download_handler = ConversationHandler(
         entry_points=[CommandHandler('download', download.download, run_async=True)],
         states={

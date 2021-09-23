@@ -6,7 +6,7 @@ import aiomysql
 from mysql.connector import connect
 from src.production.crawl.repository import Repository
 from src.production.crawl.base import ArtistCrawlUpdate
-from src.base.model.artwork import ArtworkInfo, AuditInfo, AuditType, AuditStatus
+from src.base.model.oldartwork import ArtworkInfo, AuditInfo, AuditType, AuditStatus
 from src.base.model.artist import ArtistCrawlInfo
 
 

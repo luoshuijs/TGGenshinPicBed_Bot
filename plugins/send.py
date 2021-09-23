@@ -6,7 +6,7 @@ from telegram.ext import CallbackContext, ConversationHandler
 
 from src.base.logger import Log
 from src.base.config import config
-from src.base.model.newartwork import ArtworkImage, ArtworkInfo
+from src.base.model.artwork import ArtworkImage, ArtworkInfo
 from src.base.utils.base import Utils
 from src.base.utils.markdown import markdown_escape
 from src.production.service import Service
@@ -41,7 +41,7 @@ class SendHandler:
         if update.message.text is None:
             update.message.reply_text(text="回复错误", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
-        artwork_data = self.send_service.get_info(update.message.text)
+        artwork_data = self.send_service.get_info_by_url(update.message.text)
         if artwork_data is None:
             update.message.reply_text("已经存在数据库或者频道，退出投稿", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END

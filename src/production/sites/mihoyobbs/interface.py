@@ -1,7 +1,7 @@
 import re
 
 
-def ExtractMid(text: str) -> int:
+def ExtractMId(text: str) -> int:
     """
     :param text:
         # https://bbs.mihoyo.com/ys/article/8808224

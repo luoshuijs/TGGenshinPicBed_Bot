@@ -1,6 +1,9 @@
-from typing import Iterable, Optional
+from typing import Optional, List
 
 from mysql.connector.pooling import MySQLConnectionPool
+
+from src.base.model.artwork import ArtworkInfoSite, AuditInfo, AuditType, AuditStatus
+from src.production.service.base import CreateArtworkAuditInfoFromSQLData
 from src.production.sites.pixiv.base import CreateArtworkFromSQLData, PArtworkInfo
 
 
@@ -75,12 +78,12 @@ class PixivRepository:
         )
         return self._execute_and_fetchall(query, query_args)
 
-    def get_art_for_audit(self) -> list:
+    def get_art_for_audit(self) -> List[AuditInfo]:
         """
         :return: 返回带有作品具体信息的列表
         """
         query = rf"""
-                    SELECT illusts_id, status
+                    SELECT illusts_id, type, status, reason
                     FROM `pixiv_audit`
                     WHERE status IS NULL or status = 0
                 """
@@ -88,6 +91,27 @@ class PixivRepository:
         data = self._execute_and_fetchall(query, query_args)
         if len(data) == 0:
             return []
-        return [i[0] for i in data]
+        return [CreateArtworkAuditInfoFromSQLData(i, site=ArtworkInfoSite.PIXIV) for i in data]
 
+    def get_art_for_push(self, audit_type: AuditType) -> List[AuditInfo]:
+        query = rf"""
+            SELECT illusts_id, type, status, reason
+            FROM `pixiv_audit`
+            WHERE type=%s AND status=%s;
+        """
+        query_args = (audit_type.value, AuditStatus.PASS.value,)
+        data = self._execute_and_fetchall(query, query_args)
+        return [CreateArtworkAuditInfoFromSQLData(i, site=ArtworkInfoSite.PIXIV) for i in data]
 
+    def get_audit(self, illusts_id: int):
+        query = f"""
+                    SELECT illusts_id, type, status, reason
+                    FROM `pixiv_audit`
+                    WHERE illusts_id=%s;
+                """
+        query_args = (illusts_id,)
+        data = self._execute_and_fetchall(query, query_args)
+        if len(data) == 0:
+            return None
+        audit_info = CreateArtworkAuditInfoFromSQLData(data[0], site=ArtworkInfoSite.PIXIV)
+        return audit_info

@@ -1,10 +1,9 @@
-from typing import Iterable
 from mysql.connector.pooling import MySQLConnectionPool
 
-from src.base.model.newartwork import AuditType, ArtworkInfo
+from src.base.model.artwork import AuditInfo
 
 
-class AuditService:
+class AuditRepository:
 
     def __init__(self, host="127.0.0.1", port=3306, user="", password="", database=""):
         self.sql_pool = MySQLConnectionPool(pool_name="",
@@ -31,3 +30,19 @@ class AuditService:
                 result = cur.fetchall()
             conn.commit()
             return result
+
+    def apply_update(self, audit_info: AuditInfo):
+        query = rf"""
+            INSERT INTO `new_examine` (
+                site, connection_id, type, status, reason
+            ) VALUES (
+                %s, %s, %s, %s, %s
+            ) ON DUPLICATE KEY UPDATE
+                type=VALUES(type),
+                status=VALUES(status),
+                reason=VALUES(reason);
+        """
+        query_args = (audit_info.site.value, audit_info.connection_id, audit_info.type.value,
+                      audit_info.status.value, audit_info.reason,)
+        return self._execute_and_fetchall(query, query_args)
+

@@ -4,7 +4,7 @@ import asyncio
 import time
 from typing import Iterable, Set
 from src.base.logger import Log
-from src.base.model.artwork import ArtworkInfo
+from src.base.model.oldartwork import ArtworkInfo
 from src.production.crawl.base import SearchResult
 from src.production.crawl.repository import Repository
 from src.production.crawl.request import BasicRequest

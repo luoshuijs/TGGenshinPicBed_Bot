@@ -1,6 +1,6 @@
 from typing import Iterable, Set, Callable, Any
 
-from src.base.model.artwork import ArtworkInfo
+from src.base.model.oldartwork import ArtworkInfo
 from src.base.model.artist import ArtistCrawlInfo
 
 """
@@ -143,20 +143,20 @@ def CreateUserAllIllustsResultFromAPIResponse(data: dict) -> Iterable[int]:
     return illusts_list
 
 
-
 """
     Map SQL Query result
 """
+
 
 def CreateArtistCrawlInfoFromSQLResult(data) -> Iterable[ArtistCrawlInfo]:
     if len(data) == 0:
         return []
     artists = [
         ArtistCrawlInfo(
-            user_id = a[0],
-            last_art_id = a[1],
-            last_crawled_at = a[2],
-            approved_art_count = a[3],
+            user_id=a[0],
+            last_art_id=a[1],
+            last_crawled_at=a[2],
+            approved_art_count=a[3],
         )
         for a in data
     ]

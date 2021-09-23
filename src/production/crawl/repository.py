@@ -2,7 +2,7 @@ from typing import Iterable
 
 import aiomysql
 
-from src.base.model.artwork import AuditStatus, ArtworkInfo
+from src.base.model.oldartwork import ArtworkInfo
 from src.base.model.artist import ArtistCrawlInfo
 from src.production.crawl.base import ArtistCrawlUpdate, CreateArtistCrawlInfoFromSQLResult
 

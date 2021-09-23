@@ -1,7 +1,7 @@
 import re
 
 
-def ExtractTid(text: str) -> int:
+def ExtractTId(text: str) -> int:
     """
     :param text:
         # https://twitter.com/i/web/status/1429353251955044356

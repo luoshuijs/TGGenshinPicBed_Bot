@@ -1,7 +1,3 @@
-import html
-import traceback
-import ujson
-
 from telegram import Update, ParseMode
 from telegram.ext import CallbackContext
 
@@ -18,14 +14,6 @@ def start(update: Update, _: CallbackContext) -> None:
     message = "✿✿ヽ（°▽°）ノ✿ hi！%s  \n" \
               "这里是GenshinPicBed机器人"
     update.message.reply_markdown_v2(message % user.mention_markdown_v2())
-
-
-def test(update: Update, _: CallbackContext) -> None:
-    user = update.effective_user
-    if not utils.IfOwner(user["id"]):
-        return
-    Log.info("test命令请求 user %s" % user["username"])
-    update.message.reply_text("pass")
 
 
 def help_command(update: Update, _: CallbackContext) -> None:
@@ -54,3 +42,14 @@ def echo(update: Update, _: CallbackContext) -> None:
     if update.message.MESSAGE_TYPES == "text":
         if update.message.text == "不够色":
             update.message.reply_text("那你来发")
+
+
+def test(update: Update, _: CallbackContext) -> None:
+    """
+    单  元  测  试   (dogo)
+    """
+    user = update.effective_user
+    if not utils.IfOwner(user["id"]):
+        return
+    Log.info("test命令请求 user %s" % user["username"])
+    update.message.reply_text("pass")

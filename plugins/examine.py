@@ -1,14 +1,16 @@
+from typing import Optional, Iterable
+
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, InputMediaPhoto, ParseMode
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext, ConversationHandler
 
 from src.base.config import config
+from src.base.model.artwork import ArtworkInfo, ArtworkImage, AuditInfo, AuditType
 
 from src.base.utils.base import Utils
 from src.base.logger import Log
 from src.base.utils.markdown import markdown_escape
-from src.base.model.artwork import AuditType, AuditStatus
-from src.production.pixiv.service import PixivService
+from src.production.service import Service
 
 
 class ExamineCount:
@@ -26,14 +28,22 @@ class ExamineCount:
         self.cancel_count += 1
 
 
+class ExamineHandlerData:
+    def __init__(self):
+        self.audit_type: Optional[AuditType] = None
+        self.artwork_info: Optional[ArtworkInfo] = None
+        self.artwork_images: Optional[Iterable[ArtworkImage]] = None
+        self.audit_info: Optional[AuditInfo] = None
+
+
 class ExamineHandler:
     EXAMINE, EXAMINE_START, EXAMINE_RESULT, EXAMINE_REASON = range(4)
 
-    def __init__(self, pixiv: PixivService = None):
+    def __init__(self, service: Service = None):
         self.utils = Utils(config)
-        self.pixiv = pixiv
+        self.service = service
 
-    def command_handler(self, update: Update, _: CallbackContext) -> int:
+    def command_handler(self, update: Update, context: CallbackContext) -> int:
         user = update.effective_user
         Log.info("examine命令请求 user %s id %s" % (user["username"], user["id"]))
         if not self.utils.IfAdmin(user["id"]):
@@ -45,100 +55,97 @@ class ExamineHandler:
             message,
             reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True),
         )
+        examine_handler_data = ExamineHandlerData()
+        context.chat_data["examine_handler_data"] = examine_handler_data
+        examine_count = ExamineCount()
+        context.chat_data["examine_count"] = examine_count
         return self.EXAMINE
 
     def setup_handler(self, update: Update, context: CallbackContext) -> int:
+        examine_handler_data: ExamineHandlerData = context.chat_data["examine_handler_data"]
         user = update.effective_user
         Log.info("examine: setup函数请求 %s %s" % (user["username"], update.message.text))
         if update.message.text == "退出":
             update.message.reply_text('退出审核', reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
         audit_type = AuditType(update.message.text)
-        context.chat_data["audit_type"] = audit_type.value
-        count = self.pixiv.audit_start(audit_type)
+        examine_handler_data.audit_type = audit_type
+        count = self.service.audit.audit_start(audit_type)
+        if count == 0:
+            update.message.reply_text('已经完成了当前的全部审核，退出审核', reply_markup=ReplyKeyboardRemove())
+            return ConversationHandler.END
         reply_keyboard = [['OK', '退出']]
         message = "%s ，目前审核类型是%s 。\n" \
                   "目前缓存池有%s件作品  \n" \
                   "审核完毕后，可以使用 /push 命令推送。\n" \
                   "接下来进入审核模式，请回复OK继续。" % (user["username"], update.message.text, count)
-        examine_count = ExamineCount()
-        context.chat_data["examine_count"] = examine_count
         update.message.reply_text(message, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
         return self.EXAMINE_START
 
     def skip_handler(self, update: Update, _: CallbackContext) -> int:
         user = update.message.from_user
-        Log.info("User %s canceled the conversation.", user.first_name)
+        Log.info("User %s canceled the conversation.", user.username)
         update.message.reply_text('命令取消', reply_markup=ReplyKeyboardRemove())
         return ConversationHandler.END
 
     def cancel_handler(self, update: Update, _: CallbackContext) -> int:
         user = update.message.from_user
-        Log.info("User %s canceled the conversation.", user.first_name)
+        Log.info("User %s canceled the conversation.", user.username)
         update.message.reply_text('命令取消', reply_markup=ReplyKeyboardRemove())
         return ConversationHandler.END
 
     def start_handler(self, update: Update, context: CallbackContext) -> int:
-        user = update.message.from_user
-        # Log.info("examine: start函数请求 %s : %s" % (user["username"], update.message.text))
+        examine_handler_data: ExamineHandlerData = context.chat_data["examine_handler_data"]
+        if self.service.audit.cache_size(examine_handler_data.audit_type) == 0:
+            update.message.reply_text('已经完成了当前的全部审核，退出审核', reply_markup=ReplyKeyboardRemove())
+            return ConversationHandler.END
         reply_keyboard = [['通过', '撤销'], ['退出']]
-        audit_type = AuditType(context.chat_data.get("audit_type", None))
         if update.message.text == "下一个" or update.message.text == "OK":
-            # *自动审核: audit_next 传参 approve_threshold, 大于等于该数值自动通过, -1关闭自动通过
-            approve_threshold = 3  # 大于3自动通过
-            result = self.pixiv.audit_next(audit_type, approve_threshold)
-            if result is None:
-                update.message.reply_text('已经完成了当前的全部审核，退出审核', reply_markup=ReplyKeyboardRemove())
-                return ConversationHandler.END
-            # *自动审核: 查看 artwork_info.audit_info, 如果 audit_status 为 PASS 则自动审核已通过
-            artwork_info, images = result
-            if artwork_info.audit_info.audit_status == AuditStatus.PASS:
-                reply_keyboard = [['下一个', '撤销'], ['退出']]
-            art_id = artwork_info.art_id
-            Log.info("ExamineStart sending photo...")
-            context.chat_data["image_key"] = art_id
-            url = "https://www.pixiv.net/artworks/%s" % art_id
+            result = self.service.audit.audit_next(examine_handler_data.audit_type)
+            artwork_info, artwork_images, audit_info = result
+            examine_handler_data.artwork_info = artwork_info
+            examine_handler_data.artwork_images = artwork_images
+            examine_handler_data.audit_info = audit_info
             caption = "Title %s   \n" \
-                      "Views %s Likes %s Loves %s   \n" \
+                      "%s \n" \
                       "Tags %s   \n" \
-                      "From [Pixiv](%s)" % (
+                      "From [%s](%s)" % (
                           markdown_escape(artwork_info.title),
-                          artwork_info.view_count,
-                          artwork_info.like_count,
-                          artwork_info.love_count,
-                          markdown_escape(artwork_info.tags),
-                          url
+                          artwork_info.GetStringStat(),
+                          markdown_escape(artwork_info.GetStringTags(filter_character_tags=True)),
+                          artwork_info.site_name,
+                          artwork_info.origin_url
                       )
             try:
-                if len(images) > 1:
-                    media = [InputMediaPhoto(media=img_info.data) for img_info in images]
+                if len(artwork_images) > 1:
+                    media = [InputMediaPhoto(media=img_info.data) for img_info in artwork_images]
                     media = media[:10]
-                    media[0] = InputMediaPhoto(media=images[0].data, caption=caption,
+                    media[0] = InputMediaPhoto(media=artwork_images[0].data, caption=caption,
                                                parse_mode=ParseMode.MARKDOWN_V2)
                     update.message.reply_media_group(media, timeout=30)
                     update.message.reply_text("是多张图片的作品呢，要看仔细了哦 ~ ",
-                                              reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
-                elif len(images) == 1:
-                    photo = images[0].data
+                                              reply_markup=ReplyKeyboardMarkup(reply_keyboard,
+                                                                               one_time_keyboard=True))
+                elif len(artwork_images) == 1:
+                    photo = artwork_images[0].data
                     update.message.reply_photo(photo=photo,
                                                caption=caption,
                                                timeout=30,
                                                parse_mode=ParseMode.MARKDOWN_V2,
-                                               reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
+                                               reply_markup=ReplyKeyboardMarkup(reply_keyboard,
+                                                                                one_time_keyboard=True))
                 else:
-                    Log.error("图片%s获取失败" % art_id)
+                    Log.error("图片%s获取失败" % artwork_info.post_id)
                     reply_keyboard = [['OK', '退出']]
                     update.message.reply_text("图片获取错误，回复OK尝试重新获取",
-                                              reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
+                                              reply_markup=ReplyKeyboardMarkup(reply_keyboard,
+                                                                               one_time_keyboard=True))
                     return self.EXAMINE_START
             except BadRequest as TError:
                 Log.error("encounter error with image caption\n%s" % caption)
                 Log.error(TError)
                 update.message.reply_text('程序发生致命错误，退出审核', reply_markup=ReplyKeyboardRemove())
                 return ConversationHandler.END
-            if artwork_info.audit_info.audit_status == AuditStatus.PASS:
-                update.message.reply_text("审核已经自动通过，请问是下一个还是撤销",
-                                          reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
             return self.EXAMINE_RESULT
         elif update.message.text == "退出":
             update.message.reply_text('退出审核', reply_markup=ReplyKeyboardRemove())
@@ -148,9 +155,8 @@ class ExamineHandler:
         return self.EXAMINE_START
 
     def result_handler(self, update: Update, context: CallbackContext) -> int:
-        user = update.message.from_user
         examine_count: ExamineCount = context.chat_data["examine_count"]
-        # Log.info("examine: result函数请求 %s : %s" % (user["username"], update.message.text))
+        examine_handler_data: ExamineHandlerData = context.chat_data["examine_handler_data"]
         if update.message.text == "不够色":
             update.message.reply_text('那你来发嗷！')
             update.message.reply_text('退出审核', reply_markup=ReplyKeyboardRemove())
@@ -159,14 +165,12 @@ class ExamineHandler:
             reply_keyboard = [['通过', '撤销'], ['退出']]
             update.message.reply_text('一开口就知道老色批了嗷！')
             update.message.reply_text('认(g)真(k)点(d)，重新审核嗷！',
-                                      reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
+                                      reply_markup=ReplyKeyboardMarkup(reply_keyboard,
+                                                                       one_time_keyboard=True))
             return self.EXAMINE_RESULT
         reply_keyboard = [['下一个', '退出']]
-        art_id = context.chat_data.get("image_key", None)
-        audit_type = AuditType(context.chat_data.get("audit_type", None))
         if update.message.text == "退出":
-            if art_id:
-                self.pixiv.audit_cancel(audit_type, art_id)
+            self.service.audit.audit_cancel(examine_handler_data.audit_info, examine_handler_data.audit_type)
             update.message.reply_text('退出审核', reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
         elif update.message.text == "通过" or update.message.text == "下一个":
@@ -178,11 +182,12 @@ class ExamineHandler:
             return self.EXAMINE_RESULT
         if IsPass:
             examine_count.is_pass()
-            self.pixiv.audit_approve(audit_type, art_id)
-            remaining = self.pixiv.cache_size(audit_type)
-            message = "你选择了：%s，已经确认。你已经审核%s个，通过%s个，撤销%s个。缓存池仍有%s件作品。请选择退出还是下一个。" % (
-                update.message.text, examine_count.all_count, examine_count.pass_count, examine_count.cancel_count,
-                remaining)
+            self.service.audit.audit_approve(examine_handler_data.audit_info, examine_handler_data.audit_type)
+            remaining = self.service.audit.cache_size(examine_handler_data.audit_type)
+            message = "你选择了：%s，已经确认。你已经审核%s个，通过%s个，撤销%s个。" \
+                      "缓存池仍有%s件作品。请选择退出还是下一个。" % (
+                          update.message.text, examine_count.all_count, examine_count.pass_count,
+                          examine_count.cancel_count, remaining)
             if update.message.text == "下一个":
                 message = "你已经审核%s个，通过%s个，撤销%s个。缓存池仍有%s件作品。" % (
                     examine_count.all_count, examine_count.pass_count, examine_count.cancel_count, remaining)
@@ -196,13 +201,13 @@ class ExamineHandler:
             ["NSFW", "R18"],
             ["退出"]
         ]
-        if audit_type == "NSFW":
+        if examine_handler_data.audit_type == AuditType.NSFW:
             reply_keyboard = [
                 ["质量差", "类型错误"],
                 ["一般"],
                 ["R18", "退出"]
             ]
-        if audit_type == "R18":
+        if examine_handler_data.audit_type == AuditType.R18:
             reply_keyboard = [
                 ["质量差", "类型错误"],
                 ["NSFW"],
@@ -216,10 +221,8 @@ class ExamineHandler:
     def reason_handler(self, update: Update, context: CallbackContext) -> int:
         user = update.message.from_user
         examine_count: ExamineCount = context.chat_data["examine_count"]
-        # Log.info("examine: reason函数请求 of %s: %s" % (user["username"], update.message.text))
+        examine_handler_data: ExamineHandlerData = context.chat_data["examine_handler_data"]
         reply_keyboard = [['下一个', '退出']]
-        art_id = context.chat_data.get("image_key", None)
-        audit_type = AuditType(context.chat_data.get("audit_type", None))
         if update.message.text == "不够色":
             update.message.reply_text('那你来发嗷！')
             update.message.reply_text('退出审核', reply_markup=ReplyKeyboardRemove())
@@ -231,15 +234,16 @@ class ExamineHandler:
                                       reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
             return self.EXAMINE_RESULT
         if update.message.text == "退出":
-            if art_id is not None:
-                self.pixiv.audit_cancel(audit_type, art_id)
+            self.service.audit.audit_cancel(examine_handler_data.audit_info, examine_handler_data.audit_type)
             update.message.reply_text('退出审核', reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
         reason = update.message.text
-        self.pixiv.audit_reject(audit_type, art_id, reason)
-        remaining = self.pixiv.cache_size(audit_type)
+        self.service.audit.audit_reject(examine_handler_data.audit_info,
+                                        examine_handler_data.audit_type, reason)
+        remaining = self.service.audit.cache_size(examine_handler_data.audit_type)
         examine_count.is_cancel()
         message = "你选择了：%s，已经确认。你已经审核%s个，通过%s个，撤销%s个。缓存池仍有%s件作品。请选择退出还是下一个。" % (
-            update.message.text,  examine_count.all_count, examine_count.pass_count, examine_count.cancel_count, remaining)
+            update.message.text, examine_count.all_count, examine_count.pass_count, examine_count.cancel_count,
+            remaining)
         update.message.reply_text(message, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
         return self.EXAMINE_START

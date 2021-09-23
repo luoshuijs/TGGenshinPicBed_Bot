@@ -12,8 +12,7 @@ from src.production.crawl.pixivdownload import Pixiv
 class Download:
     ONE, TWO, THREE = range(3)
 
-    def __init__(self, update: Update):
-        self.update = update
+    def __init__(self):
         self.loop = asyncio.get_event_loop()
         self.Task_list = []
         self.utils = Utils(config)

@@ -1,7 +1,7 @@
 import httpx
 from typing import Optional, List
 
-from src.base.model.newartwork import ArtworkImage
+from src.base.model.artwork import ArtworkImage
 from src.production.sites.pixiv.base import PArtworkInfo, CreateArtworkInfoFromAPIResponse
 
 

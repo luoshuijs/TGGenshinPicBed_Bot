@@ -1,34 +1,36 @@
+from typing import Optional, Iterable
 from telegram import Update, InputMediaPhoto, ParseMode, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext, ConversationHandler
 import telegram
 
 from src.base.config import config
+from src.base.model.artwork import ArtworkInfo, ArtworkImage
 from src.base.utils.base import Utils
 from src.base.utils.markdown import markdown_escape
-from src.base.utils.artid import ExtractArtid
 from src.base.model.artwork import AuditStatus, AuditType
 from src.base.logger import Log
-from src.production.pixiv import PixivService
+from src.production.service import Service
 
 
 class SetHandlerData:
     def __init__(self):
-        self.art_id: int = -1
         self.channel_id: int = -1
         self.forward_from_message_id: int = -1
         self.forward_date: int = -1
-        self.channel_id: int = -1
         self.operation: str = ""
+        self.url: str = ""
+        self.artwork_info: Optional[ArtworkInfo] = None
+        self.artwork_images: Optional[Iterable[ArtworkImage]] = None
 
 
 class SetAuditHandler:
     QUERY, = -1000,
     ONE, TWO, THREE, FOUR = range(4)
 
-    def __init__(self, pixiv: PixivService = None):
+    def __init__(self, service: Service = None):
         self.utils = Utils(config)
-        self.pixiv = pixiv
+        self.service = service
 
     def command_handler(self, update: Update, context: CallbackContext):
         user = update.effective_user
@@ -38,27 +40,17 @@ class SetAuditHandler:
             return ConversationHandler.END
         SetAuditHandlerData = SetHandlerData()
         context.chat_data["SetAuditHandlerData"] = SetAuditHandlerData
-        art_id: int = -1
         if update.message.reply_to_message is not None:
             for caption_entities in update.message.reply_to_message.caption_entities:
                 if caption_entities.type == telegram.constants.MESSAGEENTITY_TEXT_LINK:
-                    try:
-                        art_id_str = ExtractArtid(caption_entities.url)
-                        art_id = int(art_id_str)
-                    except (IndexError, ValueError, TypeError):
-                        pass
-            if art_id != -1:
-                SetAuditHandlerData.art_id = art_id
-                reply_to_message = update.message.reply_to_message
-                if reply_to_message.forward_from_chat is not None:
-                    if reply_to_message.forward_from_chat.type == "channel":
-                        SetAuditHandlerData.forward_date = reply_to_message.forward_date.timestamp()
-                        SetAuditHandlerData.forward_from_message_id = reply_to_message.forward_from_message_id
-                        SetAuditHandlerData.channel_id = reply_to_message.forward_from_chat.id
-                return self.set_start(update, context)
-            else:
-                update.message.reply_text("回复的信息无连接信息，请重新回复")
-                return ConversationHandler.END
+                    SetAuditHandlerData.url = caption_entities.url
+            reply_to_message = update.message.reply_to_message
+            if reply_to_message.forward_from_chat is not None:
+                if reply_to_message.forward_from_chat.type == "channel":
+                    SetAuditHandlerData.forward_date = reply_to_message.forward_date.timestamp()
+                    SetAuditHandlerData.forward_from_message_id = reply_to_message.forward_from_message_id
+                    SetAuditHandlerData.channel_id = reply_to_message.forward_from_chat.id
+            return self.set_start(update, context)
         Log.info("set命令请求 user %s id %s" % (user.username, user.id))
         if not self.utils.IfAdmin(user["id"]):
             update.message.reply_text("你不是BOT管理员，不能使用此命令！")
@@ -78,36 +70,33 @@ class SetAuditHandler:
             update.message.reply_text(text="退出任务", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
         update.message.reply_text("正在获取作品信息", reply_markup=ReplyKeyboardRemove())
-        if SetAuditHandlerData.art_id == -1:
-            try:
-                art_id_str = ExtractArtid(update.message.text)
-                art_id = int(art_id_str)
-            except (IndexError, ValueError, TypeError):
-                update.message.reply_text("获取作品信息失败，请检连接或者ID是否有误", reply_markup=ReplyKeyboardRemove())
-                return ConversationHandler.END
+        if SetAuditHandlerData.url == "":
+            artwork_data = self.service.get_info_by_url(update.message.text)
         else:
-            art_id = SetAuditHandlerData.art_id
-        Log.info("用户 %s 请求修改作品(%s)" % (user.username, art_id))
-        artwork_data = self.pixiv.get_artwork_image_by_art_id(art_id)
+            artwork_data = self.service.get_info_by_url(SetAuditHandlerData.url)
         if artwork_data is None:
-            update.message.reply_text(f"作品 {art_id} 不存在或出现未知错误", reply_markup=ReplyKeyboardRemove())
+            update.message.reply_text("获取作品信息失败，请检连接或者ID是否有误", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
         artwork_info, images = artwork_data
-        url = "https://www.pixiv.net/artworks/%s" % art_id
+        audit_info = self.service.audit.get_audit_info(artwork_info)
+        SetAuditHandlerData.artwork_info = artwork_info
+        SetAuditHandlerData.artwork_images = images
+        Log.info("用户 %s 请求修改作品(%s)" % (user.username, artwork_info.post_id))
         caption = "Type: %s   \n" \
                   "Status: %s   \n" \
+                  "Site: %s   \n" \
                   "Title %s   \n" \
-                  "Views %s Likes %s Loves %s   \n" \
+                  "%s \n" \
                   "Tags %s   \n" \
-                  "From [Pixiv](%s)" % (
-                      markdown_escape(artwork_info.audit_info.audit_type.value),
-                      markdown_escape(artwork_info.audit_info.audit_status.name),
+                  "From [%s](%s)" % (
+                      audit_info.type.name,
+                      audit_info.status.name,
+                      audit_info.site.value,
                       markdown_escape(artwork_info.title),
-                      artwork_info.view_count,
-                      artwork_info.like_count,
-                      artwork_info.love_count,
-                      markdown_escape(artwork_info.tags),
-                      url
+                      artwork_info.GetStringStat(),
+                      markdown_escape(artwork_info.GetStringTags(filter_character_tags=True)),
+                      artwork_info.site_name,
+                      artwork_info.origin_url
                   )
         if "/set" in update.message.text:
             reply_keyboard = [['status', 'type'], ["退出"]]
@@ -130,7 +119,7 @@ class SetAuditHandler:
                                            timeout=30,
                                            parse_mode=ParseMode.MARKDOWN_V2)
             else:
-                Log.error("图片%s获取失败" % art_id)
+                Log.error("图片%s获取失败" % artwork_info.post_id)
                 update.message.reply_text("图片获取错误，找开发者背锅吧~", reply_markup=ReplyKeyboardRemove())
                 return ConversationHandler.END
         except BadRequest as TError:
@@ -138,7 +127,7 @@ class SetAuditHandler:
             Log.error("encounter error with image caption\n%s" % caption)
             Log.error(TError)
             return ConversationHandler.END
-        SetAuditHandlerData.art_id = artwork_info.art_id
+        SetAuditHandlerData.art_id = artwork_info.post_id
         reply_keyboard = [['status', 'type'], ["退出"]]
         update.message.reply_text("请选择你要修改的类型",
                                   reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
@@ -154,7 +143,7 @@ class SetAuditHandler:
                 ['通过(1)', '撤销(2)'],
                 ['已投稿(3)'],
                 ["退出"]]
-        elif update.message.text == "type":
+        elif update.message.text == "set_type":
             reply_keyboard = [
                 ['SFW', 'NSFW'],
                 ['R18'],
@@ -173,8 +162,8 @@ class SetAuditHandler:
         if update.message.text == "退出":
             update.message.reply_text(text="退出任务", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
+        post_id = SetAuditHandlerData.artwork_info.post_id
         try:
-            art_id = SetAuditHandlerData.art_id
             info_type = SetAuditHandlerData.operation
             if info_type == "status":
                 if update.message.text == "通过(1)":
@@ -186,7 +175,7 @@ class SetAuditHandler:
                 else:
                     update.message.reply_text("命令错误", reply_markup=ReplyKeyboardRemove())
                     return ConversationHandler.END
-            elif info_type == "type":
+            elif info_type == "set_type":
                 if update.message.text == "SFW":
                     update_data = AuditType.SFW.value
                 elif update.message.text == "NSFW":
@@ -216,15 +205,18 @@ class SetAuditHandler:
                         Log.error(err)
                         update.message.reply_text("删除失败，请检查是否授权管理员权限", reply_markup=ReplyKeyboardRemove())
                         return ConversationHandler.END
-                    context.bot.send_message(update.message.chat_id, f"作品 {art_id} 已更新 {info_type} 为 {update_data}"
+                    context.bot.send_message(update.message.chat_id, f"作品 {post_id} 已更新 {info_type} 为 {update_data}"
                                                                      f"并且已经从频道删除",
                                              reply_markup=ReplyKeyboardRemove())
                 else:
-                    update.message.reply_text(f"作品 {art_id} 已更新 {info_type} 为 {update_data}"
+                    update.message.reply_text(f"作品 {post_id} 已更新 {info_type} 为 {update_data}"
                                               f"注意：推送时间已经超过48H，请手动删除", reply_markup=ReplyKeyboardRemove())
+            else:
+                update.message.reply_text(f"作品 {post_id} 已更新 {info_type} 为 {update_data}",
+                                          reply_markup=ReplyKeyboardRemove())
         else:
-            update.message.reply_text(f"作品 {art_id} 已更新 {info_type} 为 {update_data}",
+            update.message.reply_text(f"作品 {post_id} 已更新 {info_type} 为 {update_data}",
                                       reply_markup=ReplyKeyboardRemove())
-        self.pixiv.set_art_audit_info(art_id, info_type, update_data)
-        Log.info("用户 %s 请求修改作品(%s): [%s]" % (user.username, art_id, info_type))
+        self.service.audit.set_art_audit_info(SetAuditHandlerData.artwork_info, info_type, update_data)
+        Log.info("用户 %s 请求修改作品(%s): [%s]" % (user.username, post_id, info_type))
         return ConversationHandler.END

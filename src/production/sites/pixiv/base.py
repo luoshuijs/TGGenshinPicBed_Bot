@@ -44,10 +44,11 @@ def CreateArtworkInfoFromAPIResponse(response: dict) -> Optional[PArtworkInfo]:
                         )
 
 
-def CreateArtworkFromSQLData(data) -> PArtworkInfo:
-    (id, art_id, title, tags, view_count, like_count,
+def CreateArtworkFromSQLData(data: tuple) -> PArtworkInfo:
+    (database_id, art_id, title, tags, view_count, like_count,
      love_count, author_id, upload_timestamp) = data
-    data = PArtworkInfo(id, art_id, title=title, view_count=view_count, like_count=like_count,
+    data = PArtworkInfo(database_id, art_id, title=title, view_count=view_count, like_count=like_count,
                         love_count=love_count, author_id=author_id, upload_timestamp=upload_timestamp)
     data.SetStringTags(tags)
     return data
+
