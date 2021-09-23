@@ -45,7 +45,9 @@ def main() -> None:
             "host": config.REDIS["host"],
             "port": config.REDIS["port"],
             "db": config.REDIS["database"],
-        })
+        },
+        pixiv_cookie=config.PIXIV["cookie"]
+    )
 
     examine = ExamineHandler(service=service)
     examine_handler = ConversationHandler(

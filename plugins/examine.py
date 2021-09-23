@@ -30,7 +30,7 @@ class ExamineCount:
 
 class ExamineHandlerData:
     def __init__(self):
-        self.audit_type: Optional[AuditType] = None
+        self.audit_type: AuditType = AuditType.SFW
         self.artwork_info: Optional[ArtworkInfo] = None
         self.artwork_images: Optional[Iterable[ArtworkImage]] = None
         self.audit_info: Optional[AuditInfo] = None
@@ -55,10 +55,12 @@ class ExamineHandler:
             message,
             reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True),
         )
-        examine_handler_data = ExamineHandlerData()
-        context.chat_data["examine_handler_data"] = examine_handler_data
-        examine_count = ExamineCount()
-        context.chat_data["examine_count"] = examine_count
+        if context.chat_data.get("examine_handler_data") is None:
+            examine_handler_data = ExamineHandlerData()
+            context.chat_data["examine_handler_data"] = examine_handler_data
+        if context.chat_data.get("examine_count") is None:
+            examine_count = ExamineCount()
+            context.chat_data["examine_count"] = examine_count
         return self.EXAMINE
 
     def setup_handler(self, update: Update, context: CallbackContext) -> int:
@@ -101,22 +103,28 @@ class ExamineHandler:
             return ConversationHandler.END
         reply_keyboard = [['通过', '撤销'], ['退出']]
         if update.message.text == "下一个" or update.message.text == "OK":
-            result = self.service.audit.audit_next(examine_handler_data.audit_type)
-            artwork_info, artwork_images, audit_info = result
-            examine_handler_data.artwork_info = artwork_info
-            examine_handler_data.artwork_images = artwork_images
-            examine_handler_data.audit_info = audit_info
-            caption = "Title %s   \n" \
-                      "%s \n" \
-                      "Tags %s   \n" \
-                      "From [%s](%s)" % (
-                          markdown_escape(artwork_info.title),
-                          artwork_info.GetStringStat(),
-                          markdown_escape(artwork_info.GetStringTags(filter_character_tags=True)),
-                          artwork_info.site_name,
-                          artwork_info.origin_url
-                      )
             try:
+                result = self.service.audit.audit_next(examine_handler_data.audit_type)
+                if result is None:
+                    reply_keyboard = [['OK', '退出']]
+                    update.message.reply_text("图片获取错误，已经跳过该作品。回复OK继续下一张。",
+                                              reply_markup=ReplyKeyboardMarkup(reply_keyboard,
+                                                                               one_time_keyboard=True))
+                    return self.EXAMINE_START
+                artwork_info, artwork_images, audit_info = result
+                examine_handler_data.artwork_info = artwork_info
+                examine_handler_data.artwork_images = artwork_images
+                examine_handler_data.audit_info = audit_info
+                caption = "Title %s   \n" \
+                          "%s \n" \
+                          "Tags %s   \n" \
+                          "From [%s](%s)" % (
+                              markdown_escape(artwork_info.title),
+                              artwork_info.GetStringStat(),
+                              markdown_escape(artwork_info.GetStringTags(filter_character_tags=True)),
+                              artwork_info.site_name,
+                              artwork_info.origin_url
+                          )
                 if len(artwork_images) > 1:
                     media = [InputMediaPhoto(media=img_info.data) for img_info in artwork_images]
                     media = media[:10]
@@ -135,7 +143,7 @@ class ExamineHandler:
                                                reply_markup=ReplyKeyboardMarkup(reply_keyboard,
                                                                                 one_time_keyboard=True))
                 else:
-                    Log.error("图片%s获取失败" % artwork_info.post_id)
+                    Log.error("图片获取失败")
                     reply_keyboard = [['OK', '退出']]
                     update.message.reply_text("图片获取错误，回复OK尝试重新获取",
                                               reply_markup=ReplyKeyboardMarkup(reply_keyboard,
@@ -210,8 +218,8 @@ class ExamineHandler:
         if examine_handler_data.audit_type == AuditType.R18:
             reply_keyboard = [
                 ["质量差", "类型错误"],
-                ["NSFW"],
-                ["XP兼容性低"],
+                ["一般"],
+                ["NSFW", "XP兼容性低"],
                 ["退出"]
             ]
         message = "你选择了：%s，已经确认。请选撤销择原因或者输入原因。" % update.message.text

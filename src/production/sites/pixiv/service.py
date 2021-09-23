@@ -6,9 +6,9 @@ from src.production.sites.pixiv.repository import PixivRepository
 
 
 class PixivService:
-    def __init__(self, sql_config=None):
+    def __init__(self, sql_config: dict = None, cookie: str = ""):
         self.PixivRepository = PixivRepository(**sql_config)
-        self.PixivApi = PixivApi()
+        self.PixivApi = PixivApi(cookie)
 
     def get_info_and_image(self, art_id: int) -> Optional[Tuple[ArtworkInfo, Iterable[ArtworkImage]]]:
         temp_artwork_info = self.PixivApi.get_artwork_info(art_id)

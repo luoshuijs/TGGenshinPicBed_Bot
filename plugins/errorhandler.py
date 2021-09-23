@@ -34,7 +34,7 @@ def error_handler(update: object, context: CallbackContext) -> None:
     try:
         if 'make sure that only one bot instance is running' in tb_string:
             Log.error("其他机器人在运行，请停止！")
-            pass
+            return
         context.bot.send_message(chat_id=channel_id, text=message_1, parse_mode=ParseMode.HTML)
         context.bot.send_message(chat_id=channel_id, text=message_2, parse_mode=ParseMode.HTML)
     except BadRequest as exc:

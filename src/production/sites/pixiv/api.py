@@ -1,6 +1,7 @@
 import httpx
 from typing import Optional, List
 
+from src.base.logger import Log
 from src.base.model.artwork import ArtworkImage
 from src.production.sites.pixiv.base import PArtworkInfo, CreateArtworkInfoFromAPIResponse
 
@@ -9,6 +10,7 @@ class PixivApi:
 
     def __init__(self, cookie: str = ""):
         self.cookie = cookie
+        self.is_logged_in()
 
     def get_images_uri(self, art_id: int):
         return f"https://www.pixiv.net/ajax/illust/{art_id}/pages"
@@ -16,13 +18,31 @@ class PixivApi:
     def get_info_uri(self, art_id: int):
         return f"https://www.pixiv.net/touch/ajax/illust/details?illust_id={art_id}"
 
-    def get_headers(self, art_id: int):
+    def get_headers(self, art_id: int = 0):
+        if art_id == 0:
+            referer = "https://www.pixiv.net"
+        else:
+            referer = f"https://www.pixiv.net/artworks/{art_id}"
         return {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
                           "Chrome/90.0.4430.72 Safari/537.36",
-            "Referer": f"https://www.pixiv.net/artworks/{art_id}",
+            "Referer": referer,
             "Cookie": self.cookie,
         }
+
+    def is_logged_in(self):
+        user_status_url = "https://www.pixiv.net/touch/ajax/user/self/status?lang=zh"
+        user_status_data = httpx.get(user_status_url, headers=self.get_headers())
+        if user_status_data.is_error:
+            Log.error("获取Pixiv用户状态失败")
+            return False
+        data = user_status_data.json()
+        if not data["body"]["user_status"]["is_logged_in"]:
+            Log.warning("验证Pixiv_Cookie失败：Cookie失效或过期，可能因此导致获取部分作品信息失败。")
+            return False
+        else:
+            Log.info("验证Pixiv_Cookie成功")
+        return True
 
     def get_artwork_info(self, art_id: int) -> PArtworkInfo:
         uri = self.get_info_uri(art_id)
@@ -45,6 +65,8 @@ class PixivApi:
             return None
         art_list = []
         urls = self.get_artwork_uris(art_id)
+        if urls is None:
+            return None
         for url in urls:
             headers = self.get_headers(art_id)
             response = httpx.get(url=url, headers=headers)

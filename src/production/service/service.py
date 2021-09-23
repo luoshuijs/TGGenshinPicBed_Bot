@@ -2,6 +2,7 @@ from contextlib import contextmanager
 from typing import Optional, Tuple, Iterable, List
 import ujson
 
+from src.base.logger import Log
 from src.base.model.artwork import AuditType, ArtworkInfoSite, AuditInfo, AuditStatus
 from src.base.model.artwork import ArtworkImage, ArtworkInfo
 from src.base.utils.redisaction import RedisUpdate
@@ -16,10 +17,12 @@ from src.production.sites.pixiv.service import PixivService
 
 
 class BaseService:
-    def __init__(self, twitter: TwitterService, mihoyobbs: MihoyobbsService, pixiv: PixivService):
+    def __init__(self, twitter: TwitterService, mihoyobbs: MihoyobbsService, pixiv: PixivService,
+                 audit_repository: AuditRepository):
         self.twitter = twitter
         self.mihoyobbs = mihoyobbs
         self.pixiv = pixiv
+        self.audit_repository = audit_repository
 
     def get_info_by_url(self, url: str) -> Optional[Tuple[ArtworkInfo, Iterable[ArtworkImage]]]:
         """
@@ -50,12 +53,33 @@ class BaseService:
         return None
 
     def contribute(self, artwork_info: ArtworkInfo) -> bool:
-        if artwork_info.site == ArtworkInfoSite.TWITTER:
+        if artwork_info.site == ArtworkInfoSite.PIXIV:
+            self.pixiv.contribute_confirm(artwork_info)
+        elif artwork_info.site == ArtworkInfoSite.TWITTER:
             self.twitter.contribute_confirm(artwork_info)
         elif artwork_info.site == ArtworkInfoSite.MIHOYOBBS:
             self.mihoyobbs.contribute_confirm(artwork_info)
         else:
             return False
+        return True
+
+    def save_artwork_info(self, artwork_info: ArtworkInfo, audit_type: AuditType,
+                          audit_status: AuditStatus) -> bool:
+        if artwork_info.site == ArtworkInfoSite.PIXIV:
+            self.pixiv.contribute_confirm(artwork_info)
+        elif artwork_info.site == ArtworkInfoSite.TWITTER:
+            self.twitter.contribute_confirm(artwork_info)
+        elif artwork_info.site == ArtworkInfoSite.MIHOYOBBS:
+            self.mihoyobbs.contribute_confirm(artwork_info)
+        else:
+            return False
+        audit_info = AuditInfo(
+            site=artwork_info.site,
+            connection_id=artwork_info.post_id,
+            type_status=audit_type,
+            status=audit_status
+        )
+        self.audit_repository.apply_update(audit_info)
         return True
 
 
@@ -129,6 +153,7 @@ class AuditService:
         :param audit_type:
         :return:
         """
+        error_message = None
         # 1. Get from redis
         data = self.get_audit(audit_type)
         if data is None:
@@ -138,7 +163,19 @@ class AuditService:
             data = self.get_audit(audit_type)
             if data is None:
                 return None
-        artwork_info, artwork_images = self.get_info_and_image(**data)
+        art_data = self.get_info_and_image(**data)
+        if art_data is None:
+            Log.error("图片获取错误 site:%s post_id:%s" % (data["site"], data["post_id"]))
+            audit_info = AuditInfo(
+                site=ArtworkInfoSite(data["site"]),
+                connection_id=data["post_id"],
+                type_status=audit_type,
+                status=AuditStatus.REJECT,
+                reason="BadRequest"
+            )
+            self.audit_repository.apply_update(audit_info)
+            return None
+        artwork_info, artwork_images = art_data
         audit_info = self.get_audit_info(artwork_info)
         return artwork_info, artwork_images, audit_info
 

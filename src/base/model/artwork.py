@@ -61,25 +61,30 @@ class AuditInfo:
 
     def reject(self, audit_type: AuditType, reason: str):
         if audit_type == AuditType.SFW:
-            if reason == AuditType.NSFW:
+            if reason == AuditType.NSFW.value:
                 self.type = AuditType.NSFW
-            elif reason == AuditType.R18:
+                self.status = AuditStatus.INIT
+            elif reason == AuditType.R18.value:
                 self.type = AuditType.R18
+                self.status = AuditStatus.INIT
             else:
+                self.status = AuditStatus.REJECT
                 self.reason = reason
         elif audit_type == AuditType.NSFW:
-            if reason == AuditType.R18:
+            if reason == AuditType.R18.value:
                 self.type = AuditType.R18
+                self.status = AuditStatus.INIT
             else:
                 self.reason = reason
         elif audit_type == AuditType.R18:
-            if reason == AuditType.NSFW:
+            if reason == AuditType.NSFW.value:
                 self.type = AuditType.NSFW
+                self.status = AuditStatus.INIT
             else:
+                self.status = AuditStatus.REJECT
                 self.reason = reason
         else:
             raise ValueError(f"unknown action type {audit_type}")
-        self.status = AuditStatus.REJECT
         return self
 
     def push(self):

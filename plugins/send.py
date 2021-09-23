@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, Optional
 
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, InputMediaPhoto, ParseMode
 from telegram.error import BadRequest
@@ -6,10 +6,19 @@ from telegram.ext import CallbackContext, ConversationHandler
 
 from src.base.logger import Log
 from src.base.config import config
-from src.base.model.artwork import ArtworkImage, ArtworkInfo
+from src.base.model.artwork import ArtworkImage, ArtworkInfo, AuditType, AuditStatus
 from src.base.utils.base import Utils
 from src.base.utils.markdown import markdown_escape
 from src.production.service import Service
+
+
+class SendHandlerData:
+    def __init__(self):
+        self.channel_id: int = -1
+        self.channel_name: str = ""
+        self.artwork_info: Optional[ArtworkInfo] = None
+        self.artwork_images: Optional[Iterable[ArtworkImage]] = None
+        self.audit_type: AuditType = AuditType.SFW
 
 
 class SendHandler:
@@ -32,9 +41,13 @@ class SendHandler:
         reply_keyboard = [['退出']]
         update.message.reply_text(text=message,
                                   reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
+        if context.chat_data.get("send_handler_data") is None:
+            send_handler_data = SendHandlerData()
+            context.chat_data["send_handler_data"] = send_handler_data
         return self.ONE
 
     def get_info(self, update: Update, context: CallbackContext) -> int:
+        send_handler_data: SendHandlerData = context.chat_data.get("send_handler_data")
         if update.message.text == "退出":
             update.message.reply_text(text="退出投稿", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
@@ -46,8 +59,8 @@ class SendHandler:
             update.message.reply_text("已经存在数据库或者频道，退出投稿", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
         artwork_info, images = artwork_data
-        context.chat_data["send_command_artwork_info"] = artwork_info
-        context.chat_data["send_command_images_data"] = images
+        send_handler_data.artwork_info = artwork_info
+        send_handler_data.artwork_images = images
         caption = "Title %s   \n" \
                   "%s   \n" \
                   "Tags %s   \n" \
@@ -85,18 +98,20 @@ class SendHandler:
         return self.TWO
 
     def get_channel(self, update: Update, context: CallbackContext) -> int:
+        send_handler_data: SendHandlerData = context.chat_data.get("send_handler_data")
         if update.message.text == "退出":
             update.message.reply_text(text="退出任务", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
         try:
-            channel_type = update.message.text
-            channel_name = config.TELEGRAM["channel"][channel_type]["name"]
-            channel_id = config.TELEGRAM["channel"][channel_type]["char_id"]
-            context.chat_data["channel_id"] = channel_id
+            send_handler_data.audit_type = audit_type = AuditType(update.message.text)
+            channel_name = config.TELEGRAM["channel"][audit_type.value]["name"]
+            channel_id = config.TELEGRAM["channel"][audit_type.value]["char_id"]
+            send_handler_data.channel_id = channel_id
+            send_handler_data.channel_name = channel_name
         except KeyError:
             update.message.reply_text(text="发生错误，退出任务", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
-        update.message.reply_text("你选择的频道名称为 %s 类型为 %s" % (channel_name, channel_type))
+        update.message.reply_text("你选择的频道名称为 %s 类型为 %s" % (channel_name, audit_type.value))
         reply_keyboard = [['确认', '取消']]
         message = "请确认推送的频道和作品的信息"
         update.message.reply_text(
@@ -106,13 +121,14 @@ class SendHandler:
         return self.THREE
 
     def send_message(self, update: Update, context: CallbackContext) -> int:
+        send_handler_data: SendHandlerData = context.chat_data.get("send_handler_data")
         update.message.reply_text("正在推送", reply_markup=ReplyKeyboardRemove())
-        channel_id = context.chat_data.get("channel_id", -1)
+        channel_id = send_handler_data.channel_id
         if update.message.text == "取消":
             update.message.reply_text(text="退出任务", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
-        artwork_info: ArtworkInfo = context.chat_data["send_command_artwork_info"]
-        images: Iterable[ArtworkImage] = context.chat_data["send_command_images_data"]
+        artwork_info: ArtworkInfo = send_handler_data.artwork_info
+        images: Iterable[ArtworkImage] = send_handler_data.artwork_images
         caption = "Title %s   \n" \
                   "Tags %s   \n" \
                   "From [%s](%s)" % (
@@ -144,5 +160,5 @@ class SendHandler:
             Log.error(TError)
             return ConversationHandler.END
         update.message.reply_text("推送完成", reply_markup=ReplyKeyboardRemove())
-        self.send_service.contribute(artwork_info)
+        self.send_service.save_artwork_info(artwork_info, send_handler_data.audit_type, AuditStatus.PUSH)
         return ConversationHandler.END
