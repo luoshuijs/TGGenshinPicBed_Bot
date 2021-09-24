@@ -1,12 +1,25 @@
 from typing import Iterable, Set, Callable, Any
-
-from src.base.model.oldartwork import ArtworkInfo
 from src.base.model.artist import ArtistCrawlInfo
 
 """
     解析返回结果
     Parse the return result
 """
+class ArtworkInfo:
+
+    def __init__(self, id=0, art_id=0, title="", tags="", view_count=0, like_count=0, love_count=0, author_id=0,
+                 upload_timestamp=0, audit_info=None):
+        self.id = id
+        self.art_id = art_id
+        self.title = title
+        self.tags = tags
+        self.view_count = view_count
+        self.like_count = like_count
+        self.love_count = love_count
+        self.author_id = author_id
+        self.upload_timestamp = upload_timestamp
+
+
 
 
 class SearchResult:

@@ -1,10 +1,8 @@
 from typing import Iterable
-
 import aiomysql
 
-from src.base.model.oldartwork import ArtworkInfo
 from src.base.model.artist import ArtistCrawlInfo
-from src.production.crawl.base import ArtistCrawlUpdate, CreateArtistCrawlInfoFromSQLResult
+from src.production.crawl.base import ArtistCrawlUpdate, CreateArtistCrawlInfoFromSQLResult, ArtworkInfo
 
 
 class Repository:
@@ -12,10 +10,6 @@ class Repository:
     def __init__(self, sql_config=None):
         self.sql_config = sql_config
         self.sql_pool = None
-        self.pixiv_table = "genshin_pixiv"
-        self.pixiv_audit_table = "genshin_pixiv_audit"
-        self.pixiv_artist_table = "pixiv_artist"
-        self.pixiv_approved_artist_table = "pixiv_approved_artist"
 
     async def close(self):
         if self.sql_pool is None:
@@ -58,7 +52,7 @@ class Repository:
         """
         query = f"""
             SELECT user_id, last_art_id, last_crawled_at, approved_art_count
-            FROM {self.pixiv_approved_artist_table}
+            FROM pixiv_approved_artist
             WHERE approved_art_count >= %s
             AND (last_crawled_at IS NULL OR DATEDIFF(NOW(), last_crawled_at) >= %s);
         """
@@ -73,7 +67,7 @@ class Repository:
         更新画师的爬虫数据。
         """
         query = f"""
-            INSERT INTO {self.pixiv_artist_table} (
+            INSERT INTO pixiv_artist (
                 user_id, last_art_id
             ) VALUES (
                 %s, %s
@@ -110,7 +104,7 @@ class Repository:
         if len(artwork_list) == 0:
             return 0
         query = f"""
-            INSERT INTO `{self.pixiv_table}` (
+            INSERT INTO pixiv (
                 illusts_id, title, tags, view_count, like_count, love_count,
                 user_id, upload_timestamp
             ) VALUES (
