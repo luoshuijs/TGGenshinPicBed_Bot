@@ -86,7 +86,7 @@ class Repository:
         if len(last_crawl_list) == 0:
             return 0
         query = f"""
-            INSERT INTO {self.pixiv_artist_table} (
+            INSERT INTO pixiv_artist (
                 user_id, last_art_id
             ) VALUES (
                 %s, %s
