@@ -1,5 +1,4 @@
 from typing import Optional, List
-
 from mysql.connector.pooling import MySQLConnectionPool
 
 from src.base.model.artwork import ArtworkInfoSite, AuditInfo, AuditType, AuditStatus
@@ -41,7 +40,7 @@ class PixivRepository:
         query = f"""
             SELECT id, illusts_id, title, tags, view_count,
                    like_count, love_count, user_id, upload_timestamp
-            FROM `genshin_pixiv`
+            FROM `pixiv`
             WHERE illusts_id=%s;
         """
         query_args = (art_id,)
@@ -53,7 +52,7 @@ class PixivRepository:
 
     def save_art_one(self, artwork_info: PArtworkInfo):
         query = rf"""
-            INSERT INTO `genshin_pixiv` (
+            INSERT INTO `pixiv` (
                 illusts_id, title, tags, view_count, like_count, love_count, user_id, upload_timestamp
             ) VALUES (
                 %s, %s, %s, %s, %s, %s, %s, %s
