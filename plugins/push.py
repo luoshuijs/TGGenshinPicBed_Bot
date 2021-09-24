@@ -118,9 +118,8 @@ class PushHandler:
                         message_id = sendReq[0].message_id
                     else:
                         message_id = sendReq.message_id
-                    if audit_type.name == AuditType.NSFW:
-                        channel_name = config.TELEGRAM["channel"]["NSFW"]["name"]
-                        channel_id = config.TELEGRAM["channel"]["SFW"]["char_id"]
+                    channel_name = config.TELEGRAM["channel"]["NSFW"]["name"]
+                    channel_id = config.TELEGRAM["channel"]["SFW"]["char_id"]
                     url = "https://t.me/%s/%s" % (channel_name, message_id)
                     reply_keyboard = [
                         [
