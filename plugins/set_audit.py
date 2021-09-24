@@ -143,7 +143,7 @@ class SetAuditHandler:
                 ['通过(1)', '撤销(2)'],
                 ['已投稿(3)'],
                 ["退出"]]
-        elif update.message.text == "set_type":
+        elif update.message.text == "type":
             reply_keyboard = [
                 ['SFW', 'NSFW'],
                 ['R18'],
@@ -175,7 +175,7 @@ class SetAuditHandler:
                 else:
                     update.message.reply_text("命令错误", reply_markup=ReplyKeyboardRemove())
                     return ConversationHandler.END
-            elif info_type == "set_type":
+            elif info_type == "type":
                 if update.message.text == "SFW":
                     update_data = AuditType.SFW.value
                 elif update.message.text == "NSFW":

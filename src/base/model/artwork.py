@@ -60,7 +60,7 @@ class AuditInfo:
         return self
 
     def reject(self, audit_type: AuditType, reason: str):
-        if audit_type == AuditType.SFW:
+        if audit_type == AuditType.SFW or audit_type == AuditType.NULL:
             if reason == AuditType.NSFW.value:
                 self.type = AuditType.NSFW
                 self.status = AuditStatus.INIT
@@ -68,6 +68,7 @@ class AuditInfo:
                 self.type = AuditType.R18
                 self.status = AuditStatus.INIT
             else:
+                self.type = audit_type
                 self.status = AuditStatus.REJECT
                 self.reason = reason
         elif audit_type == AuditType.NSFW:
@@ -81,6 +82,7 @@ class AuditInfo:
                 self.type = AuditType.NSFW
                 self.status = AuditStatus.INIT
             else:
+                self.type = audit_type
                 self.status = AuditStatus.REJECT
                 self.reason = reason
         else:
