@@ -43,6 +43,6 @@ def error_handler(update: object, context: CallbackContext) -> None:
                 f'<b>处理函数时发生异常，traceback太长导致无法发送，但已写入日志</b> \n'
                 f'<code>{html.escape(str(context.error))}</code>'
             )
-            context.bot.send_message(chat_id=channel_id, text=message)
+            context.bot.send_message(chat_id=channel_id, text=message, parse_mode=ParseMode.HTML)
         else:
             raise exc
