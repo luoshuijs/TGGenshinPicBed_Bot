@@ -2,9 +2,9 @@ from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, InputMedi
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext, ConversationHandler
 
-from src.base.logger import Log
-from src.base.utils.markdown import markdown_escape
-from src.production.service import Service
+from logger import Log
+from utils.markdown import markdown_escape
+from service import Service
 
 
 class ContributeHandler:

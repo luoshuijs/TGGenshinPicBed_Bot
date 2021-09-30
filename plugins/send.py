@@ -4,12 +4,12 @@ from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, InputMedi
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext, ConversationHandler
 
-from src.base.logger import Log
-from src.base.config import config
-from src.base.model.artwork import ArtworkImage, ArtworkInfo, AuditType, AuditStatus
-from src.base.utils.base import Utils
-from src.base.utils.markdown import markdown_escape
-from src.production.service import Service
+from logger import Log
+from config import config
+from model.artwork import ArtworkImage, ArtworkInfo, AuditType, AuditStatus
+from utils.base import Utils
+from utils.markdown import markdown_escape
+from service import Service
 
 
 class SendHandlerData:

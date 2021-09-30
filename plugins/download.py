@@ -3,10 +3,10 @@ import asyncio
 from telegram import ReplyKeyboardMarkup, Update, ReplyKeyboardRemove
 from telegram.ext import ConversationHandler, CallbackContext
 
-from src.base.config import config
-from src.base.logger import Log
-from src.base.utils.base import Utils
-from src.production.crawl.pixivdownload import Pixiv
+from config import config
+from logger import Log
+from utils.base import Utils
+from crawl.pixivdownload import Pixiv
 
 
 class Download:

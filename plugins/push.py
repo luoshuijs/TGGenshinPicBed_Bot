@@ -4,12 +4,12 @@ from telegram import Update, InputMediaPhoto, ParseMode, InlineKeyboardButton, I
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext, ConversationHandler
 import time
-from src.base.config import config
-from src.base.utils.base import Utils
-from src.base.logger import Log
-from src.base.utils.markdown import markdown_escape
-from src.base.model.artwork import AuditType
-from src.production.service import Service
+from config import config
+from utils.base import Utils
+from logger import Log
+from utils.markdown import markdown_escape
+from model.artwork import AuditType
+from service import Service
 
 
 class PushHandlerData:

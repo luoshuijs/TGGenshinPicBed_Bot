@@ -6,14 +6,14 @@ from plugins.download import Download
 from plugins.errorhandler import error_handler
 from plugins.send import SendHandler
 from plugins.set_audit import SetAuditHandler
-from src.base.config import config
+from config import config
 from plugins.contribute import ContributeHandler
 from plugins.examine import ExamineHandler
 from plugins.push import PushHandler
 from plugins.start import start, help_command, test
-from src.base.logger import Log
-from src.base.utils.base import Utils
-from src.production.service import StartService
+from logger import Log
+from utils.base import Utils
+from service import StartService
 
 utils = Utils(config)
 logger = Log.getLogger()  # 必须在这初始化log 不然...其实也没有到达死机的程度，运行不了不知道为啥

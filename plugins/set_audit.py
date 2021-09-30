@@ -4,13 +4,13 @@ from telegram.error import BadRequest
 from telegram.ext import CallbackContext, ConversationHandler
 import telegram
 
-from src.base.config import config
-from src.base.model.artwork import ArtworkInfo, ArtworkImage
-from src.base.utils.base import Utils
-from src.base.utils.markdown import markdown_escape
-from src.base.model.artwork import AuditStatus, AuditType
-from src.base.logger import Log
-from src.production.service import Service
+from config import config
+from model.artwork import ArtworkInfo, ArtworkImage
+from utils.base import Utils
+from utils.markdown import markdown_escape
+from model.artwork import AuditStatus, AuditType
+from logger import Log
+from service import Service
 
 
 class SetHandlerData:

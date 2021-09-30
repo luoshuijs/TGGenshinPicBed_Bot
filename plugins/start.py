@@ -1,9 +1,9 @@
-from telegram import Update, ParseMode
+from telegram import Update
 from telegram.ext import CallbackContext
 
-from src.base.config import config
-from src.base.utils.base import Utils
-from src.base.logger import Log
+from config import config
+from utils.base import Utils
+from logger import Log
 
 utils = Utils(config)
 

@@ -4,8 +4,8 @@ import ujson
 from telegram import Update, ParseMode
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext
-from src.base.config import config
-from src.base.logger import Log
+from config import config
+from logger import Log
 
 
 def error_handler(update: object, context: CallbackContext) -> None:
