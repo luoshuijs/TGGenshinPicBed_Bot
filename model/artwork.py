@@ -76,6 +76,8 @@ class AuditInfo:
                 self.type = AuditType.R18
                 self.status = AuditStatus.INIT
             else:
+                self.type = audit_type
+                self.status = AuditStatus.REJECT
                 self.reason = reason
         elif audit_type == AuditType.R18:
             if reason == AuditType.NSFW.value:
