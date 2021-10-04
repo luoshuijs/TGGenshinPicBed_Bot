@@ -11,6 +11,9 @@
     "port": 6379,
     "database": 0
   },
+  "saucenao":{
+    "apikey": ""
+  },
   "pixiv": {
     "cookie": ""
   },

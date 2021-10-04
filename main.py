@@ -4,6 +4,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 
 from plugins.download import Download
 from plugins.errorhandler import error_handler
+from plugins.photo import PhotoHandler
 from plugins.send import SendHandler
 from plugins.set_audit import SetAuditHandler
 from config import config
@@ -145,6 +146,17 @@ def main() -> None:
         },
         fallbacks=[CommandHandler('cancel', cancel, run_async=True)],
     )
+    photo = PhotoHandler(service=service)
+    photo_handler = ConversationHandler(
+        entry_points=[MessageHandler(Filters.photo, photo.start)],
+        states={
+            photo.ONE: [
+                MessageHandler(Filters.text, photo.get, run_async=True),
+                CommandHandler('skip', cancel)
+            ]
+        },
+        fallbacks=[CommandHandler('cancel', cancel, run_async=True)]
+    )
     dispatcher.add_handler(CommandHandler("start", start, run_async=True))
     dispatcher.add_handler(CommandHandler("help", help_command, run_async=True))
     dispatcher.add_handler(CommandHandler("test", test, run_async=True))
@@ -154,6 +166,7 @@ def main() -> None:
     dispatcher.add_handler(download_handler)
     dispatcher.add_handler(set_audit_handler)
     dispatcher.add_handler(send_handler)
+    dispatcher.add_handler(photo_handler)
     dispatcher.add_error_handler(error_handler)
 
     updater.start_polling()

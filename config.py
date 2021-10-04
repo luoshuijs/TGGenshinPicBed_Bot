@@ -17,6 +17,7 @@ class Config(object):
         self.REDIS = self.get_config('redis')
         self.PIXIV = self.get_config('pixiv')
         self.TELEGRAM = self.get_config('telegram')
+        self.SAUCENAO = self.get_config('saucenao')
 
     def get_config(self, name: str):
         # value = os.environ[name] if os.environ.get(name) else self.config_json.get(name, '')
