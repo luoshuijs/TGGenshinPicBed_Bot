@@ -45,8 +45,8 @@ class Stat:
 
 
 class AuditInfo:
-    def __init__(self, database_id: int = 0, site: ArtworkInfoSite = None, connection_id: int = 0,
-                 type_status: AuditType = None, status: AuditStatus = None, reason: str = ""):
+    def __init__(self, database_id: int = 0, site: ArtworkInfoSite = ArtworkInfoSite.NULL, connection_id: int = 0,
+                 type_status: AuditType = AuditType.NULL, status: AuditStatus = AuditStatus.NULL, reason: str = ""):
         self.reason = reason
         self.site = site
         self.database_id = database_id

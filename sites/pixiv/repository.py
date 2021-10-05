@@ -102,7 +102,7 @@ class PixivRepository:
         data = self._execute_and_fetchall(query, query_args)
         return [CreateArtworkAuditInfoFromSQLData(i, site=ArtworkInfoSite.PIXIV) for i in data]
 
-    def get_audit(self, illusts_id: int):
+    def get_audit(self, illusts_id: int) -> AuditInfo:
         query = f"""
                     SELECT illusts_id, type, status, reason
                     FROM `pixiv_audit`
@@ -111,6 +111,6 @@ class PixivRepository:
         query_args = (illusts_id,)
         data = self._execute_and_fetchall(query, query_args)
         if len(data) == 0:
-            return None
+            return AuditInfo()
         audit_info = CreateArtworkAuditInfoFromSQLData(data[0], site=ArtworkInfoSite.PIXIV)
         return audit_info

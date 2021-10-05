@@ -40,6 +40,12 @@ class SetAuditHandler:
             return ConversationHandler.END
         SetAuditHandlerData = SetHandlerData()
         context.chat_data["SetAuditHandlerData"] = SetAuditHandlerData
+        if update.message.caption_entities is not None:
+            for caption_entities in update.message.caption_entities:
+                if caption_entities.type == telegram.constants.MESSAGEENTITY_TEXT_LINK:
+                    SetAuditHandlerData.url = caption_entities.url
+            if SetAuditHandlerData.url != "":
+                return self.set_start(update, context)
         if update.message.reply_to_message is not None:
             for caption_entities in update.message.reply_to_message.caption_entities:
                 if caption_entities.type == telegram.constants.MESSAGEENTITY_TEXT_LINK:
@@ -79,6 +85,9 @@ class SetAuditHandler:
             return ConversationHandler.END
         artwork_info, images = artwork_data
         audit_info = self.service.audit.get_audit_info(artwork_info)
+        if audit_info.site.value is None:
+            update.message.reply_text("该作品未在审核数据库，退出任务", reply_markup=ReplyKeyboardRemove())
+            return ConversationHandler.END
         SetAuditHandlerData.artwork_info = artwork_info
         SetAuditHandlerData.artwork_images = images
         Log.info("用户 %s 请求修改作品(%s)" % (user.username, artwork_info.post_id))

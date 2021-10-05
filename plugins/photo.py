@@ -63,7 +63,10 @@ class PhotoHandler:
         if bool(results):
             for result in results:
                 if result.similarity >= 50:
+                    if len(result.urls) == 0:
+                        continue
                     url = result.urls[0]
+                    Log.info("图片搜索结果 title %s url %s" % (result.title, url))
                     artwork_data = self.service.get_info_by_url(url)
                     if artwork_data is not None:
                         break
@@ -75,6 +78,7 @@ class PhotoHandler:
             update.message.reply_text("获取图片信息失败")
             return ConversationHandler.END
         artwork_info, images = artwork_data
+        audit_info = self.service.audit.get_audit_info(artwork_info)
         caption = "Title %s   \n" \
                   "%s   \n" \
                   "Tags %s   \n" \
@@ -107,4 +111,8 @@ class PhotoHandler:
             Log.error(TError)
             return ConversationHandler.END
         update.message.reply_text("获取图片信息完成")
+        if audit_info.site.value is None:
+            update.message.reply_text("该作品未推送 使用 /send 回复相应图片推送到频道", reply_markup=ReplyKeyboardRemove())
+        else:
+            update.message.reply_text("该作品已经存在频道上", reply_markup=ReplyKeyboardRemove())
         return ConversationHandler.END

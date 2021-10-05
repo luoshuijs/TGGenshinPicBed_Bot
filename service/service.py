@@ -121,10 +121,10 @@ class AuditService:
     def apply_update(self, audit_info: AuditInfo):
         return self.audit_repository.apply_update(audit_info)
 
-    def get_audit_info(self, artwork_info: ArtworkInfo):
+    def get_audit_info(self, artwork_info: ArtworkInfo) -> AuditInfo:
         if artwork_info.site == ArtworkInfoSite.PIXIV:
             return self.pixiv.PixivRepository.get_audit(artwork_info.post_id)
-        pass
+        return AuditInfo()
 
     def get_audit(self, audit_type: AuditType):
         update = RedisUpdate.get_audit_one(audit_type)

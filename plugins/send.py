@@ -1,5 +1,6 @@
 from typing import Iterable, Optional
 
+import telegram
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, InputMediaPhoto, ParseMode
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext, ConversationHandler
@@ -16,6 +17,7 @@ class SendHandlerData:
     def __init__(self):
         self.channel_id: int = -1
         self.channel_name: str = ""
+        self.url: str = ""
         self.artwork_info: Optional[ArtworkInfo] = None
         self.artwork_images: Optional[Iterable[ArtworkImage]] = None
         self.audit_type: AuditType = AuditType.SFW
@@ -34,6 +36,22 @@ class SendHandler:
         if not self.utils.IfAdmin(user["id"]):
             update.message.reply_text("你不是BOT管理员，不能使用此命令！")
             return ConversationHandler.END
+        send_handler_data = context.chat_data.get("send_handler_data")
+        if send_handler_data is None:
+            send_handler_data = SendHandlerData()
+            context.chat_data["send_handler_data"] = send_handler_data
+        else:
+            send_handler_data.url = ""
+        if update.message.caption_entities is not None:
+            for caption_entities in update.message.caption_entities:
+                if caption_entities.type == telegram.constants.MESSAGEENTITY_TEXT_LINK:
+                    send_handler_data.url = caption_entities.url
+        if update.message.reply_to_message is not None:
+            for caption_entities in update.message.reply_to_message.caption_entities:
+                if caption_entities.type == telegram.constants.MESSAGEENTITY_TEXT_LINK:
+                    send_handler_data.url = caption_entities.url
+        if send_handler_data.url != "":
+            return self.get_info(update, context)
         message = "✿✿ヽ（°▽°）ノ✿ 你好！ %s ，欢迎 \n" \
                   "当前直投只支持Twitter和MihoyoBBS \n" \
                   "只需复制URL回复即可 \n" \
@@ -41,9 +59,6 @@ class SendHandler:
         reply_keyboard = [['退出']]
         update.message.reply_text(text=message,
                                   reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
-        if context.chat_data.get("send_handler_data") is None:
-            send_handler_data = SendHandlerData()
-            context.chat_data["send_handler_data"] = send_handler_data
         return self.ONE
 
     def get_info(self, update: Update, context: CallbackContext) -> int:
@@ -54,7 +69,10 @@ class SendHandler:
         if update.message.text is None:
             update.message.reply_text(text="回复错误", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
-        artwork_data = self.send_service.get_info_by_url(update.message.text)
+        if send_handler_data.url == "":
+            artwork_data = self.send_service.get_info_by_url(update.message.text)
+        else:
+            artwork_data = self.send_service.get_info_by_url(send_handler_data.url)
         if artwork_data is None:
             update.message.reply_text("已经存在数据库或者频道，退出投稿", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
