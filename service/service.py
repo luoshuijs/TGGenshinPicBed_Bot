@@ -5,6 +5,7 @@ import ujson
 from logger import Log
 from model.artwork import AuditType, ArtworkInfoSite, AuditInfo, AuditStatus
 from model.artwork import ArtworkImage, ArtworkInfo
+from model.containers import ArtworkData
 from utils.redisaction import RedisUpdate
 from service import AuditRepository
 from service.cache import ServiceCache
@@ -40,17 +41,19 @@ class BaseService:
             return self.mihoyobbs.get_info_and_image(post_id)
         return None
 
-    def contribute_start(self, url: str) -> Optional[Tuple[ArtworkInfo, Iterable[ArtworkImage]]]:
+    def contribute_start(self, url: str) -> ArtworkData:
         art_id = ExtractPId(url)
         if art_id is not None:
-            return self.pixiv.get_info_and_image(art_id)
+            return self.pixiv.contribute_start(art_id)
         tid = ExtractTId(url)
         if tid is not None:
             return self.twitter.contribute_start(tid)
         post_id = ExtractMId(url)
         if post_id is not None:
             return self.mihoyobbs.contribute_start(post_id)
-        return None
+        artwork_data = ArtworkData()
+        artwork_data.SetError("网址解析错误")
+        return artwork_data
 
     def contribute(self, artwork_info: ArtworkInfo) -> bool:
         if artwork_info.site == ArtworkInfoSite.PIXIV:

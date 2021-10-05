@@ -30,10 +30,11 @@ class ContributeHandler:
             update.message.reply_text(text="退出投稿", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
         artwork_data = self.service.contribute_start(update.message.text)
-        if artwork_data is None:  # 作品存在数据库返回None
-            update.message.reply_text("插画已在频道或者数据库，退出投稿", reply_markup=ReplyKeyboardRemove())  #
+        if artwork_data.is_error:  # 作品存在数据库返回None
+            update.message.reply_text("%s，退出投稿" % artwork_data.message, reply_markup=ReplyKeyboardRemove())  #
             return ConversationHandler.END
-        artwork_info, images = artwork_data
+        artwork_info = artwork_data.artwork_info
+        images = artwork_data.artwork_image
         Log.info("用户 %s 请求投稿作品 id: %s" % (update.effective_user.username, artwork_info.post_id))
         if artwork_info is None:
             update.message.reply_text("插画信息获取错误，找开发者背锅吧~", reply_markup=ReplyKeyboardRemove())
@@ -83,7 +84,7 @@ class ContributeHandler:
         if update.message.text == "取消":
             update.message.reply_text(text="退出投稿", reply_markup=ReplyKeyboardRemove())
         elif update.message.text == "确认":
-            artwork_info = context.chat_data["contribute_art_id"]
+            artwork_info = context.chat_data["contribute_data"]
             self.service.contribute(artwork_info)
             update.message.reply_text('投稿成功！✿✿ヽ（°▽°）ノ✿', reply_markup=ReplyKeyboardRemove())
         else:
