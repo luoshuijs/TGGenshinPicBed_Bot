@@ -3,7 +3,7 @@ from logging.handlers import RotatingFileHandler  # 按文件大小滚动备份
 import colorlog  # 控制台日志输入颜色
 import os
 
-cur_path = os.path.dirname(os.path.realpath(__file__))  # log_path是存放日志的路径
+cur_path = os.path.realpath(os.getcwd())  # log_path是存放日志的路径
 log_path = os.path.join(cur_path, 'logs')
 if not os.path.exists(log_path):
     os.mkdir(log_path)  # 如果不存在这个logs文件夹，就自动创建一个

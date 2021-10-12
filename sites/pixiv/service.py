@@ -13,10 +13,10 @@ class PixivService:
 
     def get_info_and_image(self, art_id: int) -> Optional[Tuple[ArtworkInfo, Iterable[ArtworkImage]]]:
         temp_artwork_info = self.PixivApi.get_artwork_info(art_id)
-        if temp_artwork_info is None:
+        if bool(temp_artwork_info):
             return None
-        artwork_image = self.PixivApi.get_images_by_artid(art_id)
-        artwork_info = ArtworkInfo(data=temp_artwork_info)
+        artwork_image = self.PixivApi.get_images(temp_artwork_info)
+        artwork_info = ArtworkInfo(temp_artwork_info.results)
         return artwork_info, artwork_image
 
     def contribute_start(self, art_id: int) -> ArtworkData:
@@ -25,12 +25,12 @@ class PixivService:
         if temp_artwork_info is not None:
             artwork_data.SetError("已经存在数据库")
             return artwork_data
-        temp_artwork_info = self.PixivApi.get_artwork_info(art_id)
-        if temp_artwork_info is None:
-            artwork_data.SetError("已经存在数据库")
+        temp_artwork_info_response = self.PixivApi.get_artwork_info(art_id)
+        if bool(temp_artwork_info_response):
+            artwork_data.SetError(temp_artwork_info_response.message)
             return artwork_data
         artwork_image = self.PixivApi.get_images_by_artid(art_id)
-        artwork_info = ArtworkInfo(data=temp_artwork_info)
+        artwork_info = ArtworkInfo(data=temp_artwork_info_response.results)
         artwork_data.artwork_image = artwork_image
         artwork_data.artwork_info = artwork_info
         return artwork_data

@@ -1,6 +1,6 @@
 from typing import Optional
 
-from telegram import Update, InputMediaPhoto, ParseMode, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InputMediaPhoto, ParseMode, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardRemove
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext, ConversationHandler
 import time
@@ -104,9 +104,13 @@ class PushHandler:
                         sendReq = context.bot.send_media_group(push_handler_data.channel_id, media)
                         time.sleep(len(media) * 2)
                     elif len(images) == 1:
-                        photo = images[0].data
-                        sendReq = context.bot.send_photo(push_handler_data.channel_id, photo, caption=caption,
-                                                         parse_mode=ParseMode.MARKDOWN_V2)
+                        image = images[0]
+                        if image.format == "gif":
+                            sendReq = context.bot.send_animation(push_handler_data.channel_id, image.data,
+                                                                 caption=caption, parse_mode=ParseMode.MARKDOWN_V2)
+                        else:
+                            sendReq = context.bot.send_photo(push_handler_data.channel_id, image.data, caption=caption,
+                                                             parse_mode=ParseMode.MARKDOWN_V2)
                         time.sleep(2)
                 except BadRequest as TError:
                     Log.error("encountered error with image caption\n%s" % caption)

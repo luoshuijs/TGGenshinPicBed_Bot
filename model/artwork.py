@@ -1,7 +1,7 @@
 # 参考了miHoYoBBS、Twitter、Pixiv以及现有的数据结构
 import pathlib
 from enum import Enum
-
+import imghdr
 from utils.namemap import NameMap
 from sites.mihoyobbs.base import MArtworkInfo
 from sites.pixiv.base import PArtworkInfo
@@ -184,3 +184,4 @@ class ArtworkImage:
     def __init__(self, art_id: int, data: bytes = b""):
         self.art_id = art_id
         self.data = data
+        self.format: str = imghdr.what(None, self.data)

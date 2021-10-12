@@ -1,10 +1,16 @@
 import httpx
+import imageio
+import zipfile
+import os
+import uuid
 from typing import Optional, List
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from logger import Log
 from model.artwork import ArtworkImage
-from sites.pixiv.base import PArtworkInfo, CreateArtworkInfoFromAPIResponse
+from sites.pixiv.base import PixivResponse
+
+cur_path = os.path.realpath(os.getcwd())
 
 
 class PixivApi:
@@ -45,11 +51,14 @@ class PixivApi:
             Log.info("验证Pixiv_Cookie成功")
         return True
 
-    def get_artwork_info(self, art_id: int) -> PArtworkInfo:
+    def get_artwork_info(self, art_id: int) -> PixivResponse:
         uri = self.get_info_uri(art_id)
         headers = self.get_headers(art_id)
-        response = httpx.get(uri, headers=headers, timeout=5).json()
-        return CreateArtworkInfoFromAPIResponse(response)
+        res = httpx.get(uri, headers=headers, timeout=5)
+        if res.is_error:
+            return PixivResponse(error_message="请求错误")
+        response = res.json()
+        return PixivResponse(response)
 
     def get_artwork_uris(self, art_id: int) -> Optional[list]:
         uri = self.get_images_uri(art_id)
@@ -60,10 +69,47 @@ class PixivApi:
         response = res.json()
         return list(img_info["urls"]["regular"] for img_info in response["body"])
 
+    def get_images(self, response: PixivResponse) -> Optional[List[ArtworkImage]]:
+        art_list = []
+        if response.type == 2:
+            file_uuid = str(uuid.uuid4())[0:7]  # 获取随机8位字串符
+            ims_list: list = []
+            temp_path = os.path.join(cur_path, 'temp')  # 获取临时文件目录
+            if not os.path.exists(temp_path):
+                os.mkdir(temp_path)  # 如果不存在这个文件夹，就自动创建一个
+            zip_data = self.download_image(response.id, response.urls[0])  # 下载文件
+            zip_file_name = os.path.join(temp_path, f"{response.id}_{file_uuid}.zip")  # 创建ZIP文件名
+            temp_zip_file = open(zip_file_name, mode='wb+')  # 打开文件
+            temp_zip_file.write(zip_data)
+            zip_file = zipfile.ZipFile(file=zip_file_name)
+            frames = response.get_frames_info()  # 获取图片序列文件名和图片延迟
+            gif_file_name = os.path.join(temp_path, f"{response.id}_{file_uuid}.gif")  # 创建GIF文件名
+            all_delay: int = 0
+            for frame in frames:
+                file_name = frame["file"]  # 获取文件名
+                all_delay += frame["delay"]  # 总动画时长
+                file_data = zip_file.read(file_name)
+                ims_list.append(imageio.imread(uri=file_data))
+            src_img_delay = (all_delay / len(frames)) / 1000  # 平均，单位为秒
+            imageio.mimsave(uri=gif_file_name, ims=ims_list, format="GIF", duration=src_img_delay)
+            gif_file = open(gif_file_name, mode='rb+')
+            gif_data = gif_file.read()
+            art_list.append(ArtworkImage(response.id, data=gif_data))
+            gif_file.close()  # 关闭文件
+            temp_zip_file.close()
+            os.remove(zip_file_name)  # 删除缓存文件
+            os.remove(gif_file_name)
+            return art_list
+        else:
+            urls = response.urls
+            with ThreadPoolExecutor(max_workers=4) as executor:
+                future_to_uri = {executor.submit(self.download_image, response.id, url): url for url in urls}
+                for future in as_completed(future_to_uri):
+                    data = future.result()
+                    art_list.append(ArtworkImage(response.id, data=data))
+            return art_list
+
     def get_images_by_artid(self, art_id: int) -> Optional[List[ArtworkImage]]:
-        artwork_info = self.get_artwork_info(art_id)
-        if artwork_info is None:
-            return None
         art_list = []
         urls = self.get_artwork_uris(art_id)
         if urls is None:
@@ -72,7 +118,7 @@ class PixivApi:
             future_to_uri = {executor.submit(self.download_image, art_id, url): url for url in urls}
             for future in as_completed(future_to_uri):
                 data = future.result()
-                art_list.append(ArtworkImage(artwork_info.art_id, data=data))
+                art_list.append(ArtworkImage(art_id, data=data))
         return art_list
 
     def download_image(self, art_id: int, url: str) -> bytes:

@@ -97,11 +97,18 @@ class PhotoHandler:
                                            parse_mode=ParseMode.MARKDOWN_V2)
                 update.message.reply_media_group(media, timeout=30)
             elif len(images) == 1:
-                photo = images[0].data
-                update.message.reply_photo(photo=photo,
-                                           caption=caption,
-                                           timeout=30,
-                                           parse_mode=ParseMode.MARKDOWN_V2)
+                image = images[0]
+                if image.format == "gif":
+                    update.message.reply_animation(animation=image.data,
+
+                                                   caption=caption,
+                                                   timeout=30,
+                                                   parse_mode=ParseMode.MARKDOWN_V2)
+                else:
+                    update.message.reply_photo(photo=image.data,
+                                               caption=caption,
+                                               timeout=30,
+                                               parse_mode=ParseMode.MARKDOWN_V2)
             else:
                 update.message.reply_text("图片获取错误，找开发者背锅吧~", reply_markup=ReplyKeyboardRemove())  # excuse?
                 return ConversationHandler.END

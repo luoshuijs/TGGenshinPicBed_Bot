@@ -135,13 +135,20 @@ class ExamineHandler:
                                               reply_markup=ReplyKeyboardMarkup(reply_keyboard,
                                                                                one_time_keyboard=True))
                 elif len(artwork_images) == 1:
-                    photo = artwork_images[0].data
-                    update.message.reply_photo(photo=photo,
-                                               caption=caption,
-                                               timeout=30,
-                                               parse_mode=ParseMode.MARKDOWN_V2,
-                                               reply_markup=ReplyKeyboardMarkup(reply_keyboard,
-                                                                                one_time_keyboard=True))
+                    image = artwork_images[0]
+                    if image.format == "gif":
+                        update.message.reply_animation(animation=image.data,
+
+                                                       caption=caption,
+                                                       timeout=30,
+                                                       parse_mode=ParseMode.MARKDOWN_V2)
+                    else:
+                        update.message.reply_photo(photo=image.data,
+                                                   caption=caption,
+                                                   timeout=30,
+                                                   parse_mode=ParseMode.MARKDOWN_V2,
+                                                   reply_markup=ReplyKeyboardMarkup(reply_keyboard,
+                                                                                    one_time_keyboard=True))
                 else:
                     Log.error("图片获取失败")
                     reply_keyboard = [['OK', '退出']]
