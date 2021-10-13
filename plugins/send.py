@@ -1,7 +1,9 @@
+import uuid
 from typing import Iterable, Optional
 
 import telegram
-from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, InputMediaPhoto, ParseMode
+from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, InputMediaPhoto, ParseMode, InputMediaDocument, \
+    Document, InputFile
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext, ConversationHandler
 
@@ -99,11 +101,11 @@ class SendHandler:
             elif len(images) == 1:
                 image = images[0]
                 if image.format == "gif":
-                    update.message.reply_animation(animation=image.data,
-
-                                                   caption=caption,
-                                                   timeout=30,
-                                                   parse_mode=ParseMode.MARKDOWN_V2)
+                    update.message.reply_document(document=image.data,
+                                                  filename=f"{artwork_info.post_id}.{image.format}",
+                                                  caption=caption,
+                                                  timeout=30,
+                                                  parse_mode=ParseMode.MARKDOWN_V2)
                 else:
                     update.message.reply_photo(photo=image.data,
                                                caption=caption,
@@ -170,12 +172,18 @@ class SendHandler:
                                            parse_mode=ParseMode.MARKDOWN_V2)
                 context.bot.send_media_group(channel_id, media=media, timeout=30)
             elif len(images) == 1:
-                photo = images[0].data
-                context.bot.send_photo(channel_id,
-                                       photo=photo,
-                                       caption=caption,
-                                       timeout=30,
-                                       parse_mode=ParseMode.MARKDOWN_V2)
+                image = images[0]
+                if image.format == "gif":
+                    context.bot.send_document(channel_id, document=image.data,
+                                              filename=f"{artwork_info.post_id}.gif",
+                                              caption=caption,
+                                              timeout=30,
+                                              parse_mode=ParseMode.MARKDOWN_V2)
+                else:
+                    context.bot.send_photo(channel_id, photo=image.data,
+                                           caption=caption,
+                                           timeout=30,
+                                           parse_mode=ParseMode.MARKDOWN_V2)
             else:
                 update.message.reply_text("图片获取错误，找开发者背锅吧~", reply_markup=ReplyKeyboardRemove())
                 return ConversationHandler.END

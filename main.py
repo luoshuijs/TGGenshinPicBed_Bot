@@ -17,12 +17,11 @@ from utils.base import Utils
 from service import StartService
 
 utils = Utils(config)
-logger = Log.getLogger()  # 必须在这初始化log 不然...其实也没有到达死机的程度，运行不了不知道为啥
 
 
 def cancel(update: Update, _: CallbackContext) -> int:
     user = update.message.from_user
-    logger.info("User %s canceled the conversation.", user.first_name)
+    Log.info("User %s canceled the conversation.", user.first_name)
     update.message.reply_text('命令取消.', reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
@@ -148,7 +147,7 @@ def main() -> None:
     )
     photo = PhotoHandler(service=service)
     photo_handler = ConversationHandler(
-        entry_points=[MessageHandler(Filters.photo, photo.start)],
+        entry_points=[MessageHandler(Filters.photo, photo.start, run_async=True)],
         states={
             photo.ONE: [
                 MessageHandler(Filters.text, photo.get, run_async=True),

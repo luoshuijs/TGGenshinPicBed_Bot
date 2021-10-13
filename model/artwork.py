@@ -1,13 +1,19 @@
 # 参考了miHoYoBBS、Twitter、Pixiv以及现有的数据结构
+import os
 import pathlib
 from enum import Enum
 import imghdr
+from typing import Union
+
 from utils.namemap import NameMap
 from sites.mihoyobbs.base import MArtworkInfo
 from sites.pixiv.base import PArtworkInfo
 from sites.twitter.base import TArtworkInfo
 
-name_map_file = pathlib.Path(__file__).parent.joinpath("../data/namemap.json").resolve()
+
+cur_path = os.path.realpath(os.getcwd())
+log_path = os.path.join(cur_path, 'data')
+name_map_file = os.path.join(log_path, 'namemap.json')
 name_map = NameMap(name_map_file)
 
 
@@ -98,7 +104,7 @@ class AuditInfo:
 
 class ArtworkInfo:
 
-    def __init__(self, data: [TArtworkInfo, MArtworkInfo] = None):
+    def __init__(self, data: Union[TArtworkInfo, MArtworkInfo] = None):
         self.database_id: int = 0  # 数据库ID 未来可能考虑会弃用
         self.post_id: int = 0  # 作品ID
         self.site = ArtworkInfoSite

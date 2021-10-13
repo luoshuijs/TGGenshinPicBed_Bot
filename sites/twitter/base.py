@@ -41,8 +41,8 @@ def CreateArtworkInfoFromAPIResponse(data: dict) -> TArtworkInfo:
         favorite_count = data["favorite_count"]
         text = data["text"]  # 标题
         userid_str = user["id_str"]
-        height = photos[0]["height"]
-        width = photos[0]["width"]
+        height = photos[0].get("height")
+        width = photos[0].get("width")
         art_id = int(id_str)
         user_id = int(userid_str)
     except (AttributeError, TypeError):
