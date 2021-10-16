@@ -37,12 +37,12 @@ class Logger:
         # 创建一个FileHandler，用于写到本地
         fh = RotatingFileHandler(filename=self.logName, maxBytes=1024 * 1024 * 5, backupCount=5,
                                  encoding='utf-8')  # 使用RotatingFileHandler类，滚动备份日志
-        fh.setLevel(logging.DEBUG)
+        fh.setLevel(logging.INFO)
         fh.setFormatter(self.formatter2)
         self.logger.addHandler(fh)
 
         ch = colorlog.StreamHandler()
-        ch.setLevel(logging.DEBUG)
+        ch.setLevel(logging.INFO)
         ch.setFormatter(self.formatter)
         self.logger.addHandler(ch)
 
