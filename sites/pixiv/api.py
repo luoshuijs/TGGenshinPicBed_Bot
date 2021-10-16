@@ -96,7 +96,7 @@ class PixivApi:
                 file_data = zip_file.read(file_name)
                 ims_list.append(imageio.imread(uri=file_data))
             src_img_delay = (all_delay / len(frames)) / 1000  # 平均，单位为秒
-            imageio.mimsave(uri=gif_file_name, ims=ims_list, format="GIF", duration=src_img_delay, palettesize=1024)
+            imageio.mimsave(uri=gif_file_name, ims=ims_list, format="GIF", duration=src_img_delay)
             gif_file = open(gif_file_name, mode='rb+')
             gif_data = gif_file.read()
             art_list.append(ArtworkImage(response.id, data=gif_data))
