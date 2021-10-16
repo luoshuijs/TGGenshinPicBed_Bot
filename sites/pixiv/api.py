@@ -1,3 +1,5 @@
+import ujson
+
 import httpx
 import imageio
 import zipfile
@@ -77,13 +79,17 @@ class PixivApi:
             temp_path = os.path.join(cur_path, 'temp')  # 获取临时文件目录
             if not os.path.exists(temp_path):
                 os.mkdir(temp_path)  # 如果不存在这个文件夹，就自动创建一个
-            zip_data = self.download_image(response.id, response.urls[0])  # 下载文件
             zip_file_name = os.path.join(temp_path, f"{response.id}_{file_uuid}.zip")  # 创建ZIP文件名
+            gif_file_name = os.path.join(temp_path, f"{response.id}_{file_uuid}.gif")  # 创建GIF文件名
+            if os.path.isfile(gif_file_name):
+                with open(gif_file_name, 'rb+') as f:
+                    art_list.append(ArtworkImage(response.id, data=f.read()))
+                return art_list
+            zip_data = self.download_image(response.id, response.urls[0])  # 下载文件
             temp_zip_file = open(zip_file_name, mode='wb+')  # 打开文件
             temp_zip_file.write(zip_data)
             zip_file = zipfile.ZipFile(file=zip_file_name)
             frames = response.get_frames_info()  # 获取图片序列文件名和图片延迟
-            gif_file_name = os.path.join(temp_path, f"{response.id}_{file_uuid}.gif")  # 创建GIF文件名
             all_delay: int = 0
             for frame in frames:
                 file_name = frame["file"]  # 获取文件名
@@ -97,8 +103,8 @@ class PixivApi:
             art_list.append(ArtworkImage(response.id, data=gif_data))
             gif_file.close()  # 关闭文件
             temp_zip_file.close()
-            os.remove(zip_file_name)  # 删除缓存文件
-            os.remove(gif_file_name)
+            # os.remove(zip_file_name)  # 删除缓存文件
+            # os.remove(gif_file_name)
             return art_list
         else:
             urls = response.urls

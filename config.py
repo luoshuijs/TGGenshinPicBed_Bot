@@ -1,4 +1,4 @@
-import json
+import ujson
 import os
 
 
@@ -10,7 +10,7 @@ class Config(object):
             config_file = os.path.join(project_path, './config', 'config.example.json')
 
         with open(config_file, 'r', encoding='utf-8') as f:
-            self.config_json = json.load(f)
+            self.config_json = ujson.load(f)
 
         self.ADMINISTRATORS = self.get_config('administrators')
         self.MYSQL = self.get_config('mysql')

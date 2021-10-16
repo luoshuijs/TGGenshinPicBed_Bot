@@ -106,8 +106,9 @@ class PushHandler:
                     elif len(images) == 1:
                         image = images[0]
                         if image.format == "gif":
-                            sendReq = context.bot.send_animation(push_handler_data.channel_id, image.data,
-                                                                 caption=caption, parse_mode=ParseMode.MARKDOWN_V2)
+                            sendReq = context.bot.send_document(push_handler_data.channel_id, image.data,
+                                                                filename=f"{artwork_info.post_id}.{image.format}",
+                                                                caption=caption, parse_mode=ParseMode.MARKDOWN_V2)
                         else:
                             sendReq = context.bot.send_photo(push_handler_data.channel_id, image.data, caption=caption,
                                                              parse_mode=ParseMode.MARKDOWN_V2)
@@ -115,7 +116,7 @@ class PushHandler:
                 except BadRequest as TError:
                     Log.error("encountered error with image caption\n%s" % caption)
                     Log.error(TError)
-                    update.message.reply_text("图片发送出错")
+                    query.edit_message_text(text="图片发送出错，退出任务")
                     return ConversationHandler.END
                 if audit_type == AuditType.NSFW:
                     if isinstance(sendReq, list):
