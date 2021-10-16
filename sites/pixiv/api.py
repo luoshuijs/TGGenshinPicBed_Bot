@@ -74,13 +74,12 @@ class PixivApi:
     def get_images(self, response: PixivResponse) -> Optional[List[ArtworkImage]]:
         art_list = []
         if response.type == 2:
-            file_uuid = str(uuid.uuid4())[0:7]  # 获取随机8位字串符
             ims_list: list = []
             temp_path = os.path.join(cur_path, 'temp')  # 获取临时文件目录
             if not os.path.exists(temp_path):
                 os.mkdir(temp_path)  # 如果不存在这个文件夹，就自动创建一个
-            zip_file_name = os.path.join(temp_path, f"{response.id}_{file_uuid}.zip")  # 创建ZIP文件名
-            gif_file_name = os.path.join(temp_path, f"{response.id}_{file_uuid}.gif")  # 创建GIF文件名
+            zip_file_name = os.path.join(temp_path, f"{response.id}.zip")  # 创建ZIP文件名
+            gif_file_name = os.path.join(temp_path, f"{response.id}.gif")  # 创建GIF文件名
             if os.path.isfile(gif_file_name):
                 with open(gif_file_name, 'rb+') as f:
                     art_list.append(ArtworkImage(response.id, data=f.read()))
@@ -97,7 +96,7 @@ class PixivApi:
                 file_data = zip_file.read(file_name)
                 ims_list.append(imageio.imread(uri=file_data))
             src_img_delay = (all_delay / len(frames)) / 1000  # 平均，单位为秒
-            imageio.mimsave(uri=gif_file_name, ims=ims_list, format="GIF", duration=src_img_delay)
+            imageio.mimsave(uri=gif_file_name, ims=ims_list, format="GIF", duration=src_img_delay, palettesize=1024)
             gif_file = open(gif_file_name, mode='rb+')
             gif_data = gif_file.read()
             art_list.append(ArtworkImage(response.id, data=gif_data))
