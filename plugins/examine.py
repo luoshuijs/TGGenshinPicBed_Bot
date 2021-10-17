@@ -97,11 +97,13 @@ class ExamineHandler:
         return ConversationHandler.END
 
     def start_handler(self, update: Update, context: CallbackContext) -> int:
+        examine_count: ExamineCount = context.chat_data["examine_count"]
         examine_handler_data: ExamineHandlerData = context.chat_data["examine_handler_data"]
         if self.service.audit.cache_size(examine_handler_data.audit_type) == 0:
             update.message.reply_text('已经完成了当前的全部审核，退出审核', reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
         reply_keyboard = [['通过', '撤销'], ['退出']]
+        auto_status: str = ""
         if update.message.text == "下一个" or update.message.text == "OK":
             try:
                 result = self.service.audit.audit_next(examine_handler_data.audit_type)
@@ -115,6 +117,21 @@ class ExamineHandler:
                 examine_handler_data.artwork_info = artwork_info
                 examine_handler_data.artwork_images = artwork_images
                 examine_handler_data.audit_info = audit_info
+                audit_count = self.service.audit.get_audit_count(artwork_info)
+                if audit_count.total_count >= 5 and examine_handler_data.audit_type == AuditType.SFW:
+                    if audit_count.pass_count / audit_count.total_count >= 0.6:
+                        auto_status = "通过"
+                        examine_count.is_pass()
+                        self.service.audit.audit_approve(audit_info, examine_handler_data.audit_type)
+                        remaining = self.service.audit.cache_size(examine_handler_data.audit_type)
+                        reply_keyboard = []
+                    elif audit_count.reject_count / audit_count.total_count >= 0.6:
+                        auto_status = "拒绝"
+                        examine_count.is_cancel()
+                        self.service.audit.audit_reject(examine_handler_data.audit_info,
+                                                        examine_handler_data.audit_type, "自动拒绝")
+                        remaining = self.service.audit.cache_size(examine_handler_data.audit_type)
+                        reply_keyboard = []
                 caption = "Title %s   \n" \
                           "%s \n" \
                           "Tags %s   \n" \
@@ -161,6 +178,10 @@ class ExamineHandler:
                 Log.error(TError)
                 update.message.reply_text('程序发生致命错误，退出审核', reply_markup=ReplyKeyboardRemove())
                 return ConversationHandler.END
+            if auto_status != "":
+                update.message.reply_text('已经自动%s，还剩下%s张图片，正在获取下一图片。' % (auto_status, remaining),
+                                          reply_markup=ReplyKeyboardRemove())
+                return self.start_handler(update, context)
             return self.EXAMINE_RESULT
         elif update.message.text == "退出":
             update.message.reply_text('退出审核', reply_markup=ReplyKeyboardRemove())
@@ -253,6 +274,12 @@ class ExamineHandler:
             update.message.reply_text('退出审核', reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
         reason = update.message.text
+        if reason == "SFW" or reason == "NSFW" or reason == "R18":
+            reply_keyboard = [['通过', '撤销'], ['退出']]
+            examine_handler_data.audit_info.type = AuditType(reason)
+            message = f"你选择了修改作品类型，为 {reason}"
+            update.message.reply_text(message, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
+            return self.EXAMINE_RESULT
         self.service.audit.audit_reject(examine_handler_data.audit_info,
                                         examine_handler_data.audit_type, reason)
         remaining = self.service.audit.cache_size(examine_handler_data.audit_type)

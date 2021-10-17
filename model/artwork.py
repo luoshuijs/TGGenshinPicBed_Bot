@@ -10,7 +10,6 @@ from sites.mihoyobbs.base import MArtworkInfo
 from sites.pixiv.base import PArtworkInfo
 from sites.twitter.base import TArtworkInfo
 
-
 cur_path = os.path.realpath(os.getcwd())
 log_path = os.path.join(cur_path, 'data')
 name_map_file = os.path.join(log_path, 'namemap.json')
@@ -60,8 +59,9 @@ class AuditInfo:
         self.type = type_status
         self.status = status
 
-    def approve(self, audit_type: AuditType):
-        self.type = audit_type
+    def approve(self, audit_type):
+        if self.type == AuditType.NULL:
+            self.type = audit_type
         self.status = AuditStatus.PASS
         return self
 
@@ -104,8 +104,8 @@ class AuditInfo:
 
 class ArtworkInfo:
 
-    def __init__(self, data: Union[TArtworkInfo, MArtworkInfo] = None):
-        self.database_id: int = 0  # 数据库ID 未来可能考虑会弃用
+    def __init__(self, data: Union[TArtworkInfo, MArtworkInfo, PArtworkInfo] = None):
+        self.user_id: int = 0
         self.post_id: int = 0  # 作品ID
         self.site = ArtworkInfoSite
         self.title: str = ""  # 标题
@@ -121,8 +121,6 @@ class ArtworkInfo:
             self.SetMArtworkInfo(data)
         elif type(data) == PArtworkInfo:
             self.SetPArtworkInfo(data)
-        else:
-            raise ValueError(f"unknown action type {data}")
 
     def GetStringStat(self) -> str:
         if self.stat is None:
@@ -183,6 +181,7 @@ class ArtworkInfo:
         self.stat.like_num = data.like_count
         self.stat.view_num = data.view_count
         self.create_timestamp = data.upload_timestamp
+        self.user_id = data.author_id
 
 
 class ArtworkImage:
@@ -191,3 +190,20 @@ class ArtworkImage:
         self.art_id = art_id
         self.data = data
         self.format: str = imghdr.what(None, self.data)
+
+
+class AuditCount:
+    def __init__(self, user_id: int = 0, total_count: int = 0, pass_count: int = 0, reject_count: int = 0):
+        self.user_id = user_id
+        if total_count is None:
+            self.total_count = 0
+        else:
+            self.total_count = total_count
+        if pass_count is None:
+            self.pass_count = 0
+        else:
+            self.pass_count = pass_count
+        if reject_count is None:
+            self.reject_count = 0
+        else:
+            self.reject_count = reject_count
