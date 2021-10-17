@@ -155,10 +155,11 @@ class ExamineHandler:
                     image = artwork_images[0]
                     if image.format == "gif":
                         update.message.reply_animation(animation=image.data,
-
                                                        caption=caption,
                                                        timeout=30,
-                                                       parse_mode=ParseMode.MARKDOWN_V2)
+                                                       parse_mode=ParseMode.MARKDOWN_V2,
+                                                       reply_markup=ReplyKeyboardMarkup(reply_keyboard,
+                                                                                        one_time_keyboard=True))
                     else:
                         update.message.reply_photo(photo=image.data,
                                                    caption=caption,
