@@ -77,6 +77,17 @@ class TestTag(unittest.TestCase):
         self.assertEqual(char_result, characters, msg="%s" % char_result)
         self.assertEqual(name_result, names)
 
+    def test_namemap_aether(self):
+        tag_str = "#R-18#原神#リサ(原神)#香菱(原神)#モナ(原神)#溢れ精液#原神10000users入り#全裸#リサ・ミンツ#星空(原神)"
+        characters = {"Lisa", "Xiangling", "Mona"}
+        names = {("Lisa", "丽莎"), ("Xiangling", "香菱"), ("Mona", "莫娜")}
+        # 2. Execute
+        char_result = self.name_map.identify_characters(tag_str)
+        name_result = {self.name_map.get_character_names(character) for character in characters}
+        # 3. Compare
+        self.assertEqual(char_result, characters, msg="%s" % char_result)
+        self.assertEqual(name_result, names)
+
     def test_namemap_empty(self):
         # 1. Setup
         tag_str = "#" + "#".join([

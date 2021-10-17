@@ -18,13 +18,13 @@ class NameMap:
         regex_str_list = []
         for key, value in self.name_map.items():
             # "(?P<Ayaka>Ayaka|神里绫华|Kamisato.*Ayaka)"
-            regex_str = "|".join([*value["name"], *value["regex"]])
+            regex_str = "|".join([*["^"+i for i in value["name"]], *value["regex"]])
             regex_str = f"(?P<{key}>{regex_str})"
             regex_str_list.append(regex_str)
         self.regex_str = "|".join(regex_str_list)
-        self.regex_str = f".*(?:{self.regex_str}).*"
-        # ".*(?:(?P<Ayaka>Ayaka|神里绫华|Kamisato.*Ayaka)|(?P<Beidou>Beidou|北斗)).*"
-        self.tag_regex = re.compile(self.regex_str, re.I)
+        self.regex_str = f"(?:^{self.regex_str})"
+        # "(?:(?P<Ayaka>Ayaka|神里绫华|Kamisato.*Ayaka)|(?P<Beidou>Beidou|北斗))"
+        self.tag_regex = re.compile(self.regex_str, re.I | re.MULTILINE)
 
     def filter_character_tags(self, tag_str: str) -> str:
         characters = self.identify_characters(tag_str)
