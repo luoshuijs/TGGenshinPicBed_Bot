@@ -117,12 +117,32 @@
         "regex": [
         ]
     },
+    "Gorou": {
+        "name": [
+            "Gorou",
+            "五郎"
+        ],
+        "regex": [
+            "ゴロー"
+        ]
+    },
     "Hutao": {
         "name": [
             "Hutao",
             "胡桃"
         ],
         "regex": [
+        ]
+    },
+    "Itto": {
+        "name": [
+            "Itto",
+            "荒泷一斗"
+        ],
+        "regex": [
+            "荒瀧一斗",
+            "(?:Arataki.?)Itto",
+            "(?:Itto.?)Arataki"
         ]
     },
     "Jean": {
@@ -288,6 +308,14 @@
         "name": [
             "Sayu",
             "早柚"
+        ],
+        "regex": [
+        ]
+    },
+    "Scaramouche": {
+        "name": [
+            "Scaramouche",
+            "散兵"
         ],
         "regex": [
         ]

@@ -5,19 +5,6 @@ from sites.pixiv.interface import ExtractPId
 
 class TestExtractArtid(unittest.TestCase):
 
-    def test_raw_artid_succeeds(self):
-        # 1. Setup
-        data_list = [
-            "85423428",  # only number
-            " 85423428"  # with leading space
-        ]
-        # 2. Execute
-        for data in data_list:
-            with self.subTest(data=data):
-                art_id = ExtractPId(data)
-                # 3. Compare
-                self.assertEqual("85423428", art_id)
-
     def test_http_artwork_url_succeeds(self):
         # 1. Setup
         data_list = [
@@ -44,4 +31,4 @@ class TestExtractArtid(unittest.TestCase):
             with self.subTest(data=data):
                 art_id = ExtractPId(data)
                 # 3. Compare
-                self.assertEqual("85423428", art_id)
+                self.assertEqual(85423428, art_id)
