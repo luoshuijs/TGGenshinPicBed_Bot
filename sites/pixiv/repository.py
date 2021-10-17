@@ -1,40 +1,15 @@
 from typing import Optional, List
-from mysql.connector.pooling import MySQLConnectionPool
 
-from model.artwork import ArtworkInfoSite, AuditInfo, AuditType, AuditStatus
+from model.artwork import ArtworkInfoSite, AuditInfo, AuditType, AuditStatus, AuditCount
 from service.base import CreateArtworkAuditInfoFromSQLData
+from sites.base.repository import Repository
 from sites.pixiv.base import CreateArtworkFromSQLData, PArtworkInfo
 
 
-class PixivRepository:
+class PixivRepository(Repository):
 
     def __init__(self, host="127.0.0.1", port=3306, user="", password="", database=""):
-        self.pixiv_table = "genshin_pixiv"
-        self.pixiv_approved_artist_table = "pixiv_approved_artist"
-        self.sql_pool = MySQLConnectionPool(pool_name="",
-                                            pool_size=10,
-                                            pool_reset_session=False,
-                                            host=host,
-                                            port=port,
-                                            user=user,
-                                            password=password,
-                                            database=database)
-
-    def _execute_and_fetchall(self, query, args):
-        with self.sql_pool.get_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(query, args)
-                result = cur.fetchall()
-            conn.commit()
-            return result
-
-    def _executemany_and_fetchall(self, query, args):
-        with self.sql_pool.get_connection() as conn:
-            with conn.cursor() as cur:
-                cur.executemany(query, args)
-                result = cur.fetchall()
-            conn.commit()
-            return result
+        super().__init__(host, port, user, password, database)
 
     def get_art_by_artid(self, art_id: int) -> Optional[PArtworkInfo]:
         query = f"""
@@ -114,3 +89,16 @@ class PixivRepository:
             return AuditInfo()
         audit_info = CreateArtworkAuditInfoFromSQLData(data[0], site=ArtworkInfoSite.PIXIV)
         return audit_info
+
+    def get_audit_count(self, user_id: int) -> AuditCount:
+        query = f"""
+                    SELECT user_id, total, pass, reject
+                    FROM `pixiv_audit_count`
+                    WHERE user_id=%s;
+        """
+        query_args = (user_id,)
+        data = self._execute_and_fetchall(query, query_args)
+        if len(data) == 0:
+            return AuditCount(user_id=user_id)
+        (user_id, total_count, pass_count, reject_count) = data[0]
+        return AuditCount(user_id, total_count, pass_count, reject_count)

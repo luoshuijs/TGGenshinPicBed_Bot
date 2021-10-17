@@ -126,7 +126,7 @@ class ServiceCache:
         qname = QueueName(audit_type, self.key_prefix)
 
         def update_queue(pipe):
-            art_with_score = pipe.zrevrange(qname.audit, 0, 0, withscores=True, score_cast_func=int)
+            art_with_score = pipe.zrevrange(qname.audit, 0, -1, withscores=True, score_cast_func=int)
             art_key = art_score = None
             if len(art_with_score) > 0:
                 art_key = art_with_score[0][0]
@@ -166,6 +166,7 @@ class ServiceCache:
 
     def get_push_one(self, audit_type: AuditType) -> str:
         qname = QueueName(audit_type, self.key_prefix)
+
         def update_queue(pipe):
             art_key = pipe.srandmember(qname.push)
             count = pipe.scard(qname.push)
@@ -174,9 +175,9 @@ class ServiceCache:
             if art_key is None:
                 return None, count
             return art_key, count - 1
+
         return self.rdb.transaction(update_queue, qname.push, value_from_callable=True)
 
     def audit_size(self, audit_type: AuditType):
         qname = QueueName(audit_type, self.key_prefix)
         return self.rdb.zcard(qname.audit)
-
