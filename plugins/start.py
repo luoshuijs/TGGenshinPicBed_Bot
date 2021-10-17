@@ -2,7 +2,6 @@ from telegram import Update
 from telegram.ext import CallbackContext
 
 from config import config
-from test_serivce.service import SizeService
 from utils.base import Utils
 from logger import Log
 
@@ -53,21 +52,4 @@ def test(update: Update, _: CallbackContext) -> None:
     if not utils.IfOwner(user["id"]):
         return
     Log.info("test命令请求 user %s" % user["username"])
-    service = SizeService(
-        sql_config={
-            "host": config.MYSQL["host"],
-            "port": config.MYSQL["port"],
-            "user": config.MYSQL["user"],
-            "password": config.MYSQL["pass"],
-            "database": config.MYSQL["database"],
-        },
-        redis_config={
-            "host": config.REDIS["host"],
-            "port": config.REDIS["port"],
-            "db": config.REDIS["database"],
-        },
-        pixiv_cookie=config.PIXIV["cookie"]
-    )
-    data = service.ArtworkInfoAndImage("pixiv", 88586984)
-    print(data.artwork_info.title)
     update.message.reply_text("pass")

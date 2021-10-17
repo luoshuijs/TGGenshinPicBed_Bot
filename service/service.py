@@ -3,7 +3,7 @@ from typing import Optional, Tuple, Iterable, List
 import ujson
 
 from logger import Log
-from model.artwork import AuditType, ArtworkInfoSite, AuditInfo, AuditStatus
+from model.artwork import AuditType, ArtworkInfoSite, AuditInfo, AuditStatus, AuditCount
 from model.artwork import ArtworkImage, ArtworkInfo
 from model.containers import ArtworkData
 from utils.redisaction import RedisUpdate
@@ -212,6 +212,11 @@ class AuditService:
             return None
         artwork_info, artwork_images = self.get_info_and_image(**data)
         return artwork_info, artwork_images, count
+
+    def get_audit_count(self, artwork_info: ArtworkInfo) -> AuditCount:
+        if artwork_info.site == ArtworkInfoSite.PIXIV:
+            return self.pixiv.PixivRepository.get_audit_count(artwork_info.user_id)
+        return AuditCount(user_id=artwork_info.user_id)
 
     @contextmanager
     def push_manager(self, artwork_info: ArtworkInfo):
