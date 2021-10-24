@@ -61,6 +61,9 @@ class ExamineHandler:
         if context.chat_data.get("examine_count") is None:
             examine_count = ExamineCount()
             context.chat_data["examine_count"] = examine_count
+        else:
+            examine_count: ExamineCount = context.chat_data.get("examine_count")
+            examine_count.__init__()
         return self.EXAMINE
 
     def setup_handler(self, update: Update, context: CallbackContext) -> int:
@@ -118,20 +121,37 @@ class ExamineHandler:
                 examine_handler_data.artwork_images = artwork_images
                 examine_handler_data.audit_info = audit_info
                 audit_count = self.service.audit.get_audit_count(artwork_info)
-                if audit_count.total_count >= 5 and examine_handler_data.audit_type == AuditType.SFW:
-                    if audit_count.pass_count / audit_count.total_count >= 0.6:
-                        auto_status = "通过"
-                        examine_count.is_pass()
-                        self.service.audit.audit_approve(audit_info, examine_handler_data.audit_type)
-                        remaining = self.service.audit.cache_size(examine_handler_data.audit_type)
-                        reply_keyboard = []
-                    elif audit_count.reject_count / audit_count.total_count >= 0.6:
-                        auto_status = "拒绝"
-                        examine_count.is_cancel()
-                        self.service.audit.audit_reject(examine_handler_data.audit_info,
-                                                        examine_handler_data.audit_type, "自动拒绝")
-                        remaining = self.service.audit.cache_size(examine_handler_data.audit_type)
-                        reply_keyboard = []
+                if audit_count.total_count >= 5:
+                    if examine_handler_data.audit_type == AuditType.SFW:
+                        if audit_count.pass_count / audit_count.total_count >= 0.6:
+                            auto_status = "通过"
+                            examine_count.is_pass()
+                            self.service.audit.audit_approve(audit_info, examine_handler_data.audit_type)
+                            remaining = self.service.audit.cache_size(examine_handler_data.audit_type)
+                            reply_keyboard = []
+                        elif audit_count.reject_count / audit_count.total_count >= 0.6:
+                            auto_status = "拒绝"
+                            examine_count.is_cancel()
+                            self.service.audit.audit_reject(examine_handler_data.audit_info,
+                                                            examine_handler_data.audit_type, "自动拒绝")
+                            remaining = self.service.audit.cache_size(examine_handler_data.audit_type)
+                            reply_keyboard = []
+                    elif examine_handler_data.audit_type == AuditType.NSFW:
+                        if audit_count.reject_count / audit_count.total_count >= 0.6:
+                            auto_status = "拒绝"
+                            examine_count.is_cancel()
+                            self.service.audit.audit_reject(examine_handler_data.audit_info,
+                                                            examine_handler_data.audit_type, "自动拒绝")
+                            remaining = self.service.audit.cache_size(examine_handler_data.audit_type)
+                            reply_keyboard = []
+                    elif examine_handler_data.audit_type == AuditType.R18:
+                        if audit_count.reject_count / audit_count.total_count >= 0.6:
+                            auto_status = "拒绝"
+                            examine_count.is_cancel()
+                            self.service.audit.audit_reject(examine_handler_data.audit_info,
+                                                            examine_handler_data.audit_type, "自动拒绝")
+                            remaining = self.service.audit.cache_size(examine_handler_data.audit_type)
+                            reply_keyboard = []
                 caption = "Title %s   \n" \
                           "%s \n" \
                           "Tags %s   \n" \
