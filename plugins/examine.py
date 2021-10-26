@@ -121,6 +121,7 @@ class ExamineHandler:
                 examine_handler_data.artwork_images = artwork_images
                 examine_handler_data.audit_info = audit_info
                 audit_count = self.service.audit.get_audit_count(artwork_info)
+                audit_count.total_count = audit_count.pass_count + audit_count.reject_count
                 if audit_count.total_count >= 5:
                     if examine_handler_data.audit_type == AuditType.SFW:
                         if audit_count.pass_count / audit_count.total_count >= 0.6:
