@@ -9,7 +9,7 @@ from utils.base import Utils
 from logger import Log
 from utils.markdown import markdown_escape
 from model.artwork import AuditType
-from service import Service
+from service import AuditService, SiteService
 
 
 class PushHandlerData:
@@ -20,11 +20,12 @@ class PushHandlerData:
 
 
 class PushHandler:
-    ONE, TWO, THREE = range(3)
+    ONE, TWO, THREE, FOUR = range(10500, 10504)
 
-    def __init__(self, service: Service = None):
+    def __init__(self, site_service: SiteService = None, audit_service: AuditService = None):
         self.utils = Utils(config)
-        self.service = service
+        self.site_service = site_service
+        self.audit_service = audit_service
 
     def command_handler(self, update: Update, context: CallbackContext) -> int:
         user = update.effective_user
@@ -78,15 +79,15 @@ class PushHandler:
         query.edit_message_text(text="正在初始化")
         audit_type = push_handler_data.audit_type
         sendReq = None
-        remaining = self.service.audit.push_start(audit_type)
+        remaining = self.audit_service.push_start(audit_type)
         message = "无推送任务，点击确认退出任务"
         while remaining > 0:
-            result = self.service.audit.push_next(audit_type)
+            result = self.audit_service.push_next(audit_type)
             if result is None:
                 message = "推送完毕，点击确认退出任务"
                 break
             artwork_info, images, remaining = result
-            with self.service.audit.push_manager(artwork_info):
+            with self.audit_service.push_manager(artwork_info):
                 query.edit_message_text(text="还剩下%s张图片正在排队..." % remaining)
                 caption = "Title %s   \n" \
                           "Tags %s   \n" \
@@ -107,7 +108,7 @@ class PushHandler:
                         image = images[0]
                         if image.format == "gif":
                             sendReq = context.bot.send_document(push_handler_data.channel_id, image.data,
-                                                                filename=f"{artwork_info.post_id}.{image.format}",
+                                                                filename=f"{artwork_info.artwork_id}.{image.format}",
                                                                 caption=caption, parse_mode=ParseMode.MARKDOWN_V2)
                         else:
                             sendReq = context.bot.send_photo(push_handler_data.channel_id, image.data, caption=caption,

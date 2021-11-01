@@ -1,3 +1,6 @@
+from model.artwork import ArtworkInfo
+
+
 class MStat:
     def __init__(self, view_num: int = 0, reply_num: int = 0, like_num: int = 0, bookmark_num: int = 0,
                  forward_num: int = 0):
@@ -33,6 +36,19 @@ class MArtworkInfo:
         tags_list = tags.split("#")
         tags_list.remove("")
         self.tags = tags_list
+
+    def GetArtworkInfo(self):
+        artwork_info = ArtworkInfo()
+        artwork_info.origin_url = f"https://bbs.mihoyo.com/ys/article/{self.post_id}"
+        artwork_info.site_name = "MiHoYoBBS"
+        artwork_info.site = "mihoyobbs"
+        artwork_info.info = self
+        artwork_info.title = self.subject
+        artwork_info.tags = self.tags
+        artwork_info.artwork_id = self.post_id
+        artwork_info.stat = self.Stat
+        artwork_info.create_timestamp = self.created_at
+        return artwork_info
 
 
 def CreateMArtworkFromSQLData(data: tuple) -> MArtworkInfo:

@@ -10,7 +10,7 @@ from model.artwork import ArtworkInfo, ArtworkImage, AuditInfo, AuditType
 from utils.base import Utils
 from logger import Log
 from utils.markdown import markdown_escape
-from service import Service
+from service import AuditService, SiteService
 
 
 class ExamineCount:
@@ -37,11 +37,12 @@ class ExamineHandlerData:
 
 
 class ExamineHandler:
-    EXAMINE, EXAMINE_START, EXAMINE_RESULT, EXAMINE_REASON = range(4)
+    EXAMINE, EXAMINE_START, EXAMINE_RESULT, EXAMINE_REASON = range(10200, 10204)
 
-    def __init__(self, service: Service = None):
+    def __init__(self, site_service: SiteService = None, audit_service: AuditService = None):
         self.utils = Utils(config)
-        self.service = service
+        self.site_service = site_service
+        self.audit_service = audit_service
 
     def command_handler(self, update: Update, context: CallbackContext) -> int:
         user = update.effective_user
@@ -75,7 +76,7 @@ class ExamineHandler:
             return ConversationHandler.END
         audit_type = AuditType(update.message.text)
         examine_handler_data.audit_type = audit_type
-        count = self.service.audit.audit_start(audit_type)
+        count = self.audit_service.audit_start(audit_type)
         if count == 0:
             update.message.reply_text('已经完成了当前的全部审核，退出审核', reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
@@ -102,56 +103,55 @@ class ExamineHandler:
     def start_handler(self, update: Update, context: CallbackContext) -> int:
         examine_count: ExamineCount = context.chat_data["examine_count"]
         examine_handler_data: ExamineHandlerData = context.chat_data["examine_handler_data"]
-        if self.service.audit.cache_size(examine_handler_data.audit_type) == 0:
+        if self.audit_service.cache_size(examine_handler_data.audit_type) == 0:
             update.message.reply_text('已经完成了当前的全部审核，退出审核', reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
         reply_keyboard = [['通过', '撤销'], ['退出']]
         auto_status: str = ""
         if update.message.text == "下一个" or update.message.text == "OK":
             try:
-                result = self.service.audit.audit_next(examine_handler_data.audit_type)
+                result = self.audit_service.audit_next(examine_handler_data.audit_type)
                 if result is None:
                     reply_keyboard = [['OK', '退出']]
                     update.message.reply_text("图片获取错误，已经跳过该作品。回复OK继续下一张。",
                                               reply_markup=ReplyKeyboardMarkup(reply_keyboard,
                                                                                one_time_keyboard=True))
                     return self.EXAMINE_START
-                artwork_info, artwork_images, audit_info = result
-                examine_handler_data.artwork_info = artwork_info
-                examine_handler_data.artwork_images = artwork_images
-                examine_handler_data.audit_info = audit_info
-                audit_count = self.service.audit.get_audit_count(artwork_info)
+                artwork_info = examine_handler_data.artwork_info = result.artwork_info
+                artwork_images = examine_handler_data.artwork_images = result.artwork_image
+                audit_info = examine_handler_data.audit_info = result.artwork_audit
+                audit_count = self.audit_service.get_audit_count(artwork_info)
                 audit_count.total_count = audit_count.pass_count + audit_count.reject_count
                 if audit_count.total_count >= 5:
                     if examine_handler_data.audit_type == AuditType.SFW:
                         if audit_count.pass_count / audit_count.total_count >= 0.6:
                             auto_status = "通过"
                             examine_count.is_pass()
-                            self.service.audit.audit_approve(audit_info, examine_handler_data.audit_type)
-                            remaining = self.service.audit.cache_size(examine_handler_data.audit_type)
+                            self.audit_service.audit_approve(audit_info, examine_handler_data.audit_type)
+                            remaining = self.audit_service.cache_size(examine_handler_data.audit_type)
                             reply_keyboard = []
                         elif audit_count.reject_count / audit_count.total_count >= 0.6:
                             auto_status = "拒绝"
                             examine_count.is_cancel()
-                            self.service.audit.audit_reject(examine_handler_data.audit_info,
+                            self.audit_service.audit_reject(examine_handler_data.audit_info,
                                                             examine_handler_data.audit_type, "自动拒绝")
-                            remaining = self.service.audit.cache_size(examine_handler_data.audit_type)
+                            remaining = self.audit_service.cache_size(examine_handler_data.audit_type)
                             reply_keyboard = []
                     elif examine_handler_data.audit_type == AuditType.NSFW:
                         if audit_count.reject_count / audit_count.total_count >= 0.6:
                             auto_status = "拒绝"
                             examine_count.is_cancel()
-                            self.service.audit.audit_reject(examine_handler_data.audit_info,
+                            self.audit_service.audit_reject(examine_handler_data.audit_info,
                                                             examine_handler_data.audit_type, "自动拒绝")
-                            remaining = self.service.audit.cache_size(examine_handler_data.audit_type)
+                            remaining = self.audit_service.cache_size(examine_handler_data.audit_type)
                             reply_keyboard = []
                     elif examine_handler_data.audit_type == AuditType.R18:
                         if audit_count.reject_count / audit_count.total_count >= 0.6:
                             auto_status = "拒绝"
                             examine_count.is_cancel()
-                            self.service.audit.audit_reject(examine_handler_data.audit_info,
+                            self.audit_service.audit_reject(examine_handler_data.audit_info,
                                                             examine_handler_data.audit_type, "自动拒绝")
-                            remaining = self.service.audit.cache_size(examine_handler_data.audit_type)
+                            remaining = self.audit_service.cache_size(examine_handler_data.audit_type)
                             reply_keyboard = []
                 caption = "Title %s   \n" \
                           "%s \n" \
@@ -228,7 +228,7 @@ class ExamineHandler:
             return self.EXAMINE_RESULT
         reply_keyboard = [['下一个', '退出']]
         if update.message.text == "退出":
-            self.service.audit.audit_cancel(examine_handler_data.audit_info, examine_handler_data.audit_type)
+            self.audit_service.audit_cancel(examine_handler_data.audit_info, examine_handler_data.audit_type)
             update.message.reply_text('退出审核', reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
         elif update.message.text == "通过" or update.message.text == "下一个":
@@ -240,8 +240,8 @@ class ExamineHandler:
             return self.EXAMINE_RESULT
         if IsPass:
             examine_count.is_pass()
-            self.service.audit.audit_approve(examine_handler_data.audit_info, examine_handler_data.audit_type)
-            remaining = self.service.audit.cache_size(examine_handler_data.audit_type)
+            self.audit_service.audit_approve(examine_handler_data.audit_info, examine_handler_data.audit_type)
+            remaining = self.audit_service.cache_size(examine_handler_data.audit_type)
             message = "你选择了：%s，已经确认。你已经审核%s个，通过%s个，撤销%s个。" \
                       "缓存池仍有%s件作品。请选择退出还是下一个。" % (
                           update.message.text, examine_count.all_count, examine_count.pass_count,
@@ -292,7 +292,7 @@ class ExamineHandler:
                                       reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
             return self.EXAMINE_RESULT
         if update.message.text == "退出":
-            self.service.audit.audit_cancel(examine_handler_data.audit_info, examine_handler_data.audit_type)
+            self.audit_service.audit_cancel(examine_handler_data.audit_info, examine_handler_data.audit_type)
             update.message.reply_text('退出审核', reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
         reason = update.message.text
@@ -302,9 +302,9 @@ class ExamineHandler:
             message = f"你选择了修改作品类型，为 {reason}"
             update.message.reply_text(message, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
             return self.EXAMINE_RESULT
-        self.service.audit.audit_reject(examine_handler_data.audit_info,
+        self.audit_service.audit_reject(examine_handler_data.audit_info,
                                         examine_handler_data.audit_type, reason)
-        remaining = self.service.audit.cache_size(examine_handler_data.audit_type)
+        remaining = self.audit_service.cache_size(examine_handler_data.audit_type)
         examine_count.is_cancel()
         message = "你选择了：%s，已经确认。你已经审核%s个，通过%s个，撤销%s个。缓存池仍有%s件作品。请选择退出还是下一个。" % (
             update.message.text, examine_count.all_count, examine_count.pass_count, examine_count.cancel_count,

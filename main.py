@@ -2,19 +2,20 @@ from telegram import Update, ReplyKeyboardRemove
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler, \
     CallbackQueryHandler
 
+from plugins.contribute import ContributeHandler
 from plugins.download import Download
 from plugins.errorhandler import error_handler
+from plugins.examine import ExamineHandler
 from plugins.photo import PhotoHandler
+from plugins.push import PushHandler
 from plugins.send import SendHandler
 from plugins.set_audit import SetAuditHandler
-from config import config
-from plugins.contribute import ContributeHandler
-from plugins.examine import ExamineHandler
-from plugins.push import PushHandler
 from plugins.start import start, help_command, test
+from config import config
 from logger import Log
+from sites import SiteManager
 from utils.base import Utils
-from service import StartService
+from service import SiteService, AuditService
 
 utils = Utils(config)
 
@@ -27,13 +28,15 @@ def cancel(update: Update, _: CallbackContext) -> int:
 
 
 def main() -> None:
-    """Start the bot."""
-    Log.info("Start the bot")
-    updater = Updater(token=config.TELEGRAM["token"], workers=10)
-
-    dispatcher = updater.dispatcher
-
-    service = StartService(
+    Log.info("——————————————————————————————————————")
+    Log.info("正在初始化网站管理器")
+    manager = SiteManager()
+    manager.load()
+    Log.info("网站管理器加载成功")
+    Log.info("正在初始化网站服务")
+    service = SiteService()
+    service.set_handlers(manager.get_handlers())
+    service.set_config(
         sql_config={
             "host": config.MYSQL["host"],
             "port": config.MYSQL["port"],
@@ -48,8 +51,19 @@ def main() -> None:
         },
         pixiv_cookie=config.PIXIV["cookie"]
     )
+    service.load()
+    Log.info("网站服务加载成功")
+    Log.info("正在初始化审核服务")
+    audit_service = AuditService(service=service)
+    Log.info("初始化审核服务成功")
+    Log.info("——————————————————————————————————————")
+    """Start the bot."""
+    Log.info("Start the bot")
+    Log.info("正在启动机器人")
+    updater = Updater(token=config.TELEGRAM["token"], workers=10)
 
-    examine = ExamineHandler(service=service)
+    dispatcher = updater.dispatcher
+    examine = ExamineHandler(site_service=service, audit_service=audit_service)
     examine_handler = ConversationHandler(
         entry_points=[CommandHandler('examine', examine.command_handler, run_async=True)],
         states={
@@ -64,7 +78,7 @@ def main() -> None:
         },
         fallbacks=[CommandHandler('cancel', examine.cancel_handler, run_async=True)],
     )
-    set_audit = SetAuditHandler(service=service)
+    set_audit = SetAuditHandler(site_service=service, audit_service=audit_service)
     set_audit_handler = ConversationHandler(
         entry_points=[CommandHandler('set', set_audit.command_handler, run_async=True)],
         states={
@@ -83,7 +97,7 @@ def main() -> None:
         },
         fallbacks=[CommandHandler('cancel', cancel, run_async=True)],
     )
-    push = PushHandler(service=service)
+    push = PushHandler(site_service=service, audit_service=audit_service)
     push_handler = ConversationHandler(
         entry_points=[CommandHandler('push', push.command_handler, run_async=True)],
         states={
@@ -99,8 +113,7 @@ def main() -> None:
         },
         fallbacks=[CommandHandler('cancel', cancel, run_async=True)],
     )
-
-    contribute = ContributeHandler(service=service)
+    contribute = ContributeHandler(site_service=service, audit_service=audit_service)
     contribute_handler = ConversationHandler(
         entry_points=[CommandHandler('contribute', contribute.contribute_command, run_async=True)],
         states={
@@ -126,26 +139,27 @@ def main() -> None:
         },
         fallbacks=[CommandHandler('cancel', cancel, run_async=True)],
     )
+
     Send = SendHandler(send_service=service)
     send_handler = ConversationHandler(
         entry_points=[CommandHandler('send', Send.send_command, run_async=True)],
         states={
-            contribute.ONE: [
+            Send.ONE: [
                 MessageHandler(Filters.text, Send.get_info, run_async=True),
                 CommandHandler('skip', cancel)
             ],
-            contribute.TWO: [
+            Send.TWO: [
                 MessageHandler(Filters.text, Send.get_channel, run_async=True),
                 CommandHandler('skip', cancel)
             ],
-            contribute.THREE: [
+            Send.THREE: [
                 MessageHandler(Filters.text, Send.send_message, run_async=True),
                 CommandHandler('skip', cancel)
             ]
         },
         fallbacks=[CommandHandler('cancel', cancel, run_async=True)],
     )
-    photo = PhotoHandler(service=service)
+    photo = PhotoHandler(site_service=service, audit_service=audit_service)
     photo_handler = ConversationHandler(
         entry_points=[MessageHandler(Filters.photo, photo.start, run_async=True)],
         states={

@@ -1,6 +1,6 @@
 from typing import Optional, List
 
-from model.artwork import ArtworkInfoSite, AuditInfo, AuditType, AuditStatus, AuditCount
+from model.artwork import AuditInfo, AuditType, AuditStatus, AuditCount
 from service.base import CreateArtworkAuditInfoFromSQLData
 from sites.base.repository import Repository
 from sites.pixiv.base import CreateArtworkFromSQLData, PArtworkInfo
@@ -65,7 +65,7 @@ class PixivRepository(Repository):
         data = self._execute_and_fetchall(query, query_args)
         if len(data) == 0:
             return []
-        return [CreateArtworkAuditInfoFromSQLData(i, site=ArtworkInfoSite.PIXIV) for i in data]
+        return [CreateArtworkAuditInfoFromSQLData(i, site="pixiv") for i in data]
 
     def get_art_for_push(self, audit_type: AuditType) -> List[AuditInfo]:
         query = rf"""
@@ -75,9 +75,9 @@ class PixivRepository(Repository):
         """
         query_args = (audit_type.value, AuditStatus.PASS.value,)
         data = self._execute_and_fetchall(query, query_args)
-        return [CreateArtworkAuditInfoFromSQLData(i, site=ArtworkInfoSite.PIXIV) for i in data]
+        return [CreateArtworkAuditInfoFromSQLData(i, site="pixiv") for i in data]
 
-    def get_audit(self, illusts_id: int) -> AuditInfo:
+    def get_audit_info(self, illusts_id: int) -> AuditInfo:
         query = f"""
                     SELECT illusts_id, type, status, reason
                     FROM `pixiv_audit`
@@ -87,7 +87,7 @@ class PixivRepository(Repository):
         data = self._execute_and_fetchall(query, query_args)
         if len(data) == 0:
             return AuditInfo()
-        audit_info = CreateArtworkAuditInfoFromSQLData(data[0], site=ArtworkInfoSite.PIXIV)
+        audit_info = CreateArtworkAuditInfoFromSQLData(data[0], site="pixiv")
         return audit_info
 
     def get_audit_count(self, user_id: int) -> AuditCount:

@@ -1,27 +1,13 @@
 # 参考了miHoYoBBS、Twitter、Pixiv以及现有的数据结构
 import os
-import pathlib
 from enum import Enum
 import imghdr
-from typing import Union
-
 from utils.namemap import NameMap
-from sites.mihoyobbs.base import MArtworkInfo
-from sites.pixiv.base import PArtworkInfo
-from sites.twitter.base import TArtworkInfo
 
 cur_path = os.path.realpath(os.getcwd())
 log_path = os.path.join(cur_path, 'data')
 name_map_file = os.path.join(log_path, 'namemap.json')
 name_map = NameMap(name_map_file)
-
-
-class ArtworkInfoSite(Enum):
-    NULL = None
-    BILIBILI = "bilibili"
-    MIHOYOBBS = "mihoyobbs"
-    PIXIV = "pixiv"
-    TWITTER = "twitter"
 
 
 class AuditType(Enum):
@@ -50,7 +36,7 @@ class Stat:
 
 
 class AuditInfo:
-    def __init__(self, database_id: int = 0, site: ArtworkInfoSite = ArtworkInfoSite.NULL, connection_id: int = 0,
+    def __init__(self, database_id: int = 0, site: str = "", connection_id: int = 0,
                  type_status: AuditType = AuditType.NULL, status: AuditStatus = AuditStatus.NULL, reason: str = ""):
         self.reason = reason
         self.site = site
@@ -104,23 +90,17 @@ class AuditInfo:
 
 class ArtworkInfo:
 
-    def __init__(self, data: Union[TArtworkInfo, MArtworkInfo, PArtworkInfo] = None):
+    def __init__(self):
         self.user_id: int = 0
-        self.post_id: int = 0  # 作品ID
-        self.site = ArtworkInfoSite
+        self.artwork_id: int = 0  # 作品ID
+        self.site = ""
         self.title: str = ""  # 标题
         self.origin_url: str = ""
         self.site_name: str = ""
         self.tags: list = []
         self.stat: Stat = Stat()
         self.create_timestamp: int = 0
-        self.info: [TArtworkInfo, MArtworkInfo] = None
-        if type(data) == TArtworkInfo:
-            self.SetTArtworkInfo(data)
-        elif type(data) == MArtworkInfo:
-            self.SetMArtworkInfo(data)
-        elif type(data) == PArtworkInfo:
-            self.SetPArtworkInfo(data)
+        self.info = None
 
     def GetStringStat(self) -> str:
         if self.stat is None:
@@ -146,42 +126,6 @@ class ArtworkInfo:
         if filter_character_tags:
             tags_str = name_map.filter_character_tags(tags_str)
         return tags_str
-
-    def SetTArtworkInfo(self, data: TArtworkInfo = None):
-        self.origin_url = f"https://twitter.com/i/web/status/{data.tid}"
-        self.site_name = "Twitter"
-        self.site = ArtworkInfoSite.TWITTER
-        self.info = data
-        self.title = data.title
-        self.tags = data.tags
-        self.post_id = data.tid
-        self.stat.like_num = data.favorite_count
-        self.create_timestamp = data.created_at
-
-    def SetMArtworkInfo(self, data: MArtworkInfo = None):
-        self.origin_url = f"https://bbs.mihoyo.com/ys/article/{data.post_id}"
-        self.site_name = "MiHoYoBBS"
-        self.site = ArtworkInfoSite.MIHOYOBBS
-        self.info = data
-        self.title = data.subject
-        self.tags = data.tags
-        self.post_id = data.post_id
-        self.stat = data.Stat
-        self.create_timestamp = data.created_at
-
-    def SetPArtworkInfo(self, data: PArtworkInfo):
-        self.origin_url = f"https://www.pixiv.net/artworks/{data.art_id}"
-        self.site_name = "Pixiv"
-        self.site = ArtworkInfoSite.PIXIV
-        self.info = data
-        self.title = data.title
-        self.tags = data.tags
-        self.post_id = data.art_id
-        self.stat.bookmark_num = data.love_count
-        self.stat.like_num = data.like_count
-        self.stat.view_num = data.view_count
-        self.create_timestamp = data.upload_timestamp
-        self.user_id = data.author_id
 
 
 class ArtworkImage:

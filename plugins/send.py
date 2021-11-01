@@ -1,9 +1,7 @@
-import uuid
 from typing import Iterable, Optional
 
 import telegram
-from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, InputMediaPhoto, ParseMode, InputMediaDocument, \
-    Document, InputFile
+from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, InputMediaPhoto, ParseMode
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext, ConversationHandler
 
@@ -12,7 +10,7 @@ from config import config
 from model.artwork import ArtworkImage, ArtworkInfo, AuditType, AuditStatus
 from utils.base import Utils
 from utils.markdown import markdown_escape
-from service import Service
+from service import SiteService
 
 
 class SendHandlerData:
@@ -26,9 +24,9 @@ class SendHandlerData:
 
 
 class SendHandler:
-    ONE, TWO, THREE, FOUR = range(4)
+    ONE, TWO, THREE, FOUR = range(10800, 10804)
 
-    def __init__(self, send_service: Service = None):
+    def __init__(self, send_service: SiteService = None):
         self.utils = Utils(config)
         self.send_service = send_service
 
@@ -75,12 +73,11 @@ class SendHandler:
             artwork_data = self.send_service.get_info_by_url(update.message.text)
         else:
             artwork_data = self.send_service.get_info_by_url(send_handler_data.url)
-        if artwork_data is None:
+        if artwork_data.is_error:
             update.message.reply_text("已经存在数据库或者频道，退出投稿", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
-        artwork_info, images = artwork_data
-        send_handler_data.artwork_info = artwork_info
-        send_handler_data.artwork_images = images
+        artwork_info = send_handler_data.artwork_info = artwork_data.artwork_info
+        artwork_image = send_handler_data.artwork_images = artwork_data.artwork_image
         caption = "Title %s   \n" \
                   "%s   \n" \
                   "Tags %s   \n" \
@@ -92,17 +89,17 @@ class SendHandler:
                       artwork_info.origin_url
                   )
         try:
-            if len(images) > 1:
-                media = [InputMediaPhoto(media=img_info.data) for img_info in images]
+            if len(artwork_image) > 1:
+                media = [InputMediaPhoto(media=img_info.data) for img_info in artwork_image]
                 media = media[:10]
-                media[0] = InputMediaPhoto(media=images[0].data, caption=caption,
+                media[0] = InputMediaPhoto(media=artwork_image[0].data, caption=caption,
                                            parse_mode=ParseMode.MARKDOWN_V2)
                 update.message.reply_media_group(media, timeout=30)
-            elif len(images) == 1:
-                image = images[0]
+            elif len(artwork_image) == 1:
+                image = artwork_image[0]
                 if image.format == "gif":
                     update.message.reply_document(document=image.data,
-                                                  filename=f"{artwork_info.post_id}.{image.format}",
+                                                  filename=f"{artwork_info.artwork_id}.{image.format}",
                                                   caption=caption,
                                                   timeout=30,
                                                   parse_mode=ParseMode.MARKDOWN_V2)
@@ -175,7 +172,7 @@ class SendHandler:
                 image = images[0]
                 if image.format == "gif":
                     context.bot.send_document(channel_id, document=image.data,
-                                              filename=f"{artwork_info.post_id}.gif",
+                                              filename=f"{artwork_info.artwork_id}.gif",
                                               caption=caption,
                                               timeout=30,
                                               parse_mode=ParseMode.MARKDOWN_V2)

@@ -42,7 +42,7 @@ class Pixiv:
             self.artwork_list = []
             self.artid_queue = asyncio.Queue(loop=loop)
             Log.info("正在执行Pixiv爬虫任务")
-            await self.task()
+            # await self.task()
             await self.task1()
             # await self.repository.close()
             Log.info("执行Pixiv爬虫任务完成")
@@ -164,7 +164,7 @@ class Pixiv:
             task_main = asyncio.ensure_future(self.GetIllustInformation(i))
             self.GetIllustInformationTasks.append(task_main)
 
-        popular_artists_all = await self.repository.get_artists_with_multiple_approved_arts(num=7,
+        popular_artists_all = await self.repository.get_artists_with_multiple_approved_arts(num=3,
                                                                                             days_ago=7)
 
         for popular_artists in popular_artists_all:
@@ -198,7 +198,7 @@ class Pixiv:
     def filter_tags(self, artwork_list: Iterable[ArtworkInfo]) -> Iterable[ArtworkInfo]:
         result = []
         for artwork_info in artwork_list:
-            if not "原神" in artwork_info.tags:
+            if "原神" not in artwork_info.tags:
                 continue
             if artwork_info.love_count < 300:
                 continue

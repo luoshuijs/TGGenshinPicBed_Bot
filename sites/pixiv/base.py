@@ -1,3 +1,6 @@
+from model.artwork import ArtworkInfo
+
+
 class PixivResponse:
     def __init__(self, response=None, error_message: str = ""):
         if response is None:
@@ -108,6 +111,22 @@ class PArtworkInfo:
         tags_list = tags.split("#")
         tags_list.remove("")
         self.tags = tags_list
+
+    def GetArtworkInfo(self):
+        artwork_info = ArtworkInfo()
+        artwork_info.origin_url = f"https://www.pixiv.net/artworks/{self.art_id}"
+        artwork_info.site_name = "Pixiv"
+        artwork_info.site = "pixiv"
+        artwork_info.info = self
+        artwork_info.title = self.title
+        artwork_info.tags = self.tags
+        artwork_info.artwork_id = self.art_id
+        artwork_info.stat.bookmark_num = self.love_count
+        artwork_info.stat.like_num = self.like_count
+        artwork_info.stat.view_num = self.view_count
+        artwork_info.create_timestamp = self.upload_timestamp
+        artwork_info.user_id = self.author_id
+        return artwork_info
 
 
 def CreateArtworkFromSQLData(data: tuple) -> PArtworkInfo:

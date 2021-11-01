@@ -70,19 +70,14 @@ class MihoyobbsApi:
             return None
         return CreateArtworkInfoFromAPIResponse(response.json())
 
-
-class MihoyobbsDownloader:
-    def __init__(self):
-        self.MihoyobbsApi = MihoyobbsApi()
-
     def get_images_by_artid(self, post_id: int) -> Iterable[ArtworkImage]:
-        artwork_info = self.MihoyobbsApi.get_artwork_info(post_id)
+        artwork_info = self.get_artwork_info(post_id)
         if artwork_info is None:
             return None
         art_list = []
         for url in artwork_info.image_list:
-            headers = self.MihoyobbsApi.get_headers()
-            params = self.MihoyobbsApi.get_images_params()
+            headers = self.get_headers()
+            params = self.get_images_params()
             response = httpx.get(url=url, headers=headers, params=params)
             if response.is_error:
                 return None

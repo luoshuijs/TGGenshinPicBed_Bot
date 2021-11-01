@@ -1,130 +1,163 @@
 from contextlib import contextmanager
-from typing import Optional, Tuple, Iterable, List
+from typing import Tuple, Iterable, List
 import ujson
 
 from logger import Log
-from model.artwork import AuditType, ArtworkInfoSite, AuditInfo, AuditStatus, AuditCount
+from model.artwork import AuditType, AuditInfo, AuditStatus, AuditCount
 from model.artwork import ArtworkImage, ArtworkInfo
-from model.containers import ArtworkData
-from utils.redisaction import RedisUpdate
-from service import AuditRepository
+from model.containers import ArtworkData, ArtworkAuditData
 from service.cache import ServiceCache
-from sites.mihoyobbs.interface import ExtractMId
-from sites.mihoyobbs.service import MihoyobbsService
-from sites.pixiv.interface import ExtractPId
-from sites.twitter.interface import ExtractTId
-from sites.twitter.service import TwitterService
-from sites.pixiv.service import PixivService
+from service.repository import AuditRepository
+from utils.redisaction import RedisUpdate
 
 
-class BaseService:
-    def __init__(self, twitter: TwitterService, mihoyobbs: MihoyobbsService, pixiv: PixivService,
-                 audit_repository: AuditRepository):
-        self.twitter = twitter
-        self.mihoyobbs = mihoyobbs
-        self.pixiv = pixiv
-        self.audit_repository = audit_repository
+class SiteService:
 
-    def get_info_by_url(self, url: str) -> Optional[Tuple[ArtworkInfo, Iterable[ArtworkImage]]]:
-        """
-        :param url: 地址
-        :return: ArtworkInfo ArtworkImage: 图片信息 图片地址
-        """
-        art_id = ExtractPId(url)
-        if art_id is not None:
-            return self.pixiv.get_info_and_image(art_id)
-        tid = ExtractTId(url)
-        if tid is not None:
-            return self.twitter.get_info_and_image(tid)
-        post_id = ExtractMId(url)
-        if post_id is not None:
-            return self.mihoyobbs.get_info_and_image(post_id)
-        return None
+    def __init__(self) -> None:
+        self.SiteClassHandlers = []
+        self.BaseSizeHandlers = []
+        self.sql_config: dict = {}
+        self.redis_config: dict = {}
+        self.pixiv_cookie: str = ""
+        self.audit_repository = None
+        self.cache = None
 
-    def contribute_start(self, url: str) -> ArtworkData:
-        art_id = ExtractPId(url)
-        if art_id is not None:
-            return self.pixiv.contribute_start(art_id)
-        tid = ExtractTId(url)
-        if tid is not None:
-            return self.twitter.contribute_start(tid)
-        post_id = ExtractMId(url)
-        if post_id is not None:
-            return self.mihoyobbs.contribute_start(post_id)
-        artwork_data = ArtworkData()
-        artwork_data.SetError("网址解析错误")
-        return artwork_data
+    def set_handlers(self, handlers):
+        self.BaseSizeHandlers = handlers
 
-    def contribute(self, artwork_info: ArtworkInfo) -> bool:
-        if artwork_info.site == ArtworkInfoSite.PIXIV:
-            self.pixiv.contribute_confirm(artwork_info)
-        elif artwork_info.site == ArtworkInfoSite.TWITTER:
-            self.twitter.contribute_confirm(artwork_info)
-        elif artwork_info.site == ArtworkInfoSite.MIHOYOBBS:
-            self.mihoyobbs.contribute_confirm(artwork_info)
-        else:
-            return False
-        return True
+    def set_config(self, sql_config: dict = None, redis_config: dict = None, **args):
+        self.sql_config = sql_config
+        self.redis_config = redis_config
+        self.pixiv_cookie: str = args.get('pixiv_cookie', "")
+
+    def load(self):
+        self.audit_repository: AuditRepository = AuditRepository(**self.sql_config)
+        self.cache: ServiceCache = ServiceCache(**self.redis_config)
+        for handler in self.BaseSizeHandlers:
+            handler_size = handler[0]
+            handler_module_name = handler[1]
+            handler_call = handler[2]
+            if "Service" in handler_module_name:
+                if callable(handler_call):
+                    self.SiteClassHandlers.append((
+                        handler_size,
+                        handler_call(sql_config=self.sql_config, pixiv_cookie=self.pixiv_cookie)
+                    ))
+                Log.info(f"{handler_size} 网站 {handler_module_name} 模块 加载成功")
+
+    def Extract(self, url: str) -> [str, int]:
+        for handler in self.BaseSizeHandlers:
+            handler_size = handler[0]
+            handler_module_name = handler[1]
+            handler_call = handler[2]
+            if "Extract" in handler_module_name:
+                if callable(handler_call):
+                    artwork_id = handler_call(url)
+                    if artwork_id is not None:
+                        return handler_size, artwork_id
+        return "", 0
+
+    def get_artwork_info_and_image(self, site: str, post_id: int) -> ArtworkData:
+        for handler in self.SiteClassHandlers:
+            handler_size = handler[0]
+            handler_call = handler[1]
+            if handler_size.lower() == site.lower():
+                if hasattr(handler_call, "get_artwork_info_and_image"):
+                    return handler_call.get_artwork_info_and_image(post_id)
+        raise ValueError("SiteService Function Not Find")
+
+    def get_info_by_url(self, url: str) -> ArtworkData:
+        size_name, artwork_id = self.Extract(url)
+        if size_name == "":
+            return ArtworkData().SetError("不支持")
+        return self.get_artwork_info_and_image(size_name, artwork_id)
+
+    def contribute(self, artwork_info: ArtworkInfo) -> ArtworkData:
+        for handler in self.SiteClassHandlers:
+            handler_size = handler[0]
+            handler_call = handler[1]
+            if handler_size.lower() == artwork_info.site.lower():
+                if hasattr(handler_call, "contribute"):
+                    return handler_call.contribute(artwork_info)
+        raise ValueError("SiteService Function Not Find")
 
     def save_artwork_info(self, artwork_info: ArtworkInfo, audit_type: AuditType,
                           audit_status: AuditStatus) -> bool:
-        if artwork_info.site == ArtworkInfoSite.PIXIV:
-            self.pixiv.contribute_confirm(artwork_info)
-        elif artwork_info.site == ArtworkInfoSite.TWITTER:
-            self.twitter.contribute_confirm(artwork_info)
-        elif artwork_info.site == ArtworkInfoSite.MIHOYOBBS:
-            self.mihoyobbs.contribute_confirm(artwork_info)
-        else:
-            return False
+        self.contribute(artwork_info)
         audit_info = AuditInfo(
             site=artwork_info.site,
-            connection_id=artwork_info.post_id,
+            connection_id=artwork_info.artwork_id,
             type_status=audit_type,
             status=audit_status
         )
         self.audit_repository.apply_update(audit_info)
         return True
 
+    def get_audit_count(self, artwork_info: ArtworkInfo) -> AuditCount:
+        for handler in self.SiteClassHandlers:
+            handler_size = handler[0]
+            handler_call = handler[1]
+            if handler_size.lower() == artwork_info.site.lower():
+                if hasattr(handler_call, "get_audit_count"):
+                    return handler_call.repository.get_audit_count(artwork_info.user_id)
+        raise ValueError("SiteService Function Not Find")
+
+    def contribute_start(self, url: str) -> ArtworkData:
+        size_name, artwork_id = self.Extract(url)
+        if size_name == "":
+            return ArtworkData().SetError("不支持")
+        for handler in self.SiteClassHandlers:
+            handler_size = handler[0]
+            handler_call = handler[1]
+            if handler_size.lower() == size_name.lower():
+                if hasattr(handler_call, "contribute_start"):
+                    return handler_call.contribute_start(artwork_id)
+        raise ValueError("SiteService Function Not Find")
+
+    def get_audit_info(self, artwork_info: ArtworkInfo) -> AuditInfo:
+        for handler in self.SiteClassHandlers:
+            handler_size = handler[0]
+            handler_call = handler[1]
+            if handler_size.lower() == artwork_info.site.lower():
+                if hasattr(handler_call, "repository"):
+                    if hasattr(handler_call.repository, "get_audit_info"):
+                        return handler_call.repository.get_audit_info(artwork_info.artwork_id)
+        raise ValueError("SiteService Function Not Find")
+
+    def get_art_for_audit(self, audit_type: AuditType = AuditType.SFW) -> List[ArtworkInfo]:
+        artwork_info_list: list = []
+        for handler in self.SiteClassHandlers:
+            handler_call = handler[1]
+            try:
+                if hasattr(handler_call, "get_art_for_audit"):
+                    artwork_info_list += handler_call.get_art_for_audit(audit_type)
+            except AttributeError:
+                pass
+        return artwork_info_list
+
 
 class AuditService:
 
-    def __init__(self, twitter: TwitterService, mihoyobbs: MihoyobbsService, pixiv: PixivService,
-                 cache: ServiceCache, audit_repository: AuditRepository):
-        self.twitter = twitter
-        self.mihoyobbs = mihoyobbs
-        self.pixiv = pixiv
-        self.cache = cache
-        self.audit_repository = audit_repository
-
-    def get_info_and_image(self, post_id: int, site: int):
-        """
-        :param post_id:
-        :param site:
-        :return: ArtworkInfo ArtworkImage: 图片信息 图片地址
-        """
-        if site == ArtworkInfoSite.TWITTER.value:
-            return self.twitter.get_info_and_image(post_id)
-        elif site == ArtworkInfoSite.MIHOYOBBS.value:
-            return self.mihoyobbs.get_info_and_image(post_id)
-        elif site == ArtworkInfoSite.PIXIV.value:
-            return self.pixiv.get_info_and_image(post_id)
-        else:
-            return None
+    def __init__(self, service: SiteService):
+        self.service = service
+        self.cache: ServiceCache = service.cache
+        self.audit_repository: AuditRepository = service.audit_repository
 
     def get_cache_key(self, audit_info: AuditInfo):
         arts_dict = {
             "post_id": audit_info.connection_id,
-            "site": audit_info.site.value
+            "site": audit_info.site
         }
         return ujson.dumps(arts_dict)
+
+    def get_artwork_info_and_image(self, site: str, post_id: int) -> ArtworkData:
+        return self.service.get_artwork_info_and_image(site, post_id)
 
     def apply_update(self, audit_info: AuditInfo):
         return self.audit_repository.apply_update(audit_info)
 
     def get_audit_info(self, artwork_info: ArtworkInfo) -> AuditInfo:
-        if artwork_info.site == ArtworkInfoSite.PIXIV:
-            return self.pixiv.PixivRepository.get_audit(artwork_info.post_id)
-        return AuditInfo()
+        return self.service.get_audit_info(artwork_info)
 
     def get_audit(self, audit_type: AuditType):
         update = RedisUpdate.get_audit_one(audit_type)
@@ -144,13 +177,11 @@ class AuditService:
         :return: 审核数量
         """
         # 1. Get from database  从数据库获取到要审核的数据
-        artwork_audit_list: List[ArtworkInfo] = []
-        artwork_audit_list += self.pixiv.get_art_for_audit(audit_type)
+        artwork_audit_list = self.service.get_art_for_audit(audit_type)
         update = RedisUpdate.add_audit(audit_type, artwork_audit_list)
         return self.cache.apply_update(update)
 
-    def audit_next(self, audit_type: AuditType) -> \
-            Optional[Tuple[ArtworkInfo, Iterable[ArtworkImage], AuditInfo]]:
+    def audit_next(self, audit_type: AuditType) -> ArtworkAuditData:
         """
         从审核队列中获取下一个作品
         :param audit_type:
@@ -158,29 +189,32 @@ class AuditService:
         """
         error_message = None
         # 1. Get from redis
+        artwork_audit_data = ArtworkAuditData()
         data = self.get_audit(audit_type)
         if data is None:
             if self.cache.audit_size(audit_type) == 0:
-                return None
+                return artwork_audit_data.SetError("缓存错误")
             self.audit_start(audit_type)
             data = self.get_audit(audit_type)
             if data is None:
-                return None
-        art_data = self.get_info_and_image(**data)
+                return artwork_audit_data.SetError("缓存错误")
+        art_data = self.get_artwork_info_and_image(**data)
         if art_data is None:
             Log.error("图片获取错误 site:%s post_id:%s" % (data["site"], data["post_id"]))
             audit_info = AuditInfo(
-                site=ArtworkInfoSite(data["site"]),
+                site=data["site"],
                 connection_id=data["post_id"],
                 type_status=audit_type,
                 status=AuditStatus.REJECT,
                 reason="BadRequest"
             )
             self.audit_repository.apply_update(audit_info)
-            return None
-        artwork_info, artwork_images = art_data
-        audit_info = self.get_audit_info(artwork_info)
-        return artwork_info, artwork_images, audit_info
+            return ArtworkAuditData().SetError("图片获取错误")
+        audit_info = self.get_audit_info(art_data.artwork_info)
+        artwork_audit_data.artwork_audit = audit_info
+        artwork_audit_data.artwork_image = art_data.artwork_image
+        artwork_audit_data.artwork_info = art_data.artwork_info
+        return artwork_audit_data
 
     def audit_approve(self, audit_info: AuditInfo, audit_type: AuditType):
         update = RedisUpdate.remove_pending(audit_type, self.get_cache_key(audit_info))
@@ -200,8 +234,7 @@ class AuditService:
         return self.cache.audit_size(audit_type)
 
     def push_start(self, audit_type: AuditType) -> int:
-        artwork_audit_list: List[ArtworkInfo] = []
-        artwork_audit_list += self.pixiv.get_art_for_push(audit_type)
+        artwork_audit_list = self.service.get_art_for_audit(audit_type)
         update = RedisUpdate.add_push(audit_type, artwork_audit_list)
         return self.cache.apply_update(update)
 
@@ -210,13 +243,11 @@ class AuditService:
         data, count = self.get_push_one(audit_type)
         if data is None:
             return None
-        artwork_info, artwork_images = self.get_info_and_image(**data)
+        artwork_info, artwork_images = self.get_artwork_info_and_image(**data)
         return artwork_info, artwork_images, count
 
     def get_audit_count(self, artwork_info: ArtworkInfo) -> AuditCount:
-        if artwork_info.site == ArtworkInfoSite.PIXIV:
-            return self.pixiv.PixivRepository.get_audit_count(artwork_info.user_id)
-        return AuditCount(user_id=artwork_info.user_id)
+        return self.service.get_audit_count(artwork_info)
 
     @contextmanager
     def push_manager(self, artwork_info: ArtworkInfo):

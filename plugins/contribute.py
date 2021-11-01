@@ -4,14 +4,15 @@ from telegram.ext import CallbackContext, ConversationHandler
 
 from logger import Log
 from utils.markdown import markdown_escape
-from service import Service
+from service import AuditService, SiteService
 
 
 class ContributeHandler:
-    ONE, TWO, THREE, FOUR = range(4)
+    ONE, TWO, THREE, FOUR = range(10400, 10404)
 
-    def __init__(self, service: Service = None):
-        self.service = service
+    def __init__(self, site_service: SiteService = None, audit_service: AuditService = None):
+        self.site_service = site_service
+        self.audit_service = audit_service
 
     def contribute_command(self, update: Update, _: CallbackContext) -> int:
         user = update.effective_user
@@ -29,13 +30,13 @@ class ContributeHandler:
         if update.message.text == "退出":
             update.message.reply_text(text="退出投稿", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
-        artwork_data = self.service.contribute_start(update.message.text)
+        artwork_data = self.site_service.contribute_start(update.message.text)
         if artwork_data.is_error:  # 作品存在数据库返回None
             update.message.reply_text("%s，退出投稿" % artwork_data.message, reply_markup=ReplyKeyboardRemove())  #
             return ConversationHandler.END
         artwork_info = artwork_data.artwork_info
         images = artwork_data.artwork_image
-        Log.info("用户 %s 请求投稿作品 id: %s" % (update.effective_user.username, artwork_info.post_id))
+        Log.info("用户 %s 请求投稿作品 id: %s" % (update.effective_user.username, artwork_info.artwork_id))
         if artwork_info is None:
             update.message.reply_text("插画信息获取错误，找开发者背锅吧~", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
@@ -85,7 +86,7 @@ class ContributeHandler:
             update.message.reply_text(text="退出投稿", reply_markup=ReplyKeyboardRemove())
         elif update.message.text == "确认":
             artwork_info = context.chat_data["contribute_data"]
-            self.service.contribute(artwork_info)
+            self.site_service.contribute(artwork_info)
             update.message.reply_text('投稿成功！✿✿ヽ（°▽°）ノ✿', reply_markup=ReplyKeyboardRemove())
         else:
             update.message.reply_text('命令错误，请重新回复')

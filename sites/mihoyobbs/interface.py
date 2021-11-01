@@ -1,6 +1,9 @@
 import re
 
+from sites import listener
 
+
+@listener(site_name="mihoyobbs", module_name="ExtractMId")
 def ExtractMId(text: str) -> int:
     """
     :param text:

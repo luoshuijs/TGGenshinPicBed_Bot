@@ -10,7 +10,7 @@ from crawl.pixivdownload import Pixiv
 
 
 class Download:
-    ONE, TWO, THREE = range(3)
+    ONE, TWO, THREE = range(10900, 10903)
 
     def __init__(self):
         self.loop = asyncio.get_event_loop()

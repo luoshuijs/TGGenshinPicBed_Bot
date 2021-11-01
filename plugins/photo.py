@@ -1,15 +1,13 @@
-from typing import Iterable, Optional, BinaryIO
-
+from saucenao_api.errors import UnknownServerError
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, InputMediaPhoto, ParseMode
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext, ConversationHandler
 
 from logger import Log
 from config import config
-from model.artwork import ArtworkImage, ArtworkInfo, AuditType, AuditStatus
 from utils.base import Utils
 from utils.markdown import markdown_escape
-from service import Service
+from service import SiteService, AuditService
 from saucenao_api import SauceNao
 
 
@@ -19,17 +17,20 @@ class PhotoHandlerData:
 
 
 class PhotoHandler:
-    ONE, TWO, THREE = range(3)
+    ONE, TWO, THREE, FOUR = range(10600, 10604)
 
-    def __init__(self, service: Service = None):
+    def __init__(self, site_service: SiteService = None, audit_service: AuditService = None):
         self.utils = Utils(config)
-        self.service = service
+        self.site_service = site_service
+        self.audit_service = audit_service
         self.saucenao_apikey = config.SAUCENAO["apikey"]
         self.sauce = None
         if self.saucenao_apikey != "":
             self.sauce = SauceNao(self.saucenao_apikey)
 
     def start(self, update: Update, context: CallbackContext) -> int:
+        user = update.effective_user
+        Log.info("图片查找命令请求 user %s id %s" % (user["username"], user["id"]))
         user = update.effective_user
         if user is None:
             return ConversationHandler.END
@@ -58,7 +59,11 @@ class PhotoHandler:
             return ConversationHandler.END
         update.message.reply_text("正在搜索图片")
         photo_data = photo_handler_data.photo_data
-        results = self.sauce.from_file(photo_data)
+        try:
+            results = self.sauce.from_file(photo_data)
+        except UnknownServerError as error:
+            update.message.reply_text("saucenao_api抛出UnknownServerError错误，获取图片信息失败")
+            return ConversationHandler.END
         artwork_data = None
         if bool(results):
             for result in results:
@@ -67,18 +72,19 @@ class PhotoHandler:
                         continue
                     url = result.urls[0]
                     Log.info("图片搜索结果 title %s url %s" % (result.title, url))
-                    artwork_data = self.service.get_info_by_url(url)
-                    if artwork_data is not None:
-                        break
+                    artwork_data = self.site_service.get_info_by_url(url)
+                    if artwork_data.is_error:
+                        continue
         else:
             update.message.reply_text("搜索失败")
             return ConversationHandler.END
         update.message.reply_text("正在获取图片信息")
-        if artwork_data is None:
-            update.message.reply_text("获取图片信息失败")
+        if artwork_data is None or artwork_data.is_error:
+            update.message.reply_text("无法找到对应的图片，获取图片信息失败")
             return ConversationHandler.END
-        artwork_info, images = artwork_data
-        audit_info = self.service.audit.get_audit_info(artwork_info)
+        artwork_info = artwork_data.artwork_info
+        artwork_image = artwork_data.artwork_image
+        audit_info = self.audit_service.get_audit_info(artwork_info)
         caption = "Title %s   \n" \
                   "%s   \n" \
                   "Tags %s   \n" \
@@ -90,17 +96,16 @@ class PhotoHandler:
                       artwork_info.origin_url
                   )
         try:
-            if len(images) > 1:
-                media = [InputMediaPhoto(media=img_info.data) for img_info in images]
+            if len(artwork_image) > 1:
+                media = [InputMediaPhoto(media=img_info.data) for img_info in artwork_image]
                 media = media[:10]
-                media[0] = InputMediaPhoto(media=images[0].data, caption=caption,
+                media[0] = InputMediaPhoto(media=artwork_image[0].data, caption=caption,
                                            parse_mode=ParseMode.MARKDOWN_V2)
                 update.message.reply_media_group(media, timeout=30)
-            elif len(images) == 1:
-                image = images[0]
+            elif len(artwork_image) == 1:
+                image = artwork_image[0]
                 if image.format == "gif":
                     update.message.reply_animation(animation=image.data,
-
                                                    caption=caption,
                                                    timeout=30,
                                                    parse_mode=ParseMode.MARKDOWN_V2)
@@ -118,7 +123,7 @@ class PhotoHandler:
             Log.error(TError)
             return ConversationHandler.END
         update.message.reply_text("获取图片信息完成")
-        if audit_info.site.value is None:
+        if audit_info.site == "":
             update.message.reply_text("该作品未推送 使用 /send 回复相应图片推送到频道", reply_markup=ReplyKeyboardRemove())
         else:
             update.message.reply_text("该作品已经存在频道上", reply_markup=ReplyKeyboardRemove())

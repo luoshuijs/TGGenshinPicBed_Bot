@@ -1,5 +1,7 @@
 import time
 
+from model.artwork import ArtworkInfo
+
 
 class TArtworkInfo:
     def __init__(self, database_id: int = 0, tid: int = 0, text: str = "", tags: list = [], urls: list = [],
@@ -30,6 +32,19 @@ class TArtworkInfo:
         tags_list.remove("")
         self.tags = tags_list
 
+    def GetArtworkInfo(self):
+        artwork_info = ArtworkInfo()
+        artwork_info.origin_url = f"https://twitter.com/i/web/status/{self.tid}"
+        artwork_info.site_name = "Twitter"
+        artwork_info.site = "twitter"
+        artwork_info.info = self
+        artwork_info.title = self.title
+        artwork_info.tags = self.tags
+        artwork_info.artwork_id = self.tid
+        artwork_info.stat.like_num = self.favorite_count
+        artwork_info.create_timestamp = self.created_at
+        return artwork_info
+
 
 def CreateArtworkInfoFromAPIResponse(data: dict) -> TArtworkInfo:
     try:
@@ -43,7 +58,7 @@ def CreateArtworkInfoFromAPIResponse(data: dict) -> TArtworkInfo:
         userid_str = user["id_str"]
         height = photos[0].get("height")
         width = photos[0].get("width")
-        art_id = int(id_str)
+        artwork_id = int(id_str)
         user_id = int(userid_str)
     except (AttributeError, TypeError):
         return None
@@ -62,7 +77,7 @@ def CreateArtworkInfoFromAPIResponse(data: dict) -> TArtworkInfo:
         created_timestamp = int(time.mktime(time.strptime(created_at, "%Y-%m-%dT%H:%M:%S.%fZ")))
     except ValueError:
         created_timestamp = 0
-    return TArtworkInfo(tid=art_id,
+    return TArtworkInfo(tid=artwork_id,
                         text=temp_text,
                         tags=tag_list,
                         urls=url_list,
@@ -75,9 +90,9 @@ def CreateArtworkInfoFromAPIResponse(data: dict) -> TArtworkInfo:
 
 
 def CreateTArtworkFromSQLData(data) -> TArtworkInfo:
-    (id, tid, text, tags, favorite_count, width,
+    (database_id, tid, text, tags, favorite_count, width,
      height, user_id, created_at) = data
-    data = TArtworkInfo(database_id=id, tid=tid, text=text, favorite_count=favorite_count, author_id=user_id,
+    data = TArtworkInfo(database_id=database_id, tid=tid, text=text, favorite_count=favorite_count, author_id=user_id,
                         height=height, width=width, created_at=created_at)
     data.SetStringTags(tags)
     return data

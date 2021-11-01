@@ -1,7 +1,10 @@
 import re
 from typing import Optional
 
+from sites import listener
 
+
+@listener(site_name="pixiv", module_name="ExtractPId")
 def ExtractPId(text: str) -> Optional[int]:
     """
     :param text:

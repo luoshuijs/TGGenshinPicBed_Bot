@@ -26,18 +26,13 @@ class TwitterApi:
             return None
         return CreateArtworkInfoFromAPIResponse(response.json())
 
-
-class TwitterDownloader:
-    def __init__(self):
-        self.TwitterApi = TwitterApi()
-
     def get_images_by_artid(self, tid: int) -> Iterable[ArtworkImage]:
-        artwork_info = self.TwitterApi.get_artwork_info(tid)
+        artwork_info = self.get_artwork_info(tid)
         if artwork_info is None:
             return None
         art_list = []
         for url in artwork_info.urls:
-            headers = self.TwitterApi.get_headers()
+            headers = self.get_headers()
             response = httpx.get(url=url, headers=headers)
             if response.is_error:
                 return None

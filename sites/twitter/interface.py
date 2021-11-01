@@ -1,6 +1,9 @@
 import re
 
+from sites import listener
 
+
+@listener(site_name="twitter", module_name="ExtractTId")
 def ExtractTId(text: str) -> int:
     """
     :param text:

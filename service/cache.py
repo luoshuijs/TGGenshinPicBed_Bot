@@ -54,8 +54,8 @@ class ServiceCache:
         arts_score_dict = dict()
         for artwork in artwork_audit_list:
             dicts = {
-                "post_id": artwork.post_id,
-                "site": artwork.site.value
+                "post_id": artwork.artwork_id,
+                "site": artwork.site
             }
             key = ujson.dumps(dicts)
             arts_score_dict[key] = artwork.create_timestamp
@@ -178,6 +178,3 @@ class ServiceCache:
 
         return self.rdb.transaction(update_queue, qname.push, value_from_callable=True)
 
-    def audit_size(self, audit_type: AuditType):
-        qname = QueueName(audit_type, self.key_prefix)
-        return self.rdb.zcard(qname.audit)

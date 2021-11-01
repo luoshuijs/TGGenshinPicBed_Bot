@@ -10,7 +10,7 @@ from utils.base import Utils
 from utils.markdown import markdown_escape
 from model.artwork import AuditStatus, AuditType
 from logger import Log
-from service import Service
+from service import AuditService, SiteService
 
 
 class SetHandlerData:
@@ -25,12 +25,12 @@ class SetHandlerData:
 
 
 class SetAuditHandler:
-    QUERY, = -1000,
-    ONE, TWO, THREE, FOUR = range(4)
+    ONE, TWO, THREE, FOUR = range(10700, 10704)
 
-    def __init__(self, service: Service = None):
+    def __init__(self, site_service: SiteService = None, audit_service: AuditService = None):
         self.utils = Utils(config)
-        self.service = service
+        self.site_service = site_service
+        self.audit_service = audit_service
 
     def command_handler(self, update: Update, context: CallbackContext):
         user = update.effective_user
@@ -77,20 +77,19 @@ class SetAuditHandler:
             return ConversationHandler.END
         update.message.reply_text("正在获取作品信息", reply_markup=ReplyKeyboardRemove())
         if SetAuditHandlerData.url == "":
-            artwork_data = self.service.get_info_by_url(update.message.text)
+            artwork_data = self.site_service.get_info_by_url(update.message.text)
         else:
-            artwork_data = self.service.get_info_by_url(SetAuditHandlerData.url)
-        if artwork_data is None:
+            artwork_data = self.site_service.get_info_by_url(SetAuditHandlerData.url)
+        if artwork_data.is_error:
             update.message.reply_text("获取作品信息失败，请检连接或者ID是否有误", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
-        artwork_info, images = artwork_data
-        audit_info = self.service.audit.get_audit_info(artwork_info)
-        if audit_info.site.value is None:
+        artwork_info = SetAuditHandlerData.artwork_info = artwork_data.artwork_info
+        images = SetAuditHandlerData.artwork_images = artwork_data.artwork_image
+        audit_info = self.audit_service.get_audit_info(artwork_info)
+        if audit_info.site is None:
             update.message.reply_text("该作品未在审核数据库，退出任务", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
-        SetAuditHandlerData.artwork_info = artwork_info
-        SetAuditHandlerData.artwork_images = images
-        Log.info("用户 %s 请求修改作品(%s)" % (user.username, artwork_info.post_id))
+        Log.info("用户 %s 请求修改作品(%s)" % (user.username, artwork_info.artwork_id))
         caption = "Type: %s   \n" \
                   "Status: %s   \n" \
                   "Site: %s   \n" \
@@ -100,7 +99,7 @@ class SetAuditHandler:
                   "From [%s](%s)" % (
                       audit_info.type.name,
                       audit_info.status.name,
-                      audit_info.site.value,
+                      audit_info.site,
                       markdown_escape(artwork_info.title),
                       artwork_info.GetStringStat(),
                       markdown_escape(artwork_info.GetStringTags(filter_character_tags=True)),
@@ -135,7 +134,7 @@ class SetAuditHandler:
                                                timeout=30,
                                                parse_mode=ParseMode.MARKDOWN_V2)
             else:
-                Log.error("图片%s获取失败" % artwork_info.post_id)
+                Log.error("图片%s获取失败" % artwork_info.artwork_id)
                 update.message.reply_text("图片获取错误，找开发者背锅吧~", reply_markup=ReplyKeyboardRemove())
                 return ConversationHandler.END
         except BadRequest as TError:
@@ -143,7 +142,7 @@ class SetAuditHandler:
             Log.error("encounter error with image caption\n%s" % caption)
             Log.error(TError)
             return ConversationHandler.END
-        SetAuditHandlerData.art_id = artwork_info.post_id
+        SetAuditHandlerData.art_id = artwork_info.artwork_id
         reply_keyboard = [['status', 'type'], ["退出"]]
         update.message.reply_text("请选择你要修改的类型",
                                   reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
@@ -178,7 +177,7 @@ class SetAuditHandler:
         if update.message.text == "退出":
             update.message.reply_text(text="退出任务", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
-        post_id = SetAuditHandlerData.artwork_info.post_id
+        post_id = SetAuditHandlerData.artwork_info.artwork_id
         try:
             info_type = SetAuditHandlerData.operation
             if info_type == "status":
@@ -233,6 +232,6 @@ class SetAuditHandler:
         else:
             update.message.reply_text(f"作品 {post_id} 已更新 {info_type} 为 {update_data}",
                                       reply_markup=ReplyKeyboardRemove())
-        self.service.audit.set_art_audit_info(SetAuditHandlerData.artwork_info, info_type, update_data)
+        self.audit_service.set_art_audit_info(SetAuditHandlerData.artwork_info, info_type, update_data)
         Log.info("用户 %s 请求修改作品(%s): [%s]" % (user.username, post_id, info_type))
         return ConversationHandler.END

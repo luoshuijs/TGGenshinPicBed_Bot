@@ -42,7 +42,7 @@ class AuditRepository:
                 status=VALUES(status),
                 reason=VALUES(reason);
         """
-        query_args = (audit_info.site.value, audit_info.connection_id, audit_info.type.value,
+        query_args = (audit_info.site, audit_info.connection_id, audit_info.type.value,
                       audit_info.status.value, audit_info.reason,)
         return self._execute_and_fetchall(query, query_args)
 
