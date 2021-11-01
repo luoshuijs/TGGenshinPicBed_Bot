@@ -42,7 +42,7 @@ class Pixiv:
             self.artwork_list = []
             self.artid_queue = asyncio.Queue(loop=loop)
             Log.info("正在执行Pixiv爬虫任务")
-            # await self.task()
+            await self.task()
             await self.task1()
             # await self.repository.close()
             Log.info("执行Pixiv爬虫任务完成")
