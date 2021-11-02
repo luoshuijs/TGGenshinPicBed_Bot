@@ -14,7 +14,7 @@ class MihoyobbsService:
         self.api = MihoyobbsApi()
 
     def get_artwork_info_and_image(self, post_id: int) -> Optional[Tuple[ArtworkInfo, Iterable[ArtworkImage]]]:
-        temp_artwork_info = self.MihoyobbsDownloader.MihoyobbsApi.get_artwork_info(post_id)
+        temp_artwork_info = self.api.get_artwork_info(post_id)
         if temp_artwork_info is None:
             return None
         artwork_image = self.api.get_images_by_artid(post_id)

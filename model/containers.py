@@ -22,10 +22,8 @@ class ArtworkData(BasicData):
         self.artwork_image: List[ArtworkImage] = artwork_image
 
 
-class ArtworkAuditData(BasicData):
+class ArtworkAuditData(ArtworkData):
     def __init__(self, artwork_info: ArtworkInfo = None, artwork_image: List[ArtworkImage] = None,
                  artwork_audit: AuditInfo = None):
-        super().__init__()
-        self.artwork_info: ArtworkInfo = artwork_info
-        self.artwork_image: List[ArtworkImage] = artwork_image
+        super().__init__(artwork_info, artwork_image)
         self.artwork_audit: AuditInfo = artwork_audit
