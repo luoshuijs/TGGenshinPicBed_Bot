@@ -81,6 +81,11 @@ class PushHandler:
         sendReq = None
         remaining = self.audit_service.push_start(audit_type)
         message = "无推送任务，点击确认退出任务"
+        keyboard = [
+            [
+                InlineKeyboardButton("强制退出任务(仅限奔溃时)", callback_data="退出"),
+            ]
+        ]
         while remaining > 0:
             result = self.audit_service.push_next(audit_type)
             if result.count == -1:
@@ -90,7 +95,7 @@ class PushHandler:
             artwork_image = result.artwork_image
             remaining = result.count
             with self.audit_service.push_manager(artwork_info):
-                query.edit_message_text(text="还剩下%s张图片正在排队..." % remaining)
+                query.edit_message_text(text="还剩下%s张图片正在排队..." % remaining, reply_markup=InlineKeyboardMarkup(keyboard))
                 caption = "Title %s   \n" \
                           "Tags %s   \n" \
                           "From [%s](%s)" % (
