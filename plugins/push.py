@@ -83,10 +83,12 @@ class PushHandler:
         message = "无推送任务，点击确认退出任务"
         while remaining > 0:
             result = self.audit_service.push_next(audit_type)
-            if result is None:
+            if result.count == -1:
                 message = "推送完毕，点击确认退出任务"
                 break
-            artwork_info, images, remaining = result
+            artwork_info = result.artwork_info
+            artwork_image = result.artwork_image
+            remaining = result.count
             with self.audit_service.push_manager(artwork_info):
                 query.edit_message_text(text="还剩下%s张图片正在排队..." % remaining)
                 caption = "Title %s   \n" \
@@ -98,14 +100,14 @@ class PushHandler:
                               artwork_info.origin_url
                           )
                 try:
-                    if len(images) > 1:
-                        media = [InputMediaPhoto(images[0].data, caption=caption, parse_mode=ParseMode.MARKDOWN_V2)]
-                        for _, img in enumerate(images[1:10]):
+                    if len(artwork_image) > 1:
+                        media = [InputMediaPhoto(artwork_image[0].data, caption=caption, parse_mode=ParseMode.MARKDOWN_V2)]
+                        for _, img in enumerate(artwork_image[1:10]):
                             media.append(InputMediaPhoto(img.data, parse_mode=ParseMode.MARKDOWN_V2))
                         sendReq = context.bot.send_media_group(push_handler_data.channel_id, media)
-                        time.sleep(len(media) * 2)
-                    elif len(images) == 1:
-                        image = images[0]
+                        time.sleep(len(media) * 3)
+                    elif len(artwork_image) == 1:
+                        image = artwork_image[0]
                         if image.format == "gif":
                             sendReq = context.bot.send_document(push_handler_data.channel_id, image.data,
                                                                 filename=f"{artwork_info.artwork_id}.{image.format}",
@@ -113,7 +115,7 @@ class PushHandler:
                         else:
                             sendReq = context.bot.send_photo(push_handler_data.channel_id, image.data, caption=caption,
                                                              parse_mode=ParseMode.MARKDOWN_V2)
-                        time.sleep(2)
+                        time.sleep(3)
                 except BadRequest as TError:
                     Log.error("encountered error with image caption\n%s" % caption)
                     Log.error(TError)

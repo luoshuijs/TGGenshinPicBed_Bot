@@ -1,10 +1,14 @@
 from typing import List
 
 from model.artwork import ArtworkInfo, AuditType
-from model.containers import ArtworkData
+from model.containers import ArtworkData, parse_artwork_data
 from sites import listener
 from sites.pixiv.api import PixivApi
 from sites.pixiv.repository import PixivRepository
+
+
+def artwork_data(args):
+    pass
 
 
 @listener(site_name="pixiv", module_name="PixivService")
@@ -14,35 +18,26 @@ class PixivService:
         self.api = PixivApi(pixiv_cookie)
 
     def get_artwork_info_and_image(self, artwork_id: int) -> ArtworkData:
-        artwork_data = ArtworkData()
         temp_artwork_info_response = self.api.get_artwork_info(artwork_id)
         if bool(temp_artwork_info_response):
-            artwork_data.SetError(temp_artwork_info_response.message)
-            return artwork_data
+            return parse_artwork_data(error_message=temp_artwork_info_response.message)
         artwork_image = self.api.get_images_by_artid(artwork_id)
         artwork_info = temp_artwork_info_response.results.GetArtworkInfo()
-        artwork_data.artwork_image = artwork_image
-        artwork_data.artwork_info = artwork_info
-        return artwork_data
+        return parse_artwork_data(artwork_info, artwork_image)
 
     def contribute(self, artwork_info: ArtworkInfo):
         self.repository.save_art_one(artwork_info.info)
 
     def contribute_start(self, art_id: int) -> ArtworkData:
-        artwork_data = ArtworkData()
         temp_artwork_info = self.repository.get_art_by_artid(art_id)
         if temp_artwork_info is not None:
-            artwork_data.SetError("已经存在数据库")
-            return artwork_data
+            return parse_artwork_data(error_message="已经存在数据库")
         temp_artwork_info_response = self.api.get_artwork_info(art_id)
         if bool(temp_artwork_info_response):
-            artwork_data.SetError(temp_artwork_info_response.message)
-            return artwork_data
+            return parse_artwork_data(error_message=temp_artwork_info_response.message)
         artwork_image = self.api.get_images_by_artid(art_id)
         artwork_info = temp_artwork_info_response.results.GetArtworkInfo()
-        artwork_data.artwork_image = artwork_image
-        artwork_data.artwork_info = artwork_info
-        return artwork_data
+        return parse_artwork_data(artwork_info, artwork_image)
 
     def contribute_confirm(self, artwork_info: ArtworkInfo):
         self.repository.save_art_one(artwork_info.info)

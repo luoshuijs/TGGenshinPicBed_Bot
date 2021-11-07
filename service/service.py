@@ -4,8 +4,9 @@ import ujson
 
 from logger import Log
 from model.artwork import AuditType, AuditInfo, AuditStatus, AuditCount
-from model.artwork import ArtworkImage, ArtworkInfo
-from model.containers import ArtworkData, ArtworkAuditData
+from model.artwork import ArtworkInfo
+from model.containers import ArtworkData, ArtworkAuditData, ArtworkPushData, parse_artwork_push_data, \
+    parse_artwork_audit_data, parse_artwork_data
 from service.cache import ServiceCache
 from service.repository import AuditRepository
 from utils.redisaction import RedisUpdate
@@ -69,7 +70,7 @@ class SiteService:
     def get_info_by_url(self, url: str) -> ArtworkData:
         size_name, artwork_id = self.Extract(url)
         if size_name == "":
-            return ArtworkData().SetError("不支持")
+            return parse_artwork_data(error_message="不支持")
         return self.get_artwork_info_and_image(size_name, artwork_id)
 
     def contribute(self, artwork_info: ArtworkInfo) -> ArtworkData:
@@ -105,7 +106,7 @@ class SiteService:
     def contribute_start(self, url: str) -> ArtworkData:
         size_name, artwork_id = self.Extract(url)
         if size_name == "":
-            return ArtworkData().SetError("不支持")
+            return parse_artwork_data(error_message="不支持该网站")
         for handler in self.SiteClassHandlers:
             handler_size = handler[0]
             handler_call = handler[1]
@@ -189,15 +190,14 @@ class AuditService:
         """
         error_message = None
         # 1. Get from redis
-        artwork_audit_data = ArtworkAuditData()
         data = self.get_audit(audit_type)
         if data is None:
             if self.cache.audit_size(audit_type) == 0:
-                return artwork_audit_data.SetError("缓存错误")
+                return parse_artwork_audit_data(error_message="缓存错误")
             self.audit_start(audit_type)
             data = self.get_audit(audit_type)
             if data is None:
-                return artwork_audit_data.SetError("缓存错误")
+                return parse_artwork_audit_data(error_message="缓存错误")
         art_data = self.get_artwork_info_and_image(**data)
         if art_data is None:
             Log.error("图片获取错误 site:%s post_id:%s" % (data["site"], data["post_id"]))
@@ -209,12 +209,9 @@ class AuditService:
                 reason="BadRequest"
             )
             self.audit_repository.apply_update(audit_info)
-            return ArtworkAuditData().SetError("图片获取错误")
+            return parse_artwork_audit_data(error_message="图片获取错误")
         audit_info = self.get_audit_info(art_data.artwork_info)
-        artwork_audit_data.artwork_audit = audit_info
-        artwork_audit_data.artwork_image = art_data.artwork_image
-        artwork_audit_data.artwork_info = art_data.artwork_info
-        return artwork_audit_data
+        return parse_artwork_audit_data(art_data.artwork_info, art_data.artwork_image, audit_info)
 
     def audit_approve(self, audit_info: AuditInfo, audit_type: AuditType):
         update = RedisUpdate.remove_pending(audit_type, self.get_cache_key(audit_info))
@@ -238,13 +235,13 @@ class AuditService:
         update = RedisUpdate.add_push(audit_type, artwork_audit_list)
         return self.cache.apply_update(update)
 
-    def push_next(self, audit_type: AuditType) -> Tuple[ArtworkInfo, Iterable[ArtworkImage], int]:
+    def push_next(self, audit_type: AuditType) -> ArtworkPushData:
         # 1. Get from redis
         data, count = self.get_push_one(audit_type)
         if data is None:
-            return None
+            return parse_artwork_push_data(count=-1)
         artwork_info, artwork_images = self.get_artwork_info_and_image(**data)
-        return artwork_info, artwork_images, count
+        return parse_artwork_push_data(artwork_info, artwork_images, count)
 
     def get_audit_count(self, artwork_info: ArtworkInfo) -> AuditCount:
         return self.service.get_audit_count(artwork_info)

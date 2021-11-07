@@ -1,5 +1,5 @@
 import httpx
-from typing import Iterable
+from typing import List
 
 from model.artwork import ArtworkImage
 from sites.twitter.base import CreateArtworkInfoFromAPIResponse, TArtworkInfo
@@ -26,7 +26,7 @@ class TwitterApi:
             return None
         return CreateArtworkInfoFromAPIResponse(response.json())
 
-    def get_images_by_artid(self, tid: int) -> Iterable[ArtworkImage]:
+    def get_images_by_artid(self, tid: int) -> List[ArtworkImage]:
         artwork_info = self.get_artwork_info(tid)
         if artwork_info is None:
             return None

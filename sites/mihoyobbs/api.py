@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import List
 
 import httpx
 
@@ -70,7 +70,7 @@ class MihoyobbsApi:
             return None
         return CreateArtworkInfoFromAPIResponse(response.json())
 
-    def get_images_by_artid(self, post_id: int) -> Iterable[ArtworkImage]:
+    def get_images_by_artid(self, post_id: int) -> List[ArtworkImage]:
         artwork_info = self.get_artwork_info(post_id)
         if artwork_info is None:
             return None

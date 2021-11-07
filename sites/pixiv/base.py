@@ -86,7 +86,7 @@ class BasicPixiv:
 
 class PArtworkInfo:
 
-    def __init__(self, database_id: int = 0, art_id: int = 0, title: str = "", tags: list = [], view_count: int = 0,
+    def __init__(self, database_id: int = 0, art_id: int = 0, title: str = "", tags: list = None, view_count: int = 0,
                  like_count: int = 0, love_count: int = 0, author_id: int = 0, upload_timestamp: int = 0):
         self.database_id = database_id
         self.art_id = art_id

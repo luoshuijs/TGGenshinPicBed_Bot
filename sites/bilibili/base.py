@@ -11,10 +11,10 @@ class BStat:
 
 class BArtworkInfo:
     def __init__(self, database_id: int = 0, dynamic_id: int = 0, description: str = "", tags: list = [],
-                 image_list: list = [], Stat: BStat = None, height: int = 0, width: int = 0, uid: int = 0,
+                 image_list: list = [], stat: BStat = None, height: int = 0, width: int = 0, uid: int = 0,
                  timestamp: int = 0):
         self.database_id = database_id
-        self.Stat = Stat
+        self.stat = stat
         self.image_list = image_list
         self.width = width
         self.height = height

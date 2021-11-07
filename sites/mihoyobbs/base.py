@@ -120,3 +120,64 @@ def CreatePostInfoFromAPIResponse(data_post: dict) -> MArtworkInfo:
         post_id=post_id,
         image_list=images_list
     )
+
+
+class MiHoYoBBSResponse:
+    def __init__(self, response=None, error_message: str = ""):
+        if response is None:
+            self.error: bool = True
+            self.message: str = error_message
+            return
+        self.response: dict = response
+        self.retcode = response["retcode"]
+        if self.retcode == 0:
+            self.error = False
+        self.error: bool = response["retcode"]
+        self.message: str = response["message"]
+        if self.error:
+            return
+        try:
+            self._data_post = response["data"]["post"]
+            post = self._data_post["post"]  # 投稿信息
+            post_id = post["post_id"]
+            subject = post["subject"]  # 介绍，类似title标题
+            created_at = post["created_at"]  # 创建时间
+            user = self._data_post["user"]  # 用户数据
+            uid = user["uid"]  # 用户ID
+            topics = self._data_post["topics"]  # 存放 Tag
+            image_list = self._data_post["image_list"]  # image_list
+        except (AttributeError, TypeError) as err:
+            self.error: bool = True
+            self.message: str = err
+            return
+        topics_list = []
+        images_list = []
+        for topic in topics:
+            topics_list.append(topic["name"])
+        for image in image_list:
+            images_list.append(image["url"])
+        self.post_id = post["post_id"]
+        self.user_id = user["uid"]
+        self.created_at = post["created_at"]
+        stat = MStat(view_num=self._data_post["stat"]["view_num"],
+                     reply_num=self._data_post["stat"]["reply_num"],
+                     like_num=self._data_post["stat"]["like_num"],
+                     bookmark_num=self._data_post["stat"]["bookmark_num"],
+                     forward_num=self._data_post["stat"]["forward_num"],
+                     )
+        self.images_list = ""
+        self.results = MArtworkInfo(
+            subject=subject,
+            created_at=created_at,
+            uid=uid,
+            stat=stat,
+            tags=topics_list,
+            post_id=post_id,
+            image_list=images_list
+        )
+
+    def __bool__(self):
+        return self.error
+
+    def __len__(self):
+        return len(self.urls)

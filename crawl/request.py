@@ -1,9 +1,12 @@
 import datetime
+from typing import Iterable
 from urllib import parse
 
+from crawl.base import SearchResult, CreateSearchResultFromAPIResponse, RecommendResult, \
+    CreateRecommendResultFromAPIResponse, ArtworkInfo, CreateArtworkInfoFromAPIResponse, \
+    CreateUserAllIllustsResultFromAPIResponse
 from utils.httprequests import HttpRequests
 from logger import Log
-from crawl.base import *
 
 
 class BasicRequest:

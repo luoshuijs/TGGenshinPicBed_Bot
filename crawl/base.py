@@ -1,10 +1,12 @@
-from typing import Iterable, Set, Callable, Any
+from typing import Set, Callable, Any, List, Iterable
 from model.artist import ArtistCrawlInfo
 
 """
     解析返回结果
     Parse the return result
 """
+
+
 class ArtworkInfo:
 
     def __init__(self, id=0, art_id=0, title="", tags="", view_count=0, like_count=0, love_count=0, author_id=0,
@@ -18,8 +20,6 @@ class ArtworkInfo:
         self.love_count = love_count
         self.author_id = author_id
         self.upload_timestamp = upload_timestamp
-
-
 
 
 class SearchResult:
@@ -151,6 +151,8 @@ def CreateUserAllIllustsResultFromAPIResponse(data: dict) -> Iterable[int]:
     if data.get("error"):
         return None
     illusts = data["body"]["illusts"]
+    if type(illusts) == list:
+        return illusts_list
     for i in illusts.keys():
         illusts_list.append(int(i))
     return illusts_list
@@ -161,7 +163,7 @@ def CreateUserAllIllustsResultFromAPIResponse(data: dict) -> Iterable[int]:
 """
 
 
-def CreateArtistCrawlInfoFromSQLResult(data) -> Iterable[ArtistCrawlInfo]:
+def CreateArtistCrawlInfoFromSQLResult(data) -> List[ArtistCrawlInfo]:
     if len(data) == 0:
         return []
     artists = [

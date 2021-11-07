@@ -1,7 +1,7 @@
 from typing import Tuple, Iterable, Optional
 
 from model.artwork import ArtworkInfo, ArtworkImage
-from model.containers import ArtworkData
+from model.containers import ArtworkData, parse_artwork_data
 from sites import listener
 from sites.mihoyobbs.api import MihoyobbsApi
 from sites.mihoyobbs.repository import MihoyobbsRepository
@@ -22,20 +22,15 @@ class MihoyobbsService:
         return artwork_info, artwork_image
 
     def contribute_start(self, post_id: int) -> ArtworkData:
-        artwork_data = ArtworkData()
         temp_artwork_info = self.repository.get_art_by_artid(post_id)
         if temp_artwork_info is not None:
-            artwork_data.SetError("已经存在数据库")
-            return artwork_data
+            return parse_artwork_data(error_message="已经存在数据库")
         temp_artwork_info = self.api.get_artwork_info(post_id)
         if temp_artwork_info is None:
-            artwork_data.SetError("已经存在数据库")
-            return artwork_data
+            return parse_artwork_data(error_message="已经存在数据库")
         artwork_image = self.api.get_images_by_artid(post_id)
         artwork_info = temp_artwork_info.GetArtworkInfo()
-        artwork_data.artwork_image = artwork_image
-        artwork_data.artwork_info = artwork_info
-        return artwork_data
+        return parse_artwork_data(artwork_info, artwork_image)
 
     def contribute(self, artwork_info: ArtworkInfo):
         self.repository.save_art_one(artwork_info.info)
