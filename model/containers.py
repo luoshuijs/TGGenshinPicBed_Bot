@@ -44,8 +44,8 @@ def parse_artwork_push_data(
             status_code = 0
         artwork_push_data.status_code = status_code
     artwork_push_data.artwork_info = artwork_info
-    artwork_push_data.artwork_info = artwork_image
-    artwork_push_data.artwork_info = count
+    artwork_push_data.artwork_image = artwork_image
+    artwork_push_data.count = count
     return artwork_push_data
 
 
@@ -63,7 +63,7 @@ def parse_artwork_audit_data(
             status_code = 0
         artwork_audit_data.status_code = status_code
     artwork_audit_data.artwork_info = artwork_info
-    artwork_audit_data.artwork_info = artwork_image
+    artwork_audit_data.artwork_image = artwork_image
     artwork_audit_data.artwork_audit = artwork_audit
     return artwork_audit_data
 
@@ -81,5 +81,5 @@ def parse_artwork_data(
             status_code = 0
         artwork_data.status_code = status_code
     artwork_data.artwork_info = artwork_info
-    artwork_data.artwork_info = artwork_image
+    artwork_data.artwork_image = artwork_image
     return artwork_data
