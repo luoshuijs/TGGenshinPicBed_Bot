@@ -240,8 +240,10 @@ class AuditService:
         data, count = self.get_push_one(audit_type)
         if data is None:
             return parse_artwork_push_data(count=-1)
-        artwork_info, artwork_images = self.get_artwork_info_and_image(**data)
-        return parse_artwork_push_data(artwork_info, artwork_images, count)
+        artwork_data = self.get_artwork_info_and_image(**data)
+        if artwork_data.is_error:
+            return parse_artwork_push_data(error_message="获取当前图片失败")
+        return parse_artwork_push_data(artwork_data.artwork_info, artwork_data.artwork_image, count)
 
     def get_audit_count(self, artwork_info: ArtworkInfo) -> AuditCount:
         return self.service.get_audit_count(artwork_info)
