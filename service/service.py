@@ -136,6 +136,17 @@ class SiteService:
                 pass
         return artwork_info_list
 
+    def get_art_for_push(self, audit_type: AuditType = AuditType.SFW) -> List[ArtworkInfo]:
+        artwork_info_list: list = []
+        for handler in self.SiteClassHandlers:
+            handler_call = handler[1]
+            try:
+                if hasattr(handler_call, "get_art_for_push"):
+                    artwork_info_list += handler_call.get_art_for_push(audit_type)
+            except AttributeError:
+                pass
+        return artwork_info_list
+
 
 class AuditService:
 
@@ -231,7 +242,7 @@ class AuditService:
         return self.cache.audit_size(audit_type)
 
     def push_start(self, audit_type: AuditType) -> int:
-        artwork_audit_list = self.service.get_art_for_audit(audit_type)
+        artwork_audit_list = self.service.get_art_for_push(audit_type)
         update = RedisUpdate.add_push(audit_type, artwork_audit_list)
         return self.cache.apply_update(update)
 
