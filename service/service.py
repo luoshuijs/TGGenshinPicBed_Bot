@@ -5,8 +5,8 @@ import ujson
 from logger import Log
 from model.artwork import AuditType, AuditInfo, AuditStatus, AuditCount
 from model.artwork import ArtworkInfo
-from model.containers import ArtworkData, ArtworkAuditData, ArtworkPushData, parse_artwork_push_data, \
-    parse_artwork_audit_data, parse_artwork_data
+from model.containers import ArtworkData, ArtworkAuditData, ArtworkPushData
+from model.helpers import parse_artwork_data, parse_artwork_audit_data, parse_artwork_push_data
 from service.cache import ServiceCache
 from service.repository import AuditRepository
 from utils.redisaction import RedisUpdate

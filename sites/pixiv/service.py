@@ -1,7 +1,8 @@
 from typing import List
 
 from model.artwork import ArtworkInfo, AuditType
-from model.containers import ArtworkData, parse_artwork_data
+from model.containers import ArtworkData
+from model.helpers import parse_artwork_data
 from sites import listener
 from sites.pixiv.api import PixivApi
 from sites.pixiv.repository import PixivRepository

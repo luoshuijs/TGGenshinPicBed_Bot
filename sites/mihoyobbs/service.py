@@ -1,7 +1,8 @@
 from typing import Tuple, Iterable, Optional
 
 from model.artwork import ArtworkInfo, ArtworkImage
-from model.containers import ArtworkData, parse_artwork_data
+from model.containers import ArtworkData
+from model.helpers import parse_artwork_data
 from sites import listener
 from sites.mihoyobbs.api import MihoyobbsApi
 from sites.mihoyobbs.repository import MihoyobbsRepository

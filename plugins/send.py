@@ -1,4 +1,4 @@
-from typing import Iterable, Optional
+from typing import Optional, List
 
 import telegram
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, InputMediaPhoto, ParseMode
@@ -19,7 +19,7 @@ class SendHandlerData:
         self.channel_name: str = ""
         self.url: str = ""
         self.artwork_info: Optional[ArtworkInfo] = None
-        self.artwork_images: Optional[Iterable[ArtworkImage]] = None
+        self.artwork_images: Optional[List[ArtworkImage]] = None
         self.audit_type: AuditType = AuditType.SFW
 
 
@@ -152,7 +152,7 @@ class SendHandler:
             update.message.reply_text(text="退出任务", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
         artwork_info: ArtworkInfo = send_handler_data.artwork_info
-        images: Iterable[ArtworkImage] = send_handler_data.artwork_images
+        images: List[ArtworkImage] = send_handler_data.artwork_images
         caption = "Title %s   \n" \
                   "Tags %s   \n" \
                   "From [%s](%s)" % (
