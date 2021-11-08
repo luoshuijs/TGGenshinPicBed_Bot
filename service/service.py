@@ -99,8 +99,9 @@ class SiteService:
             handler_size = handler[0]
             handler_call = handler[1]
             if handler_size.lower() == artwork_info.site.lower():
-                if hasattr(handler_call, "get_audit_count"):
-                    return handler_call.repository.get_audit_count(artwork_info.user_id)
+                if hasattr(handler_call, "repository"):
+                    if hasattr(handler_call.repository, "get_audit_count"):
+                        return handler_call.repository.get_audit_count(artwork_info.user_id)
         raise ValueError("SiteService Function Not Find")
 
     def contribute_start(self, url: str) -> ArtworkData:
