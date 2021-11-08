@@ -1,10 +1,7 @@
-import ujson
-
 import httpx
 import imageio
 import zipfile
 import os
-import uuid
 from typing import Optional, List
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -58,7 +55,10 @@ class PixivApi:
         headers = self.get_headers(art_id)
         res = httpx.get(uri, headers=headers, timeout=5)
         if res.is_error:
-            return PixivResponse(error_message="请求错误")
+            if res.status_code == 404:
+                return PixivResponse(error_message="该作品不存在")
+            else:
+                return PixivResponse(error_message="请求错误")
         response = res.json()
         return PixivResponse(response)
 

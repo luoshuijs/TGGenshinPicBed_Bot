@@ -211,7 +211,7 @@ class AuditService:
             if data is None:
                 return parse_artwork_audit_data(error_message="缓存错误")
         art_data = self.get_artwork_info_and_image(**data)
-        if art_data is None:
+        if art_data.is_error:
             Log.error("图片获取错误 site:%s post_id:%s" % (data["site"], data["post_id"]))
             audit_info = AuditInfo(
                 site=data["site"],
@@ -221,7 +221,7 @@ class AuditService:
                 reason="BadRequest"
             )
             self.audit_repository.apply_update(audit_info)
-            return parse_artwork_audit_data(error_message="图片获取错误")
+            return parse_artwork_audit_data(error_message=art_data.message)
         audit_info = self.get_audit_info(art_data.artwork_info)
         return parse_artwork_audit_data(art_data.artwork_info, art_data.artwork_image, audit_info)
 

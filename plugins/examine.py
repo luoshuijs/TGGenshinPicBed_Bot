@@ -111,9 +111,10 @@ class ExamineHandler:
         if update.message.text == "下一个" or update.message.text == "OK":
             try:
                 result = self.audit_service.audit_next(examine_handler_data.audit_type)
-                if result is None:
+                if result.is_error:
                     reply_keyboard = [['OK', '退出']]
-                    update.message.reply_text("图片获取错误，已经跳过该作品。回复OK继续下一张。",
+                    update.message.reply_text(f"图片获取错误，返回错误信息为 {result.message}。"
+                                              "已经跳过该作品。回复OK继续下一张。",
                                               reply_markup=ReplyKeyboardMarkup(reply_keyboard,
                                                                                one_time_keyboard=True))
                     return self.EXAMINE_START
