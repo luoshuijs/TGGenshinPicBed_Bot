@@ -14,13 +14,13 @@ class TwitterService:
         self.repository = TwitterRepository(**sql_config)
         self.api = TwitterApi()
 
-    def get_artwork_info_and_image(self, art_id: int) -> Optional[Tuple[ArtworkInfo, Iterable[ArtworkImage]]]:
+    def get_artwork_info_and_image(self, art_id: int) -> ArtworkData:
         temp_artwork_info = self.api.get_artwork_info(art_id)
         if temp_artwork_info is None:
-            return None
+            return parse_artwork_data(error_message="请求错误")
         artwork_image = self.api.get_images_by_artid(art_id)
         artwork_info = temp_artwork_info.GetArtworkInfo()
-        return artwork_info, artwork_image
+        return parse_artwork_data(artwork_info, artwork_image)
 
     def contribute_start(self, art_id: int) -> ArtworkData:
         temp_artwork_info = self.repository.get_art_by_artid(art_id)
