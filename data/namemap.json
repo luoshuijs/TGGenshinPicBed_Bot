@@ -320,6 +320,15 @@
         "regex": [
         ]
     },
+    "Shenhe": {
+        "name": [
+            "Shenhe",
+            "申鹤"
+        ],
+        "regex": [
+            "申鶴"
+        ]
+    },
     "Signora": {
         "name": [
             "Signora",
@@ -432,6 +441,15 @@
         ],
         "regex": [
             "宵宮"
+        ]
+    },
+    "Yunjin": {
+        "name": [
+            "Yunjin",
+            "云堇"
+        ],
+        "regex": [
+            "雲菫"
         ]
     },
     "Zhongli": {
