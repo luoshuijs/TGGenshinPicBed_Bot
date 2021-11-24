@@ -24,7 +24,33 @@ class TestTag(unittest.TestCase):
         # 2. Compare
         self.assertEqual(result, tags)
 
-    def test_namemap_baal(self):
+    def test_namemap_yunjin(self):
+        # 1. Setup
+        tag_str_list = [
+            "#原神#Genshin Impact#GenshinImpact#雲菫#雪",
+        ]
+        names_regex = re.compile("#Yunjin #云堇", re.I)
+        # 2. Execute
+        results = tuple(self.name_map.filter_character_tags(tag_str) for tag_str in tag_str_list)
+        # 3. Compare
+        for tag_str in results:
+            with self.subTest(tag_str=tag_str):
+                self.assertRegex(tag_str, names_regex)
+
+    def test_namemap_shenhe(self):
+        # 1. Setup
+        tag_str_list = [
+            "#原神#Genshin Impact#申鶴",
+        ]
+        names_regex = re.compile("#Shenhe #申鹤", re.I)
+        # 2. Execute
+        results = tuple(self.name_map.filter_character_tags(tag_str) for tag_str in tag_str_list)
+        # 3. Compare
+        for tag_str in results:
+            with self.subTest(tag_str=tag_str):
+                self.assertRegex(tag_str, names_regex)
+
+    def test_namemap_raiden(self):
         # 1. Setup
         tag_str_list = [
             "#GenshinImpact#原神#raiden",
