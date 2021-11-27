@@ -27,7 +27,7 @@ def help_command(update: Update, _: CallbackContext) -> None:
                   "/download 爬取图片  \n" \
                   "/push 推送频道"
     elif utils.IfAdmin(user["id"]):
-        message = "好啊嗷 ✿✿ヽ（°▽°）ノ✿   \n" \
+        message = "你好啊嗷 ✿✿ヽ（°▽°）ノ✿   \n" \
                   "可以使用一下命令   \n" \
                   "内部命令   \n" \
                   "/examine 进入审核  \n" \
@@ -42,6 +42,10 @@ def echo(update: Update, _: CallbackContext) -> None:
     if update.message.MESSAGE_TYPES == "text":
         if update.message.text == "不够色":
             update.message.reply_text("那你来发")
+
+
+def ping(update: Update, _: CallbackContext) -> None:
+    update.message.reply_text("online! ヾ(✿ﾟ▽ﾟ)ノ")
 
 
 def test(update: Update, _: CallbackContext) -> None:

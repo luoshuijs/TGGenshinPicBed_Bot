@@ -10,7 +10,7 @@ from plugins.photo import PhotoHandler
 from plugins.push import PushHandler
 from plugins.send import SendHandler
 from plugins.set_audit import SetAuditHandler
-from plugins.start import start, help_command, test
+from plugins.start import start, help_command, test, ping
 from config import config
 from logger import Log
 from sites import SiteManager
@@ -172,6 +172,7 @@ def main() -> None:
     )
     dispatcher.add_handler(CommandHandler("start", start, run_async=True))
     dispatcher.add_handler(CommandHandler("help", help_command, run_async=True))
+    dispatcher.add_handler(CommandHandler("ping", ping, run_async=True))
     dispatcher.add_handler(CommandHandler("test", test, run_async=True))
     dispatcher.add_handler(examine_handler)
     dispatcher.add_handler(push_handler)
