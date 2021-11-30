@@ -14,13 +14,13 @@ class MihoyobbsService:
         self.repository = MihoyobbsRepository(**sql_config)
         self.api = MihoyobbsApi()
 
-    def get_artwork_info_and_image(self, post_id: int) -> Optional[Tuple[ArtworkInfo, Iterable[ArtworkImage]]]:
+    def get_artwork_info_and_image(self, post_id: int) -> ArtworkData:
         temp_artwork_info = self.api.get_artwork_info(post_id)
         if temp_artwork_info is None:
-            return None
+            return parse_artwork_data(error_message="请求错误")
         artwork_image = self.api.get_images_by_artid(post_id)
         artwork_info = temp_artwork_info.GetArtworkInfo()
-        return artwork_info, artwork_image
+        return parse_artwork_data(artwork_info, artwork_image)
 
     def contribute_start(self, post_id: int) -> ArtworkData:
         temp_artwork_info = self.repository.get_art_by_artid(post_id)
