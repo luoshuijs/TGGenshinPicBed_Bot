@@ -1,3 +1,4 @@
+import os
 from importlib import import_module
 from os import path
 from typing import Callable
@@ -29,9 +30,9 @@ class SiteManager(object):
     def __init__(self):
         self.sites = list()
 
-    def load(self):
+    def load(self, sites_paths: str = "./sites/*/"):
         # 动态加载
-        module_paths = glob('sites/*/')
+        module_paths = glob(sites_paths)
         for module_path in module_paths:
             module_name = path.basename(path.normpath(module_path))
             if module_name.startswith('__'):
