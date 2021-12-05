@@ -145,16 +145,5 @@ class PushHandler:
                     context.bot.send_message(channel_id, text=text, reply_markup=InlineKeyboardMarkup(reply_keyboard),
                                              parse_mode=ParseMode.MARKDOWN_V2, disable_web_page_preview=True)
                     time.sleep(1)
-        keyboard = [
-            [
-                InlineKeyboardButton("确认", callback_data=str(self.THREE)),
-            ]
-        ]
-        query.edit_message_text(text=message, reply_markup=InlineKeyboardMarkup(keyboard))
-        return self.THREE
-
-    def end_handler(self, update: Update, _: CallbackContext) -> int:
-        query = update.callback_query
-        query.answer()
         query.edit_message_text(text="推送完成")
         return ConversationHandler.END
