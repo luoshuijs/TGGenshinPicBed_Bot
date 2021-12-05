@@ -106,9 +106,6 @@ def main() -> None:
             ],
             push.TWO: [
                 CallbackQueryHandler(push.start_handler, run_async=True)
-            ],
-            push.THREE: [
-                CallbackQueryHandler(push.end_handler, run_async=True)
             ]
         },
         fallbacks=[CommandHandler('cancel', cancel, run_async=True)],
