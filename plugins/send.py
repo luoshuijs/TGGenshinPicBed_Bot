@@ -4,12 +4,12 @@ import telegram
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, InputMediaPhoto, ParseMode
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext, ConversationHandler
+from telegram.utils.helpers import escape_markdown
 
 from logger import Log
 from config import config
 from model.artwork import ArtworkImage, ArtworkInfo, AuditType, AuditStatus
 from utils.base import Utils
-from utils.markdown import markdown_escape
 from service import SiteService
 
 
@@ -82,9 +82,9 @@ class SendHandler:
                   "%s   \n" \
                   "Tags %s   \n" \
                   "From [%s](%s)" % (
-                      markdown_escape(artwork_info.title),
+                      escape_markdown(artwork_info.title),
                       artwork_info.GetStringStat(),
-                      markdown_escape(artwork_info.GetStringTags(filter_character_tags=True)),
+                      escape_markdown(artwork_info.GetStringTags(filter_character_tags=True)),
                       artwork_info.site_name,
                       artwork_info.origin_url
                   )
@@ -156,8 +156,8 @@ class SendHandler:
         caption = "Title %s   \n" \
                   "Tags %s   \n" \
                   "From [%s](%s)" % (
-                      markdown_escape(artwork_info.title),
-                      markdown_escape(artwork_info.GetStringTags(filter_character_tags=True)),
+                      escape_markdown(artwork_info.title),
+                      escape_markdown(artwork_info.GetStringTags(filter_character_tags=True)),
                       artwork_info.site_name,
                       artwork_info.origin_url
                   )
