@@ -1,13 +1,13 @@
 from typing import Optional
-
+import time
 from telegram import Update, InputMediaPhoto, ParseMode, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext, ConversationHandler
-import time
+from telegram.utils.helpers import escape_markdown
+
 from config import config
 from utils.base import Utils
 from logger import Log
-from utils.markdown import markdown_escape
 from model.artwork import AuditType
 from service import AuditService, SiteService
 
@@ -99,8 +99,8 @@ class PushHandler:
                 caption = "Title %s   \n" \
                           "Tags %s   \n" \
                           "From [%s](%s)" % (
-                              markdown_escape(artwork_info.title),
-                              markdown_escape(artwork_info.GetStringTags(filter_character_tags=True)),
+                              escape_markdown(artwork_info.title),
+                              escape_markdown(artwork_info.GetStringTags(filter_character_tags=True)),
                               artwork_info.site_name,
                               artwork_info.origin_url
                           )

@@ -1,13 +1,14 @@
 from typing import Optional, Iterable
+
+import telegram
 from telegram import Update, InputMediaPhoto, ParseMode, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext, ConversationHandler
-import telegram
+from telegram.utils.helpers import escape_markdown
 
 from config import config
 from model.artwork import ArtworkInfo, ArtworkImage
 from utils.base import Utils
-from utils.markdown import markdown_escape
 from model.artwork import AuditStatus, AuditType
 from logger import Log
 from service import AuditService, SiteService
@@ -100,9 +101,9 @@ class SetAuditHandler:
                       audit_info.type.name,
                       audit_info.status.name,
                       audit_info.site,
-                      markdown_escape(artwork_info.title),
+                      escape_markdown(artwork_info.title),
                       artwork_info.GetStringStat(),
-                      markdown_escape(artwork_info.GetStringTags(filter_character_tags=True)),
+                      escape_markdown(artwork_info.GetStringTags(filter_character_tags=True)),
                       artwork_info.site_name,
                       artwork_info.origin_url
                   )

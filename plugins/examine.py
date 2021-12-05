@@ -3,15 +3,13 @@ from typing import Optional, Iterable
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, InputMediaPhoto, ParseMode
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext, ConversationHandler
+from telegram.utils.helpers import escape_markdown
 
 from config import config
 from model.artwork import ArtworkInfo, ArtworkImage, AuditInfo, AuditType
-
 from utils.base import Utils
 from logger import Log
-from utils.markdown import markdown_escape
 from service import AuditService, SiteService
-
 
 class ExamineCount:
     def __init__(self):
@@ -158,9 +156,9 @@ class ExamineHandler:
                           "%s \n" \
                           "Tags %s   \n" \
                           "From [%s](%s)" % (
-                              markdown_escape(artwork_info.title),
+                              escape_markdown(artwork_info.title),
                               artwork_info.GetStringStat(),
-                              markdown_escape(artwork_info.GetStringTags(filter_character_tags=True)),
+                              escape_markdown(artwork_info.GetStringTags(filter_character_tags=True)),
                               artwork_info.site_name,
                               artwork_info.origin_url
                           )
