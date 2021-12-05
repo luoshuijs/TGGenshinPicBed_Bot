@@ -29,4 +29,4 @@ WORKDIR /root/app/
 ENTRYPOINT echo "Waiting for database (sleep=25s)..." && sleep 25 \
     && echo "Waiting for API ${MYSQL_HOST}:${MYSQL_PORT} ${REDIS_HOST}:${REDIS_PORT}..." \
     && /wait-for ${MYSQL_HOST}:${MYSQL_PORT} ${REDIS_HOST}:${REDIS_PORT} -- \
-    python3 -m unittest discover tests.integration
+    python3 -m unittest discover tests.unit
