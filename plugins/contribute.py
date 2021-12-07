@@ -47,9 +47,9 @@ class ContributeHandler:
                   "%s \n" \
                   "Tags %s   \n" \
                   "From [%s](%s)" % (
-                      escape_markdown(artwork_info.title),
+                      escape_markdown(artwork_info.title, version=2),
                       artwork_info.GetStringStat(),
-                      escape_markdown(artwork_info.GetStringTags(filter_character_tags=True)),
+                      escape_markdown(artwork_info.GetStringTags(filter_character_tags=True), version=2),
                       artwork_info.site_name,
                       artwork_info.origin_url
                   )
