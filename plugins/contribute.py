@@ -1,3 +1,4 @@
+import re
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, InputMediaPhoto, ParseMode
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext, ConversationHandler
@@ -9,6 +10,7 @@ from service import AuditService, SiteService
 
 class ContributeHandler:
     ONE, TWO, THREE, FOUR = range(10400, 10404)
+    GENSHIN_REGEX = re.compile(r"(Genshin(Impact)?)|(原神)", re.I)
 
     def __init__(self, site_service: SiteService = None, audit_service: AuditService = None):
         self.site_service = site_service
@@ -40,7 +42,7 @@ class ContributeHandler:
         if artwork_info is None:
             update.message.reply_text("插画信息获取错误，找开发者背锅吧~", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
-        if artwork_info.tags.count("原神") <= 0:
+        if ContributeHandler.GENSHIN_REGEX.search(artwork_info.tags) is None:
             update.message.reply_text("插画信息TAG不符合投稿要求，退出投稿", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
         caption = "Title %s   \n" \

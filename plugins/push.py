@@ -91,6 +91,9 @@ class PushHandler:
             if result.count == -1:
                 message = "推送完毕，点击确认退出任务"
                 break
+            if result.is_error:
+                # don't worry about `remaining`, will update on the next loop iteration
+                continue
             artwork_info = result.artwork_info
             artwork_image = result.artwork_image
             remaining = result.count
