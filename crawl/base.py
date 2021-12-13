@@ -65,6 +65,13 @@ class RecommendResult:
     def get_all_illust_id(self, fn: Callable[[Any], bool]) -> Set[int]:
         if not self.illusts:
             return set()
+        self.illusts = [
+            {
+                **info,
+                "tags": "#" + "#".join(info.get("tags")) if info.get("tags") and len(info["tags"]) > 0 else ""
+            }
+            for info in self.illusts
+        ]
         if not fn:
             fn = lambda _: True
         return set(info["id"] for info in self.illusts

@@ -10,6 +10,8 @@ from crawl.request import BasicRequest
 
 
 class Pixiv:
+    GENSHIN_REGEX = re.compile(r"(Genshin(Impact)?)|(原神)", re.I)
+
     def __init__(self, mysql_host: str = "127.0.0.1", mysql_port: int = 3306, mysql_user: str = "root",
                  mysql_password: str = "", mysql_database: str = "",
                  pixiv_cookie: str = "", loop=None, *args):
@@ -114,7 +116,7 @@ class Pixiv:
         recommend_num = 0
         for art_id in all_popular_id:
             recommend_result = await self.BasicRequest.get_recommendation(art_id)
-            recommend_id = recommend_result.get_all_illust_id(lambda x: "原神" in x.get("tags", ""))
+            recommend_id = recommend_result.get_all_illust_id(lambda x: self.GENSHIN_REGEX.search(x.get("tags", "")) is not None)
             recommend_num += len(recommend_id)
             all_recommend_id = all_recommend_id.union(recommend_id)
         recommend_int = min(36, len(all_recommend_id))
@@ -198,7 +200,7 @@ class Pixiv:
     def filter_tags(self, artwork_list: Iterable[ArtworkInfo]) -> Iterable[ArtworkInfo]:
         result = []
         for artwork_info in artwork_list:
-            if "原神" not in artwork_info.tags:
+            if self.GENSHIN_REGEX.search(artwork_info.tags) is None:
                 continue
             if artwork_info.love_count < 300:
                 continue
