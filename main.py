@@ -2,11 +2,11 @@ from telegram import Update, ReplyKeyboardRemove
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler, \
     CallbackQueryHandler
 
+from plugins.search import SearchHandler
 from plugins.contribute import ContributeHandler
 from plugins.download import Download
 from plugins.errorhandler import error_handler
 from plugins.examine import ExamineHandler
-from plugins.photo import PhotoHandler
 from plugins.push import PushHandler
 from plugins.send import SendHandler
 from plugins.set_audit import SetAuditHandler
@@ -108,7 +108,7 @@ def main() -> None:
                 CallbackQueryHandler(push.start_handler, run_async=True)
             ]
         },
-        fallbacks=[CommandHandler('cancel', cancel, run_async=True)],
+        fallbacks=[CommandHandler('cancel', cancel, run_async=True)]
     )
     contribute = ContributeHandler(site_service=service, audit_service=audit_service)
     contribute_handler = ConversationHandler(
@@ -129,14 +129,13 @@ def main() -> None:
     download_handler = ConversationHandler(
         entry_points=[CommandHandler('download', download.download, run_async=True)],
         states={
-            contribute.ONE: [
+            download.ONE: [
                 MessageHandler(Filters.text, download.start_download, run_async=True),
                 CommandHandler('skip', cancel, run_async=True)
             ]
         },
         fallbacks=[CommandHandler('cancel', cancel, run_async=True)],
     )
-
     Send = SendHandler(send_service=service)
     send_handler = ConversationHandler(
         entry_points=[CommandHandler('send', Send.send_command, run_async=True)],
@@ -156,16 +155,16 @@ def main() -> None:
         },
         fallbacks=[CommandHandler('cancel', cancel, run_async=True)],
     )
-    photo = PhotoHandler(site_service=service, audit_service=audit_service)
-    photo_handler = ConversationHandler(
-        entry_points=[MessageHandler(Filters.photo, photo.start, run_async=True)],
+    search = SearchHandler(site_service=service, audit_service=audit_service)
+    search_handler = ConversationHandler(
+        entry_points=[CommandHandler('search', search.start, run_async=True)],
         states={
-            photo.ONE: [
-                MessageHandler(Filters.text, photo.get, run_async=True),
-                CommandHandler('skip', cancel)
+            search.ONE: [
+                MessageHandler(Filters.photo, search.get, run_async=True),
+                CommandHandler('skip', cancel, run_async=True)
             ]
         },
-        fallbacks=[CommandHandler('cancel', cancel, run_async=True)]
+        fallbacks=[CommandHandler('cancel', cancel, run_async=True)],
     )
     dispatcher.add_handler(CommandHandler("start", start, run_async=True))
     dispatcher.add_handler(CommandHandler("help", help_command, run_async=True))
@@ -177,7 +176,7 @@ def main() -> None:
     dispatcher.add_handler(download_handler)
     dispatcher.add_handler(set_audit_handler)
     dispatcher.add_handler(send_handler)
-    dispatcher.add_handler(photo_handler)
+    dispatcher.add_handler(search_handler)
     dispatcher.add_error_handler(error_handler)
 
     updater.start_polling()

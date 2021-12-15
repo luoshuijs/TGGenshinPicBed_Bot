@@ -1,5 +1,5 @@
 from saucenao_api.errors import UnknownServerError
-from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, InputMediaPhoto, ParseMode
+from telegram import Update, ReplyKeyboardRemove, InputMediaPhoto, ParseMode, ReplyKeyboardMarkup
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext, ConversationHandler
 from telegram.utils.helpers import escape_markdown
@@ -11,12 +11,12 @@ from service import SiteService, AuditService
 from saucenao_api import SauceNao
 
 
-class PhotoHandlerData:
+class SearchHandlerData:
     def __int__(self):
         self.photo_data: bytes = b""
 
 
-class PhotoHandler:
+class SearchHandler:
     ONE, TWO, THREE, FOUR = range(10600, 10604)
 
     def __init__(self, site_service: SiteService = None, audit_service: AuditService = None):
@@ -31,7 +31,6 @@ class PhotoHandler:
     def start(self, update: Update, context: CallbackContext) -> int:
         user = update.effective_user
         Log.info("图片查找命令请求 user %s id %s" % (user["username"], user["id"]))
-        user = update.effective_user
         if user is None:
             return ConversationHandler.END
         if not self.utils.IfAdmin(user["id"]):
@@ -42,26 +41,40 @@ class PhotoHandler:
             return ConversationHandler.END
         photo_handler_data = context.chat_data.get("photo_handler_data")
         if photo_handler_data is None:
-            photo_handler_data = PhotoHandlerData()
+            photo_handler_data = SearchHandlerData()
             context.chat_data["photo_handler_data"] = photo_handler_data
-        photo_file = update.message.photo[0].get_file()
-        photo_handler_data.photo_data = photo_file.download_as_bytearray()
-        reply_keyboard = [['继续', '退出']]
-        update.message.reply_text("获取图片成功，是否搜索图片",
-                                  reply_markup=ReplyKeyboardMarkup(reply_keyboard,
-                                                                   one_time_keyboard=True))
+        Log.info("图片查找命令请求 user %s id %s" % (user["username"], user["id"]))
+        photo_handler_data.photo_data = b""
+        if update.message.reply_to_message is not None:
+            if len(update.message.reply_to_message.photo) >= 1:
+                photo_file = update.message.reply_to_message.photo[0].get_file()
+                photo_handler_data.photo_data = photo_file.download_as_bytearray()
+                return self.get(update, context)
+        message = "✿✿ヽ（°▽°）ノ✿ 你好！ %s  \n" \
+                  "请发送你要搜索的图片 \n" \
+                  "需要退出只需回复退出" % (user["username"])
+        reply_keyboard = [["退出"]]
+        update.message.reply_text(text=message,
+                                  reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
         return self.ONE
 
     def get(self, update: Update, context: CallbackContext) -> int:
-        photo_handler_data: PhotoHandlerData = context.chat_data.get("photo_handler_data")
+        photo_handler_data: SearchHandlerData = context.chat_data.get("photo_handler_data")
+        if len(update.message.photo) >= 1:
+            photo_file = update.message.photo[0].get_file()
+            photo_handler_data.photo_data = photo_file.download_as_bytearray()
         if update.message.text == "退出":
-            update.message.reply_text('退出搜索', reply_markup=ReplyKeyboardRemove())
+            update.message.reply_text(text="退出任务", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
-        update.message.reply_text("正在搜索图片")
+        if len(photo_handler_data.photo_data) <= 0:
+            update.message.reply_text(text="图片回复错误，退出任务", reply_markup=ReplyKeyboardRemove())
+            return ConversationHandler.END
+        update.message.reply_text("获取图片成功，正在搜索图片")
         photo_data = photo_handler_data.photo_data
         try:
             results = self.sauce.from_file(photo_data)
         except UnknownServerError as error:
+            Log.error("UnknownServerError: ", error)
             update.message.reply_text("saucenao_api抛出UnknownServerError错误，获取图片信息失败")
             return ConversationHandler.END
         artwork_data = None
