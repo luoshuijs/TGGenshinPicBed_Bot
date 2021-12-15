@@ -10,7 +10,7 @@ from plugins.examine import ExamineHandler
 from plugins.push import PushHandler
 from plugins.send import SendHandler
 from plugins.set_audit import SetAuditHandler
-from plugins.start import start, help_command, test, ping
+from plugins.start import start, help_command, test, ping, unknown_command
 from config import config
 from logger import Log
 from sites import SiteManager
