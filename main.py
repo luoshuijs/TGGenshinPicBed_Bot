@@ -170,7 +170,6 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler("help", help_command, run_async=True))
     dispatcher.add_handler(CommandHandler("ping", ping, run_async=True))
     dispatcher.add_handler(CommandHandler("test", test, run_async=True))
-    dispatcher.add_handler(MessageHandler((Filters.command & Filters.private), unknown_command, run_async=True))
     dispatcher.add_handler(examine_handler)
     dispatcher.add_handler(push_handler)
     dispatcher.add_handler(contribute_handler)
@@ -178,6 +177,7 @@ def main() -> None:
     dispatcher.add_handler(set_audit_handler)
     dispatcher.add_handler(send_handler)
     dispatcher.add_handler(search_handler)
+    dispatcher.add_handler(MessageHandler((Filters.command & Filters.private), unknown_command, run_async=True))
     dispatcher.add_error_handler(error_handler)
 
     updater.start_polling()
