@@ -48,6 +48,10 @@ def ping(update: Update, _: CallbackContext) -> None:
     update.message.reply_text("online! ヾ(✿ﾟ▽ﾟ)ノ")
 
 
+def unknown_command(update: Update, context: CallbackContext) -> None:
+    update.message.reply_text('前面的区域，以后再来探索吧！')
+
+
 def test(update: Update, _: CallbackContext) -> None:
     """
     单  元  测  试   (dogo)
