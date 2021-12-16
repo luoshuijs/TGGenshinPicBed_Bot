@@ -42,7 +42,7 @@ class ContributeHandler:
         if artwork_info is None:
             update.message.reply_text("插画信息获取错误，找开发者背锅吧~", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
-        if ContributeHandler.GENSHIN_REGEX.search(artwork_info.tags) is None:
+        if ContributeHandler.GENSHIN_REGEX.search(artwork_info.GetStringTags()) is None:
             update.message.reply_text("插画信息TAG不符合投稿要求，退出投稿", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
         caption = "Title %s   \n" \
