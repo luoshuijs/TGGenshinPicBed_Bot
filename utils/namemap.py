@@ -18,7 +18,10 @@ class NameMap:
         regex_str_list = []
         for key, value in self.name_map.items():
             # "(?P<Ayaka>Ayaka|神里绫华|Kamisato.*Ayaka)"
-            regex_str = "|".join([*["^"+i for i in value["name"]], *value["regex"]])
+            regex_str = "|".join([
+                *["^"+n+"$" if len(n) < 2 else n for n in value["name"]],
+                *value["regex"],
+            ])
             regex_str = f"(?P<{key}>{regex_str})"
             regex_str_list.append(regex_str)
         self.regex_str = "|".join(regex_str_list)
