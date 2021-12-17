@@ -5,3 +5,4 @@
 | artwork | 作品信息的数据类型构造 |
 | artist  | 用户信息的数据类型构造 |
 | containers  | 总数据类型构造 |
+| helpers  | 数据类型构造 |
