@@ -12,6 +12,38 @@ from sites.pixiv.base import PixivResponse
 cur_path = os.path.realpath(os.getcwd())
 
 
+class AsyncPixivApi:
+
+    def __init__(self, cookie: str = ""):
+        self.cookie = cookie
+        self.client = httpx.AsyncClient()
+
+    def get_headers(self, art_id: int = 0):
+        if art_id == 0:
+            referer = "https://www.pixiv.net"
+        else:
+            referer = f"https://www.pixiv.net/artworks/{art_id}"
+        return {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                          "Chrome/90.0.4430.72 Safari/537.36",
+            "Referer": referer,
+            "Cookie": self.cookie,
+        }
+
+    async def is_logged_in(self):  # 注意，如果Cookie失效是无法爬虫，而且会一直卡住
+        user_status_url = "https://www.pixiv.net/touch/ajax/user/self/status?lang=zh"
+        r = await self.client.get(user_status_url, headers=self.get_headers())
+        if r.is_error:
+            return False
+        user_status = r.json()
+        if not user_status["body"]["user_status"]["is_logged_in"]:
+            Log.error("验证Pixiv_Cookie失败，Cookie失效或过期")
+            return False
+        else:
+            Log.info("验证Pixiv_Cookie成功")
+        return True
+
+
 class PixivApi:
 
     def __init__(self, cookie: str = ""):
