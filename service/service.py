@@ -275,6 +275,10 @@ class AuditService:
         if artwork_info is None:
             return None  # Does not exists in database
         audit_info = self.get_audit_info(artwork_info)
+        if audit_info.connection_id == 0 or audit_info.site == '':
+            audit_info.connection_id = artwork_info.artwork_id
+            audit_info.site = artwork_info.site
+            self.service.contribute(artwork_info)
         if info_type == "status":
             audit_info.status = AuditStatus(data)
         elif info_type == "type":
