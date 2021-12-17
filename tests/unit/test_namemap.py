@@ -24,6 +24,34 @@ class TestTag(unittest.TestCase):
         # 2. Compare
         self.assertEqual(result, tags)
 
+    def test_namemap_single_character_should_fullmatch(self):
+        # 1. Setup
+        tag_str_list = [
+            "#原神#Genshin Impact#GenshinImpact#空刻",
+        ]
+        # no match - returns original tag
+        names_regex = re.compile("#原神 #Genshin Impact #GenshinImpact #空刻", re.I)
+        # 2. Execute
+        results = tuple(self.name_map.filter_character_tags(tag_str) for tag_str in tag_str_list)
+        # 3. Compare
+        for tag_str in results:
+            with self.subTest(tag_str=tag_str):
+                self.assertRegex(tag_str, names_regex)
+
+    def test_namemap_single_character_should_fullmatch_succeed(self):
+        # 1. Setup
+        tag_str_list = [
+            "#原神#Genshin Impact#GenshinImpact#空",
+        ]
+        # match
+        names_regex = re.compile("#Aether #空", re.I)
+        # 2. Execute
+        results = tuple(self.name_map.filter_character_tags(tag_str) for tag_str in tag_str_list)
+        # 3. Compare
+        for tag_str in results:
+            with self.subTest(tag_str=tag_str):
+                self.assertRegex(tag_str, names_regex)
+
     def test_namemap_yunjin(self):
         # 1. Setup
         tag_str_list = [
