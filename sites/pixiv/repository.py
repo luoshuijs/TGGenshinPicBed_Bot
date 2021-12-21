@@ -86,7 +86,7 @@ class PixivRepository(Repository):
         query_args = (illusts_id,)
         data = self._execute_and_fetchall(query, query_args)
         if len(data) == 0:
-            return AuditInfo()
+            return AuditInfo(site="pixiv")
         audit_info = CreateArtworkAuditInfoFromSQLData(data[0], site="pixiv")
         return audit_info
 
