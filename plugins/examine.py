@@ -156,7 +156,7 @@ class ExamineHandler:
                           "%s \n" \
                           "Tags %s   \n" \
                           "From [%s](%s)" % (
-                              escape_markdown(artwork_info.title, version=2),
+                              escape_markdown(artwork_info.title.replace('\\', '\\\\'), version=2),
                               artwork_info.GetStringStat(),
                               escape_markdown(artwork_info.GetStringTags(filter_character_tags=True), version=2),
                               artwork_info.site_name,
