@@ -23,9 +23,20 @@
             "神里绫华"
         ],
         "regex": [
-            "神里(?:綾華)?",
+            "(?:神里)?綾華",
             "Kamisato.?Ayaka",
             "Ayaka.?Kamisato"
+        ]
+    },
+    "Ayato": {
+        "name": [
+            "Ayato",
+            "神里绫人"
+        ],
+        "regex": [
+            "(?:神里)?綾人",
+            "Kamisato.?Ayato",
+            "Ayato.?Kamisato"
         ]
     },
     "Amber": {
