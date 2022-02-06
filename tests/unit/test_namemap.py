@@ -122,8 +122,8 @@ class TestTag(unittest.TestCase):
     def test_namemap_ayaka(self):
         # 1. Setup
         tag_str = "#神里#GenshinImpact#原神"
-        characters = {"Ayaka"}
-        names = {("Ayaka", "神里绫华")}
+        characters = set()
+        names = set()
         # 2. Execute
         char_result = self.name_map.identify_characters(tag_str)
         name_result = {self.name_map.get_character_names(character) for character in characters}
