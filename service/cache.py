@@ -171,9 +171,9 @@ class ServiceCache:
             art_key = pipe.srandmember(qname.push)
             count = pipe.scard(qname.push)
             pipe.multi()
-            pipe.srem(qname.push, art_key)
             if art_key is None:
                 return None, count
+            pipe.srem(qname.push, art_key)
             return art_key, count - 1
 
         return self.rdb.transaction(update_queue, qname.push, value_from_callable=True)
