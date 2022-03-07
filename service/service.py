@@ -251,9 +251,19 @@ class AuditService:
         # 1. Get from redis
         data, count = self.get_push_one(audit_type)
         if data is None:
-            return parse_artwork_push_data(count=-1)
+            Log.error("获取缓存数据失败 count:%s" % count)
+            return parse_artwork_push_data(count=count, error_message="获取缓存数据失败", status_code=67144)
         artwork_data = self.get_artwork_info_and_image(**data)
         if artwork_data.is_error:
+            Log.error("图片获取错误 site:%s post_id:%s" % (data["site"], data["post_id"]))
+            audit_info = AuditInfo(
+                site=data["site"],
+                connection_id=data["post_id"],
+                type_status=audit_type,
+                status=AuditStatus.REJECT,
+                reason="BadRequest"
+            )
+            self.audit_repository.apply_update(audit_info)
             return parse_artwork_push_data(error_message="获取当前图片失败")
         return parse_artwork_push_data(artwork_data.artwork_info, artwork_data.artwork_image, count)
 
