@@ -1,3 +1,4 @@
+import sys
 from typing import Optional
 import time
 from telegram import Update, InputMediaPhoto, ParseMode, InlineKeyboardButton, InlineKeyboardMarkup
@@ -77,43 +78,49 @@ class PushHandler:
             query.edit_message_text('退出推送')
             return ConversationHandler.END
         query.edit_message_text(text="正在初始化")
-        audit_type = push_handler_data.audit_type
-        sendReq = None
-        remaining = self.audit_service.push_start(audit_type)
-        message = "无推送任务，点击确认退出任务"
         keyboard = [
             [
-                InlineKeyboardButton("强制退出任务(仅限奔溃时)", callback_data="退出"),
+                InlineKeyboardButton("退出任务", callback_data="退出"),
             ]
         ]
-        while remaining > 0:
-            result = self.audit_service.push_next(audit_type)
-            if result.count == -1:
-                message = "推送完毕，点击确认退出任务"
-                break
-            if result.is_error:
-                # don't worry about `remaining`, will update on the next loop iteration
-                continue
-            artwork_info = result.artwork_info
-            artwork_image = result.artwork_image
-            remaining = result.count
-            with self.audit_service.push_manager(artwork_info):
-                query.edit_message_text(text="还剩下%s张图片正在排队..." % remaining, reply_markup=InlineKeyboardMarkup(keyboard))
-                caption = "Title %s   \n" \
-                          "Tags %s   \n" \
-                          "From [%s](%s)" % (
-                              escape_markdown(artwork_info.title.replace('\\', '\\\\'), version=2),
-                              escape_markdown(artwork_info.GetStringTags(filter_character_tags=True), version=2),
-                              artwork_info.site_name,
-                              artwork_info.origin_url
-                          )
-                try:
+        try:
+            audit_type = push_handler_data.audit_type
+            sendReq = None
+            remaining = self.audit_service.push_start(audit_type)
+            if remaining == 0:
+                query.edit_message_text(text="无任务推送，推出推送")
+                return ConversationHandler.END
+            while remaining > 0:
+                result = self.audit_service.push_next(audit_type)
+                if result.is_error:
+                    if result.status_code != 67144:
+                        query.edit_message_text(text=f"推送时发生警告，警告信息为"
+                                                     f"{result.message}"
+                                                     f"详情警告请看日记，3秒后继续")
+                        time.sleep(3)
+                    # don't worry about `remaining`, will update on the next loop iteration
+                    continue
+                artwork_info = result.artwork_info
+                artwork_image = result.artwork_image
+                remaining = result.count
+                with self.audit_service.push_manager(artwork_info):
+                    query.edit_message_text(text="还剩下%s张图片正在排队..." % remaining)
+                    caption = "Title %s   \n" \
+                              "Tags %s   \n" \
+                              "From [%s](%s)" % (
+                                  escape_markdown(artwork_info.title.replace('\\', '\\\\'), version=2),
+                                  escape_markdown(artwork_info.GetStringTags(filter_character_tags=True), version=2),
+                                  artwork_info.site_name,
+                                  artwork_info.origin_url
+                              )
                     if len(artwork_image) > 1:
-                        media = [InputMediaPhoto(artwork_image[0].data, caption=caption, parse_mode=ParseMode.MARKDOWN_V2)]
+                        media = [
+                            InputMediaPhoto(artwork_image[0].data, caption=caption,
+                                            parse_mode=ParseMode.MARKDOWN_V2)]
                         for _, img in enumerate(artwork_image[1:10]):
                             media.append(InputMediaPhoto(img.data, parse_mode=ParseMode.MARKDOWN_V2))
                         sendReq = context.bot.send_media_group(push_handler_data.channel_id, media)
-                        time.sleep(len(media) * 3)
+                        time.sleep(len(media) * 3 + 3)
                     elif len(artwork_image) == 1:
                         image = artwork_image[0]
                         if image.format == "gif":
@@ -121,32 +128,40 @@ class PushHandler:
                                                                 filename=f"{artwork_info.artwork_id}.{image.format}",
                                                                 caption=caption, parse_mode=ParseMode.MARKDOWN_V2)
                         else:
-                            sendReq = context.bot.send_photo(push_handler_data.channel_id, image.data, caption=caption,
+                            sendReq = context.bot.send_photo(push_handler_data.channel_id, image.data,
+                                                             caption=caption,
                                                              parse_mode=ParseMode.MARKDOWN_V2)
                         time.sleep(3)
-                except BadRequest as TError:
-                    Log.error("encountered error with image caption\n%s" % caption)
-                    Log.error(TError)
-                    query.edit_message_text(text="图片发送出错，退出任务")
-                    return ConversationHandler.END
-                if audit_type == AuditType.NSFW:
-                    if isinstance(sendReq, list):
-                        message_id = sendReq[0].message_id
-                    else:
-                        message_id = sendReq.message_id
-                    channel_name = config.TELEGRAM["channel"]["NSFW"]["name"]
-                    channel_id = config.TELEGRAM["channel"]["SFW"]["char_id"]
-                    url = "https://t.me/%s/%s" % (channel_name, message_id)
-                    reply_keyboard = [
-                        [
-                            InlineKeyboardButton("点击查看/Click it to view", url=url),
+                    if audit_type == AuditType.NSFW:
+                        if isinstance(sendReq, list):
+                            message_id = sendReq[0].message_id
+                        else:
+                            message_id = sendReq.message_id
+                        channel_name = config.TELEGRAM["channel"]["NSFW"]["name"]
+                        channel_id = config.TELEGRAM["channel"]["SFW"]["char_id"]
+                        url = "https://t.me/%s/%s" % (channel_name, message_id)
+                        reply_keyboard = [
+                            [
+                                InlineKeyboardButton("点击查看/Click it to view", url=url),
+                            ]
                         ]
-                    ]
-                    text = " **%s警告/%s warning**   \n" \
-                           "      \n" \
-                           "%s" % (audit_type.name, audit_type.name, caption)
-                    context.bot.send_message(channel_id, text=text, reply_markup=InlineKeyboardMarkup(reply_keyboard),
-                                             parse_mode=ParseMode.MARKDOWN_V2, disable_web_page_preview=True)
-                    time.sleep(1)
+                        text = " **%s警告/%s warning**   \n" \
+                               "      \n" \
+                               "%s" % (audit_type.name, audit_type.name, caption)
+                        context.bot.send_message(channel_id, text=text,
+                                                 reply_markup=InlineKeyboardMarkup(reply_keyboard),
+                                                 parse_mode=ParseMode.MARKDOWN_V2, disable_web_page_preview=True)
+                        time.sleep(1)
+
+        except BadRequest as TError:
+            query.edit_message_text(text="图片发送出错，错误图片为 \n"
+                                         "%s" % caption,
+                                    reply_markup=InlineKeyboardMarkup(keyboard))
+            raise TError
+        except BaseException as TError:
+            query.edit_message_text(text="图片发送出错，错误信息请看日记",
+                                    reply_markup=InlineKeyboardMarkup(keyboard))
+            raise TError
+
         query.edit_message_text(text="推送完成")
         return ConversationHandler.END
