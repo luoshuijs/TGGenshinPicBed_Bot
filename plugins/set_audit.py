@@ -87,7 +87,7 @@ class SetAuditHandler:
         artwork_info = SetAuditHandlerData.artwork_info = artwork_data.artwork_info
         images = SetAuditHandlerData.artwork_images = artwork_data.artwork_image
         audit_info = self.audit_service.get_audit_info(artwork_info)
-        if audit_info.site is None:
+        if audit_info.status.value is None:
             update.message.reply_text("该作品未在审核数据库，退出任务", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
         Log.info("用户 %s 请求修改作品(%s)" % (user.username, artwork_info.artwork_id))
