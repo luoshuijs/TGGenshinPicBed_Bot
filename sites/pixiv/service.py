@@ -22,7 +22,7 @@ class PixivService:
         temp_artwork_info_response = self.api.get_artwork_info(artwork_id)
         if bool(temp_artwork_info_response):
             return parse_artwork_data(error_message=temp_artwork_info_response.message)
-        artwork_image = self.api.get_images_by_artid(artwork_id)
+        artwork_image = self.api.get_images(temp_artwork_info_response)
         artwork_info = temp_artwork_info_response.results.GetArtworkInfo()
         return parse_artwork_data(artwork_info, artwork_image)
 
@@ -36,7 +36,7 @@ class PixivService:
         temp_artwork_info_response = self.api.get_artwork_info(art_id)
         if bool(temp_artwork_info_response):
             return parse_artwork_data(error_message=temp_artwork_info_response.message)
-        artwork_image = self.api.get_images_by_artid(art_id)
+        artwork_image = self.api.get_images(temp_artwork_info_response)
         artwork_info = temp_artwork_info_response.results.GetArtworkInfo()
         return parse_artwork_data(artwork_info, artwork_image)
 

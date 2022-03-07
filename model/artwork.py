@@ -130,10 +130,13 @@ class ArtworkInfo:
 
 class ArtworkImage:
 
-    def __init__(self, art_id: int, data: bytes = b""):
+    def __init__(self, art_id: int, page: int = 0, is_error: bool = False, data: bytes = b""):
         self.art_id = art_id
         self.data = data
-        self.format: str = imghdr.what(None, self.data)
+        self.is_error = is_error
+        if not is_error:
+            self.format: str = imghdr.what(None, self.data)
+        self.page = page
 
 
 class AuditCount:
