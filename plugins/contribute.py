@@ -34,7 +34,8 @@ class ContributeHandler:
             return ConversationHandler.END
         artwork_data = self.site_service.contribute_start(update.message.text)
         if artwork_data.is_error:  # 作品存在数据库返回None
-            update.message.reply_text("%s，退出投稿" % artwork_data.message, reply_markup=ReplyKeyboardRemove())  #
+            update.message.reply_text(f"{artwork_data.message}，退出投稿",
+                                      reply_markup=ReplyKeyboardRemove())  #
             return ConversationHandler.END
         artwork_info = artwork_data.artwork_info
         images = artwork_data.artwork_image

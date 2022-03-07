@@ -70,24 +70,47 @@ class SendHandler:
             update.message.reply_text(text="回复错误", reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
         if send_handler_data.url == "":
-            artwork_data = self.send_service.get_info_by_url(update.message.text)
+            url = update.message.text
         else:
-            artwork_data = self.send_service.get_info_by_url(send_handler_data.url)
+            url = send_handler_data.url
+        artwork_data = self.send_service.get_info_by_url(url)
         if artwork_data.is_error:
-            update.message.reply_text("已经存在数据库或者频道，退出投稿", reply_markup=ReplyKeyboardRemove())
+            update.message.reply_text(f"获取作品信息发生错误，错误信息为 {artwork_data.message}",
+                                      reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
         artwork_info = send_handler_data.artwork_info = artwork_data.artwork_info
         artwork_image = send_handler_data.artwork_images = artwork_data.artwork_image
-        caption = "Title %s   \n" \
-                  "%s   \n" \
-                  "Tags %s   \n" \
-                  "From [%s](%s)" % (
-                      escape_markdown(artwork_info.title.replace('\\', '\\\\'), version=2),
-                      artwork_info.GetStringStat(),
-                      escape_markdown(artwork_info.GetStringTags(filter_character_tags=True), version=2),
-                      artwork_info.site_name,
-                      artwork_info.origin_url
-                  )
+        audit_info = self.send_service.get_audit_info(artwork_info)
+        if audit_info.status.value is None:
+            caption = "Title %s   \n" \
+                      "%s   \n" \
+                      "Tags %s   \n" \
+                      "From [%s](%s)" % (
+                          escape_markdown(artwork_info.title.replace('\\', '\\\\'), version=2),
+                          artwork_info.GetStringStat(),
+                          escape_markdown(artwork_info.GetStringTags(filter_character_tags=True), version=2),
+                          artwork_info.site_name,
+                          artwork_info.origin_url
+                      )
+        else:
+            update.message.reply_text(f"注意：该作品已经存在数据库",
+                                      reply_markup=ReplyKeyboardRemove())
+            caption = "Type: %s   \n" \
+                      "Status: %s   \n" \
+                      "Site: %s   \n" \
+                      "Title %s   \n" \
+                      "%s \n" \
+                      "Tags %s   \n" \
+                      "From [%s](%s)" % (
+                          audit_info.type.name,
+                          audit_info.status.name,
+                          audit_info.site,
+                          escape_markdown(artwork_info.title.replace('\\', '\\\\'), version=2),
+                          artwork_info.GetStringStat(),
+                          escape_markdown(artwork_info.GetStringTags(filter_character_tags=True), version=2),
+                          artwork_info.site_name,
+                          artwork_info.origin_url
+                      )
         try:
             if len(artwork_image) > 1:
                 media = [InputMediaPhoto(media=img_info.data) for img_info in artwork_image]
