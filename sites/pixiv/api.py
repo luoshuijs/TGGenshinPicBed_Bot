@@ -2,7 +2,7 @@ import httpx
 import imageio
 import zipfile
 import os
-from typing import Optional, List
+from typing import List
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from logger import Log
