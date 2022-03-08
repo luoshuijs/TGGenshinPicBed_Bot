@@ -1,4 +1,4 @@
-from model.artwork import ArtworkInfo
+from model.artwork import ArtworkInfo, AuditInfo, AuditType, AuditStatus
 
 
 class MStat:
@@ -12,16 +12,22 @@ class MStat:
 
 
 class MArtworkInfo:
-    def __init__(self, database_id: int = 0, post_id: int = 0, subject: str = "", tags: list = [],
-                 image_list: list = [], stat: MStat = None, uid: int = 0, created_at: int = 0):
+    def __init__(self, database_id: int = 0, post_id: int = 0, subject: str = "", tags=None,
+                 image_url_list=None, stat: MStat = None, uid: int = 0, created_at: int = 0):
+        if tags is None:
+            self.tags = []
+        else:
+            self.tags = tags
+        if image_url_list is None:
+            self.image_url_list = []
+        else:
+            self.image_url_list = image_url_list
         self.database_id = database_id
         self.Stat = stat
-        self.image_list = image_list
         self.created_at = created_at
         self.uid = uid
         self.subject = subject
         self.post_id = post_id
-        self.tags = tags
 
     def GetStringTags(self) -> str:
         tags_str: str = ""
@@ -118,7 +124,7 @@ def CreatePostInfoFromAPIResponse(data_post: dict) -> MArtworkInfo:
         stat=stat,
         tags=topics_list,
         post_id=post_id,
-        image_list=images_list
+        image_url_list=images_list
     )
 
 
@@ -129,10 +135,9 @@ class MiHoYoBBSResponse:
             self.message: str = error_message
             return
         self.response: dict = response
-        self.retcode = response["retcode"]
-        if self.retcode == 0:
+        self.code = response["retcode"]
+        if self.code == 0:
             self.error = False
-        self.error: bool = response["retcode"]
         self.message: str = response["message"]
         if self.error:
             return
@@ -151,11 +156,11 @@ class MiHoYoBBSResponse:
             self.message: str = err
             return
         topics_list = []
-        images_list = []
+        image_url_list = []
         for topic in topics:
             topics_list.append(topic["name"])
         for image in image_list:
-            images_list.append(image["url"])
+            image_url_list.append(image["url"])
         self.post_id = post["post_id"]
         self.user_id = user["uid"]
         self.created_at = post["created_at"]
@@ -165,7 +170,6 @@ class MiHoYoBBSResponse:
                      bookmark_num=self._data_post["stat"]["bookmark_num"],
                      forward_num=self._data_post["stat"]["forward_num"],
                      )
-        self.images_list = ""
         self.results = MArtworkInfo(
             subject=subject,
             created_at=created_at,
@@ -173,11 +177,22 @@ class MiHoYoBBSResponse:
             stat=stat,
             tags=topics_list,
             post_id=post_id,
-            image_list=images_list
+            image_url_list=image_url_list
         )
 
     def __bool__(self):
         return self.error
 
     def __len__(self):
-        return len(self.urls)
+        return len(self.results.image_url_list)
+
+
+def CreateArtworkAuditInfoFromSQLData(data: tuple) -> AuditInfo:
+    (post_id, type_status, status, reason) = data
+    return AuditInfo(site='mihoyobbs',
+                     connection_id=post_id,
+                     type_status=AuditType(type_status),
+                     status=AuditStatus(status),
+                     reason=reason
+                     )
+
