@@ -56,6 +56,6 @@ class ServiceRepository:
         query_args = (artwork_info.site, artwork_info.artwork_id)
         data = self._execute_and_fetchall(query, query_args)
         if len(data) == 0:
-            return AuditInfo()
+            return AuditInfo(site=artwork_info.site, connection_id=artwork_info.artwork_id)
         audit_info = CreateArtworkAuditInfoFromSQLData(data[0])
         return audit_info
