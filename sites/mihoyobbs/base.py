@@ -138,6 +138,13 @@ class MiHoYoBBSResponse:
         self.code = response["retcode"]
         if self.code == 0:
             self.error = False
+        else:
+            if self.code == 1102:
+                self.message = "作品不存在"
+            self.error = True
+            return
+        if response["data"] is None:
+            self.error = True
         self.message: str = response["message"]
         if self.error:
             return
@@ -195,4 +202,3 @@ def CreateArtworkAuditInfoFromSQLData(data: tuple) -> AuditInfo:
                      status=AuditStatus(status),
                      reason=reason
                      )
-

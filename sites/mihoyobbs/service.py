@@ -16,8 +16,8 @@ class MihoyobbsService:
 
     def get_artwork_info_and_image(self, post_id: int) -> ArtworkData:
         temp_artwork_info = self.api.get_artwork_info(post_id)
-        if temp_artwork_info is None:
-            return parse_artwork_data(error_message="请求错误")
+        if temp_artwork_info.error:
+            return parse_artwork_data(error_message=temp_artwork_info.message)
         artwork_image = self.api.get_images_by_artid(temp_artwork_info)
         artwork_info = temp_artwork_info.results.GetArtworkInfo()
         return parse_artwork_data(artwork_info, artwork_image)
