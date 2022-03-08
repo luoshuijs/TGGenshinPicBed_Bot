@@ -1,9 +1,9 @@
 from typing import Optional, List
 
 from model.artwork import AuditInfo, AuditType, AuditStatus, AuditCount
-from service.base import CreateArtworkAuditInfoFromPixivSQLData
+
 from sites.base.repository import Repository
-from sites.pixiv.base import CreateArtworkFromSQLData, PArtworkInfo
+from sites.pixiv.base import CreateArtworkFromSQLData, PArtworkInfo, CreateArtworkAuditInfoFromPixivSQLData
 
 
 class PixivRepository(Repository):

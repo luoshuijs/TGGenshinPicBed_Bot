@@ -1,4 +1,4 @@
-from model.artwork import ArtworkInfo
+from model.artwork import ArtworkInfo, AuditInfo, AuditType, AuditStatus
 
 
 class PixivResponse:
@@ -136,3 +136,13 @@ def CreateArtworkFromSQLData(data: tuple) -> PArtworkInfo:
                         love_count=love_count, author_id=author_id, upload_timestamp=upload_timestamp)
     data.SetStringTags(tags)
     return data
+
+
+def CreateArtworkAuditInfoFromPixivSQLData(data: tuple, site: str) -> AuditInfo:
+    (illusts_id, type_status, status, reason) = data
+    return AuditInfo(site=site,
+                     connection_id=illusts_id,
+                     type_status=AuditType(type_status),
+                     status=AuditStatus(status),
+                     reason=reason
+                     )
