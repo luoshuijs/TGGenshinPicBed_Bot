@@ -4,7 +4,7 @@ from sites.base.repository import Repository
 from sites.bilibili.base import CreateTArtworkFromSQLData, BArtworkInfo
 
 
-class TwitterRepository(Repository):
+class BiliBiliRepository(Repository):
     def __init__(self, host: str = "127.0.0.1", port: int = 3306, user: str = "", password: str = "",
                  database: str = ""):
         super().__init__(host, port, user, password, database)
