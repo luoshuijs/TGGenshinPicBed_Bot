@@ -1,9 +1,10 @@
 from mysql.connector.pooling import MySQLConnectionPool
 
-from model.artwork import AuditInfo
+from model.artwork import AuditInfo, ArtworkInfo
+from service.base import CreateArtworkAuditInfoFromSQLData
 
 
-class AuditRepository:
+class ServiceRepository:
 
     def __init__(self, host="127.0.0.1", port=3306, user="", password="", database=""):
         self.sql_pool = MySQLConnectionPool(pool_name="",
@@ -46,3 +47,15 @@ class AuditRepository:
                       audit_info.status.value, audit_info.reason,)
         return self._execute_and_fetchall(query, query_args)
 
+    def get_audit_info(self, artwork_info: ArtworkInfo) -> AuditInfo:
+        query = f"""
+                    SELECT site, connection_id, type, status, reason
+                    FROM `new_examine`
+                    WHERE site=%s AND connection_id=%s;
+                """
+        query_args = (artwork_info.site, artwork_info.artwork_id)
+        data = self._execute_and_fetchall(query, query_args)
+        if len(data) == 0:
+            return AuditInfo()
+        audit_info = CreateArtworkAuditInfoFromSQLData(data[0])
+        return audit_info

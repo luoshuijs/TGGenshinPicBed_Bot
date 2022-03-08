@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from typing import Tuple, Iterable, List
+from typing import List
 import ujson
 
 from logger import Log
@@ -8,7 +8,7 @@ from model.artwork import ArtworkInfo
 from model.containers import ArtworkData, ArtworkAuditData, ArtworkPushData
 from model.helpers import parse_artwork_data, parse_artwork_audit_data, parse_artwork_push_data
 from service.cache import ServiceCache
-from service.repository import AuditRepository
+from service.repository import ServiceRepository
 from utils.redisaction import RedisUpdate
 
 
@@ -20,7 +20,7 @@ class SiteService:
         self.sql_config: dict = {}
         self.redis_config: dict = {}
         self.pixiv_cookie: str = ""
-        self.audit_repository = None
+        self.service_repository: ServiceRepository = None
         self.cache = None
 
     def set_handlers(self, handlers):
@@ -32,7 +32,7 @@ class SiteService:
         self.pixiv_cookie: str = args.get('pixiv_cookie', "")
 
     def load(self):
-        self.audit_repository: AuditRepository = AuditRepository(**self.sql_config)
+        self.service_repository: ServiceRepository = ServiceRepository(**self.sql_config)
         self.cache: ServiceCache = ServiceCache(**self.redis_config)
         for handler in self.BaseSizeHandlers:
             handler_size = handler[0]
@@ -91,7 +91,7 @@ class SiteService:
             type_status=audit_type,
             status=audit_status
         )
-        self.audit_repository.apply_update(audit_info)
+        self.service_repository.apply_update(audit_info)
         return True
 
     def get_audit_count(self, artwork_info: ArtworkInfo) -> AuditCount:
@@ -117,14 +117,7 @@ class SiteService:
         raise ValueError("SiteService Function Not Find")
 
     def get_audit_info(self, artwork_info: ArtworkInfo) -> AuditInfo:
-        for handler in self.SiteClassHandlers:
-            handler_size = handler[0]
-            handler_call = handler[1]
-            if handler_size.lower() == artwork_info.site.lower():
-                if hasattr(handler_call, "repository"):
-                    if hasattr(handler_call.repository, "get_audit_info"):
-                        return handler_call.repository.get_audit_info(artwork_info.artwork_id)
-        raise ValueError("SiteService Function Not Find")
+        return self.service_repository.get_audit_info(artwork_info)
 
     def get_art_for_audit(self, audit_type: AuditType = AuditType.SFW) -> List[ArtworkInfo]:
         artwork_info_list: list = []
@@ -154,7 +147,7 @@ class AuditService:
     def __init__(self, service: SiteService):
         self.service = service
         self.cache: ServiceCache = service.cache
-        self.audit_repository: AuditRepository = service.audit_repository
+        self.audit_repository: ServiceRepository = service.service_repository
 
     def get_cache_key(self, audit_info: AuditInfo):
         arts_dict = {
