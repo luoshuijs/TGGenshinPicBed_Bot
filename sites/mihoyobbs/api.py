@@ -1,11 +1,11 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List
-
 import httpx
 
 from model.artwork import ArtworkImage
-from sites.mihoyobbs.base import CreateArtworkListFromAPIResponse, MiHoYoBBSResponse
+from sites.mihoyobbs.base import CreateArtworkListFromAPIResponse, MiHoYoBBSResponse, ImagePostListResponse, \
+    MArtworkInfo
 
 
 class BaseMihoyobbsApi:
@@ -18,11 +18,35 @@ class BaseMihoyobbsApi:
         return f"https://bbs-api.mihoyo.com/post/wapi/getPostFull?gids=2&post_id={post_id}&read=1"
 
     @staticmethod
-    def get_list_url_params(forum_id: int, is_good: bool = False, is_hot: bool = False, page_size: int = 20) -> dict:
-        # forum_id=29&gids=2&is_good=false&is_hot=false&page_size=20&sort_type=1
+    def get_image_post_list_url() -> str:
+        return f"https://bbs-api.mihoyo.com/post/wapi/getImagePostList"
+
+    @staticmethod
+    def get_image_post_list_params(forum_id: int, image_type: int, last_id: int = 1, gids: int = 2,
+                                   page_size: int = 21) -> dict:
+        """
+        :param last_id: 页数
+        :param forum_id: 论坛ID
+        :param gids: 未知 默认为 2
+        :param image_type: 类型 1为日榜 2为周榜 3为月榜
+        :param page_size: 返回的图片页数
+        :return:
+        """
         params = {
             "forum_id": forum_id,
-            "gids": 2,
+            "gids": gids,
+            "last_id": last_id,
+            "type": image_type,
+            "page_size": page_size
+        }
+        return params
+
+    @staticmethod
+    def get_list_url_params(forum_id: int, gids: int, is_good: bool = False, is_hot: bool = False,
+                            page_size: int = 20) -> dict:
+        params = {
+            "forum_id": forum_id,
+            "gids": gids,
             "is_good": is_good,
             "is_hot": is_hot,
             "page_size": page_size,
@@ -60,6 +84,23 @@ class BaseMihoyobbsApi:
 class AsyncMihoyobbsApi(BaseMihoyobbsApi):
     def __init__(self):
         self.client = httpx.AsyncClient(headers=self.get_headers())
+
+    async def get_image_post_list(self, forum_id: int, image_type: int, page_size: int = 21) -> List[int]:
+        url = self.get_image_post_list_url()
+        post_list = []
+        last_id = 1
+        while True:
+            params = self.get_image_post_list_params(forum_id=forum_id, image_type=image_type, page_size=page_size,
+                                                     last_id=last_id)
+            response = await self.client.get(url=url, params=params)
+            data = ImagePostListResponse(response.json())
+            if data.error:
+                break
+            post_list += data.post_list
+            if data.is_last:
+                break
+            last_id = data.last_id
+        return post_list
 
     async def get_artwork_list(self, forum_id: int, is_good: bool = False, is_hot: bool = False, page_size: int = 20):
         url = self.get_list_uri()
@@ -102,6 +143,9 @@ class AsyncMihoyobbsApi(BaseMihoyobbsApi):
         if response.is_error:
             return ArtworkImage(art_id, page, True)
         return ArtworkImage(art_id, page, data=response.content)
+
+    async def close(self):
+        await self.client.aclose()
 
 
 class MihoyobbsApi(BaseMihoyobbsApi):
