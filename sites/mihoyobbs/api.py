@@ -56,9 +56,14 @@ class BaseMihoyobbsApi:
 
     @staticmethod
     def get_headers():
+        """
+        获取headers
+        :return: 返回米忽悠BBS内置的UserAgent 和 Referer
+        """
         return {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-                          "Chrome/90.0.4430.72 Safari/537.36",
+            "User-Agent": "Mozilla/5.0 (Linux; Android 7.1.2; HD1910 Build/N2G47O; wv) "
+                          "AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/68.0.3440.70 "
+                          "Mobile Safari/537.36 miHoYoBBS/2.21.2",
             "Referer": "https://bbs.mihoyo.com/"
         }
 
