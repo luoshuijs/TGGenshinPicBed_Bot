@@ -53,7 +53,7 @@ class AsyncRepository:
     async def _get_pool(self):
         if self.sql_pool is None:
             self.sql_pool = await aiomysql.create_pool(
-                host=self.mysql_database, port=self.mysql_port,
+                host=self.mysql_host, port=self.mysql_port,
                 user=self.mysql_user, password=self.mysql_password,
                 db=self.mysql_database, loop=self.loop)
         return self.sql_pool
