@@ -109,7 +109,7 @@ class AsyncMihoyobbsRepository(AsyncRepository):
                     INSERT INTO mihoyobbs (
                         post_id, title, tags, view_num, reply_num, like_num, bookmark_num, forward_num, uid, created_at
                     ) VALUES (
-                        %s, %s, %s, %s, %s, %s, %s
+                        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
                     ) ON DUPLICATE KEY UPDATE
                         title=VALUES(title),
                         tags=VALUES(tags),
