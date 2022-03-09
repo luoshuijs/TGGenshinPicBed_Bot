@@ -194,6 +194,73 @@ class MiHoYoBBSResponse:
         return len(self.results.image_url_list)
 
 
+class ImagePostListResponse:
+    def __init__(self, response=None, error_message: str = ""):
+        if response is None:
+            self.error: bool = True
+            self.message: str = error_message
+            return
+        self.response: dict = response
+        self.code = response["retcode"]
+        if self.code == 0:
+            self.error = False
+        else:
+            self.error = True
+            return
+        if response["data"] is None:
+            self.error = True
+        self.message: str = response["message"]
+        if self.error:
+            return
+        self.post_list = []
+        try:
+            """
+             # 因为标签信息返回空，所以说已经抛弃
+            for data_info in self._data_list:
+                post_data = data_info["post"]
+                stat_data = data_info["stat"]
+                user_data = data_info["user"]
+                post_id = post_data["post_id"]
+                uid = user_data["uid"]
+                topics = post_data["topic_ids"]
+                content_data = ujson.loads(post_data["content"])
+                subject = post_data["subject"]
+                created_at = post_data["created_at"]
+                image_url_list = content_data["imgs"]
+                topics_list = []
+                for topic in topics:
+                    topics_list.append(topic["name"])
+                stat = MStat(view_num=stat_data["view_num"],
+                             reply_num=stat_data["reply_num"],
+                             like_num=stat_data["like_num"],
+                             bookmark_num=stat_data["bookmark_num"],
+                             forward_num=stat_data["forward_num"],
+                             )
+                self.image_list.append(MArtworkInfo(
+                    subject=subject,
+                    created_at=created_at,
+                    uid=uid,
+                    stat=stat,
+                    tags=topics_list,
+                    post_id=post_id,
+                    image_url_list=image_url_list
+                ))
+            """
+            self._data = response["data"]
+            self.is_last = self._data["is_last"]
+            self.last_id = self._data["last_id"]
+            self._data_list = self._data["list"]
+            for data_info in self._data_list:
+                self.post_list.append(data_info["post"]["post_id"])
+        except (AttributeError, TypeError) as err:
+            self.error: bool = True
+            self.message: str = err
+            return
+
+    def __bool__(self):
+        return self.error
+
+
 def CreateArtworkAuditInfoFromSQLData(data: tuple) -> AuditInfo:
     (post_id, type_status, status, reason) = data
     return AuditInfo(site='mihoyobbs',
