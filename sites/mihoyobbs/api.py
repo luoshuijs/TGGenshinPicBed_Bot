@@ -144,7 +144,7 @@ class AsyncMihoyobbsApi(BaseMihoyobbsApi):
         return art_list
 
     async def download_image(self, art_id: int, url: str, page: int = 0) -> ArtworkImage:
-        response = await self.client.get(url, params=self.get_images_params(), timeout=5)
+        response = await self.client.get(url, params=self.get_images_params(resize=2000), timeout=5)
         if response.is_error:
             return ArtworkImage(art_id, page, True)
         return ArtworkImage(art_id, page, data=response.content)
@@ -196,7 +196,7 @@ class MihoyobbsApi(BaseMihoyobbsApi):
 
     def download_image(self, post_id: int, url: str, page: int = 0) -> ArtworkImage:
         headers = self.get_headers()
-        response = httpx.get(url, headers=headers, params=self.get_images_params(), timeout=5)
+        response = httpx.get(url, headers=headers, params=self.get_images_params(resize=2000), timeout=5)
         if response.is_error:
             return ArtworkImage(post_id, page, True)
         return ArtworkImage(post_id, page, data=response.content)
