@@ -193,7 +193,6 @@ class AuditService:
         :param audit_type:
         :return:
         """
-        error_message = None
         # 1. Get from redis
         data = self.get_audit(audit_type)
         if data is None:
