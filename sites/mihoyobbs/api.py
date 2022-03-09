@@ -172,7 +172,7 @@ class MihoyobbsApi(BaseMihoyobbsApi):
             return MiHoYoBBSResponse(error_message="请求错误")
         return MiHoYoBBSResponse(response.json())
 
-    def get_images_by_artid(self, response: MiHoYoBBSResponse) -> List[ArtworkImage]:
+    def get_images(self, response: MiHoYoBBSResponse) -> List[ArtworkImage]:
         if response is None:
             return []
         art_list = []
