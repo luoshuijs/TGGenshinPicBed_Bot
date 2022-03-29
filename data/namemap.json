@@ -340,6 +340,16 @@
             "申鶴"
         ]
     },
+    "Shinobu": {
+        "name": [
+            "Shinobu",
+            "久岐忍"
+        ],
+        "regex": [
+            "(?:Kuki.?)?Shinobu",
+            "久岐忍"
+        ]
+    },
     "Signora": {
         "name": [
             "Signora",
@@ -443,6 +453,15 @@
         ],
         "regex": [
             "煙緋"
+        ]
+    },
+    "Yelan": {
+        "name": [
+            "Yelan",
+            "夜兰"
+        ],
+        "regex": [
+            "夜蘭"
         ]
     },
     "Yoimiya": {
