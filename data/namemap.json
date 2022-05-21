@@ -137,6 +137,17 @@
             "ゴロー"
         ]
     },
+    "Heizou": {
+        "name": [
+            "Heizou",
+            "平藏"
+        ],
+        "regex": [
+            "(?:Shikanoin.?)Heizou",
+            "(?:鹿野院?)平藏",
+            "(?:しかのいん?)へいぞう"
+        ]
+    },
     "Hutao": {
         "name": [
             "Hutao",
