@@ -12,12 +12,15 @@ def ExtractMId(text: str) -> int:
     :return:
     """
     rgx = re.compile(
-        r"(?:bbs\.)?mihoyo\.com/[^.]+/article/(\d+)")
-    args = rgx.split(text)
-    if args is None:
+        r"(?:bbs\.)?mihoyo\.com/[^.]+/article/(?P<article_id>\d+)")
+    matches = rgx.search(text)
+    if matches is None:
+        return None
+    entries = matches.groupdict()
+    if entries is None:
         return None
     try:
-        art_id = int(args[1])
-    except (IndexError, ValueError):
+        art_id = int(entries.get('article_id'))
+    except (IndexError, ValueError, TypeError):
         return None
     return art_id
