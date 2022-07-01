@@ -36,13 +36,13 @@ class Pixiv:
         await self.repository.close()
         await self.BasicRequest.close()
 
-    async def work(self, loop, sleep_time: int = 6):
+    async def work(self, sleep_time: int = 6):
         while True:
             if not await self.BasicRequest.is_logged_in():
                 return
             self.GetIllustInformationTasks = []
             self.artwork_list = []
-            self.artid_queue = asyncio.Queue(loop=loop)
+            self.artid_queue = asyncio.Queue()
             Log.info("正在执行Pixiv爬虫任务")
             await self.task()
             await self.task1()
@@ -113,23 +113,22 @@ class Pixiv:
 
         # 2. Search artwork by recommendation
         all_recommend_id = set()
-        recommend_num = 0
-        for art_id in all_popular_id:
-            recommend_result = await self.BasicRequest.get_recommendation(art_id)
-            recommend_id = recommend_result.get_all_illust_id(lambda x: self.GENSHIN_REGEX.search(x.get("tags", "")) is not None)
-            recommend_num += len(recommend_id)
-            all_recommend_id = all_recommend_id.union(recommend_id)
-        recommend_int = min(36, len(all_recommend_id))
-        rec_tuple = tuple(all_recommend_id)
-        all_recommend_id = set(secrets.choice(rec_tuple) for i in range(recommend_int))
+        for count in range(2):
+            for art_id in all_popular_id:
+                recommend_result = await self.BasicRequest.get_recommendation(art_id)
+                recommend_id = recommend_result.get_all_illust_id(
+                    lambda x: self.GENSHIN_REGEX.search(x.get("tags", "")) is not None)
+                all_recommend_id = all_recommend_id.union(recommend_id)
+                all_popular_id = all_recommend_id.difference(all_popular_id)
+            Log.info("正在进行搜索，当前搜索深度为 %s " % (count + 1))
 
         for art_id in all_recommend_id:
             self.artid_queue.put_nowait({"id": art_id})
 
         # 3. Wait for artwork details
         Log.info(
-            "7天一共有%s个普通作品，%s个热门作品，%s个推荐作品，随机选择推荐作品%s个" % (
-                total, len(all_recommend_id), recommend_num, recommend_int)
+            "7天一共有%s个普通作品，%s个热门作品，%s个推荐作品" % (
+                total, len(all_popular_id), len(all_recommend_id))
         )
         Log.info("等待作业完成")
         await self.artid_queue.join()
@@ -167,7 +166,7 @@ class Pixiv:
             self.GetIllustInformationTasks.append(task_main)
 
         popular_artists_all = await self.repository.get_artists_with_multiple_approved_arts(num=3,
-                                                                                            days_ago=7)
+                                                                                            days_ago=3)
 
         for popular_artists in popular_artists_all:
             all_illusts = await self.BasicRequest.get_user_all_illusts(popular_artists.user_id)
@@ -254,7 +253,7 @@ if __name__ == "__main__":
         loop=loop
     )
 
-    run = [pixiv.work(loop, sleep_time=-1)]
+    run = [pixiv.work(sleep_time=-1)]
     close = [pixiv.close()]
 
     loop.run_until_complete(
