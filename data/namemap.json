@@ -263,6 +263,18 @@
             "Miko.?Yae"
         ]
     },
+    "Nahida": {
+        "name": [
+            "Nahida",
+            "纳西妲"
+        ],
+        "regex": [
+            "Kusanali",
+            "クサナリ",
+            "(?:小吉祥)?草王",
+            "ナヒダ"
+        ]
+    },
     "Ningguang": {
         "name": [
             "Ningguang",
