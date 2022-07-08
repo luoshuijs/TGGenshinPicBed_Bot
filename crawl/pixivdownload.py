@@ -113,7 +113,7 @@ class Pixiv:
 
         # 2. Search artwork by recommendation
         all_recommend_id = set()
-        for count in range(2):
+        for count in range(1):
             for art_id in all_popular_id:
                 recommend_result = await self.BasicRequest.get_recommendation(art_id)
                 recommend_id = recommend_result.get_all_illust_id(
