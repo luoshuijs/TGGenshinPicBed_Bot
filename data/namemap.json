@@ -83,6 +83,15 @@
             "重雲"
         ]
     },
+    "Columbina": {
+        "name": [
+            "Columbina",
+            "哥伦比娅"
+        ],
+        "regex": [
+            "コロンビーナ"
+        ]
+    },
     "Diluc": {
         "name": [
             "Diluc",
