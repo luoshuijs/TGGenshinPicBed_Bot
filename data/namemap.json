@@ -275,6 +275,16 @@
             "ナヒダ"
         ]
     },
+    "Nilou":{
+        "name": [
+            "Nilou",
+            "妮露"
+        ],
+        "regex": [
+            "nilu",
+            "ネル"
+        ]
+    },
     "Ningguang": {
         "name": [
             "Ningguang",
