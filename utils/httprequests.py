@@ -102,6 +102,10 @@ class HttpRequests(object):
                     Rsp.code = 2
                     Rsp.message = "404无效地址"
                     break
+                elif data.status_code == 500:
+                    Log.warning("撞墙，等待60S")
+                    await asyncio.sleep(60)
+                    continue
                 else:
                     Log.warning("Url: %s 请求错误" % url)
                     Log.warning("status_code: %s " % data.status_code)

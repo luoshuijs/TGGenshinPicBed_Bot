@@ -45,7 +45,7 @@ class Pixiv:
             self.artid_queue = asyncio.Queue()
             Log.info("正在执行Pixiv爬虫任务")
             await self.task()
-            await self.task1()
+            # await self.task1()
             # await self.repository.close()
             Log.info("执行Pixiv爬虫任务完成")
             if sleep_time == -1:
@@ -70,10 +70,13 @@ class Pixiv:
             try:
                 art_id = id_data["id"]
                 artwork_info = await self.BasicRequest.download_artwork_info(art_id)
+                if artwork_info is None:
+                    continue
+                Log.info(f"{artwork_info.art_id} {artwork_info.title}")
                 self.artwork_list.append(artwork_info)
                 Log.debug("获取作品信息线程%s号，收到任务，作品id：%s，获取完成" % (TaskId, art_id))
             except Exception as TError:
-                Log.error(TError)
+                Log.error("", TError)
             finally:
                 self.artid_queue.task_done()
 
@@ -107,6 +110,7 @@ class Pixiv:
             if total >= search_result.total:
                 break
             page += 1
+            Log.info("正在进行搜索，当前搜索页数为 %s " % page)
 
         for art_id in all_popular_id:
             self.artid_queue.put_nowait({"id": art_id})
