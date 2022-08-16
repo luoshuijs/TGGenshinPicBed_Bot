@@ -90,9 +90,6 @@ class Pixiv:
         Log.info("正在创建爬虫线程")
         self.GetIllustInformationTasks = []
         self.artwork_list = []
-        for i in range(6):
-            task_main = asyncio.ensure_future(self.GetIllustInformation(i))
-            self.GetIllustInformationTasks.append(task_main)
 
         # 1. Search artworks by keyword
         search_keyword = "原神"
@@ -134,6 +131,11 @@ class Pixiv:
             "7天一共有%s个普通作品，%s个热门作品，%s个推荐作品" % (
                 total, len(all_popular_id), len(all_recommend_id))
         )
+
+        for i in range(1):
+            task_main = asyncio.ensure_future(self.GetIllustInformation(i))
+            self.GetIllustInformationTasks.append(task_main)
+
         Log.info("等待作业完成")
         await self.artid_queue.join()
         self.artid_queue.put_nowait({"status": "close"})
