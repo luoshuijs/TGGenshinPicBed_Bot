@@ -106,6 +106,10 @@ class HttpRequests(object):
                     Log.warning("撞墙，等待60S")
                     await asyncio.sleep(60)
                     continue
+                elif data.status_code == 429:
+                    Log.warning("撞墙，等待60S")
+                    await asyncio.sleep(60)
+                    continue
                 else:
                     Log.warning("Url: %s 请求错误" % url)
                     Log.warning("status_code: %s " % data.status_code)
