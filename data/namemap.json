@@ -74,6 +74,15 @@
             "ベネット"
         ]
     },
+    "Candace": {
+        "name": [
+            "Candace",
+            "坎蒂丝"
+        ],
+        "regex": [
+            "キャンディス"
+        ]
+    },
     "Chongyun": {
         "name": [
             "Chongyun",
@@ -83,13 +92,22 @@
             "重雲"
         ]
     },
-    "Columbina": {
+    "Columbia": {
         "name": [
-            "Columbina",
+            "Columbia",
             "哥伦比娅"
         ],
         "regex": [
             "コロンビーナ"
+        ]
+    },
+    "Cyno": {
+        "name": [
+            "Cyno",
+            "赛诺"
+        ],
+        "regex": [
+            "セノ"
         ]
     },
     "Diluc": {
@@ -292,7 +310,7 @@
         ],
         "regex": [
             "nilu",
-            "ネル"
+            "ニィロウ"
         ]
     },
     "Ningguang": {
