@@ -92,6 +92,15 @@
             "重雲"
         ]
     },
+    "Collei": {
+        "name": [
+            "Collei",
+            "柯莱"
+        ],
+        "regex": [
+            "コレイ"
+        ]
+    },
     "Columbia": {
         "name": [
             "Columbia",
@@ -126,6 +135,15 @@
         ],
         "regex": [
             "ディオナ"
+        ]
+    },
+    "Dori": {
+        "name": [
+            "Dori",
+            "多莉"
+        ],
+        "regex": [
+            "ドリー"
         ]
     },
     "Eula": {
@@ -447,6 +465,15 @@
         ],
         "regex": [
             "トーマ"
+        ]
+    },
+    "Tighnari": {
+        "name": [
+            "Tighnari",
+            "提纳里"
+        ],
+        "regex": [
+            "ティナリ"
         ]
     },
     "Lumine": {
