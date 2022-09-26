@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "tggenshinpicbad"
+version = "0.0.1"
+description = "tggenshinpicbad"
+authors = ["洛水居室", "kotoriのねこ"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+colorlog = "^6.6.0"
+mysql-connector-python = "^8.0.29"
+python-telegram-bot = "13.11"
+redis = "4.3.4"
+ujson = "^5.5.0"
+aiomysql = "^0.1.1"
+imageio = "^2.19.2"
+PicImageSearch = "^3.6.1"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(message)s"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
