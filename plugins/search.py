@@ -1,4 +1,3 @@
-from saucenao_api.errors import UnknownServerError
 from telegram import Update, ReplyKeyboardRemove, InputMediaPhoto, ParseMode, ReplyKeyboardMarkup
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext, ConversationHandler
@@ -8,7 +7,7 @@ from logger import Log
 from config import config
 from utils.base import Utils
 from service import SiteService, AuditService
-from saucenao_api import SauceNao
+from PicImageSearch.sync import SauceNAO
 
 
 class SearchHandlerData:
@@ -26,7 +25,7 @@ class SearchHandler:
         self.saucenao_apikey = config.SAUCENAO["apikey"]
         self.sauce = None
         if self.saucenao_apikey != "":
-            self.sauce = SauceNao(self.saucenao_apikey)
+            self.sauce = SauceNAO(api_key=self.saucenao_apikey)
 
     def start(self, update: Update, context: CallbackContext) -> int:
         user = update.effective_user
@@ -61,7 +60,7 @@ class SearchHandler:
     def get(self, update: Update, context: CallbackContext) -> int:
         photo_handler_data: SearchHandlerData = context.chat_data.get("photo_handler_data")
         if len(update.message.photo) >= 1:
-            photo_file = update.message.photo[0].get_file()
+            photo_file = update.message.photo[-1].get_file()
             photo_handler_data.photo_data = photo_file.download_as_bytearray()
         if update.message.text == "退出":
             update.message.reply_text(text="退出任务", reply_markup=ReplyKeyboardRemove())
@@ -71,26 +70,17 @@ class SearchHandler:
             return ConversationHandler.END
         update.message.reply_text("获取图片成功，正在搜索图片")
         photo_data = photo_handler_data.photo_data
-        try:
-            results = self.sauce.from_file(photo_data)
-        except UnknownServerError as error:
-            Log.error("UnknownServerError: ", error)
-            update.message.reply_text("saucenao_api抛出UnknownServerError错误，获取图片信息失败")
-            return ConversationHandler.END
+        results = self.sauce.search(file=photo_data)
         artwork_data = None
-        if bool(results):
-            for result in results:
-                if result.similarity >= 50:
-                    if len(result.urls) == 0:
-                        continue
-                    url = result.urls[0]
-                    Log.info("图片搜索结果 title %s url %s" % (result.title, url))
-                    artwork_data = self.site_service.get_info_by_url(url)
-                    if artwork_data.is_error:
-                        continue
-        else:
-            update.message.reply_text("搜索失败")
-            return ConversationHandler.END
+        for result in results.raw:
+            if result.similarity >= 50:
+                if len(result.url) == 0:
+                    continue
+                url = result.url[0]
+                Log.info("图片搜索结果 title %s url %s" % (result.title, url))
+                artwork_data = self.site_service.get_info_by_url(url)
+                if artwork_data.is_error:
+                    continue
         update.message.reply_text("正在获取图片信息")
         if artwork_data is None or artwork_data.is_error:
             update.message.reply_text("无法找到对应的图片，获取图片信息失败")
