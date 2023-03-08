@@ -614,7 +614,7 @@
             "煙緋"
         ]
     },
-    "Yaoyao": [
+    "Yaoyao": {
         "name": [
             "Yaoyao",
             "瑶瑶"
@@ -622,7 +622,7 @@
         "regex": [
             "ヨォーヨ"
         ]
-    ],
+    },
     "Yelan": {
         "name": [
             "Yelan",
