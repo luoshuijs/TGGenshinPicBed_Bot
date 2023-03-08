@@ -8,6 +8,15 @@
             "アルベド"
         ]
     },
+    "Alhaitham": {
+        "name": [
+            "Alhaitham",
+            "艾尔海森"
+        ],
+        "regex": [
+            "アルハイゼン"
+        ]
+    },
     "Aloy": {
         "name": [
             "Aloy",
@@ -46,6 +55,15 @@
         ],
         "regex": [
             "アンバー"
+        ]
+    },
+    "Baizhu": {
+        "name": [
+            "Baizhu",
+            "白术"
+        ],
+        "regex": [
+            "白朮"
         ]
     },
     "Barbara": {
@@ -128,6 +146,15 @@
             "ディルック"
         ]
     },
+    "Dehya": [
+        "name": [
+            "Dehya",
+            "迪希雅"
+        ],
+        "regex": [
+            "ディシア"
+        ]
+    ],
     "Diona": {
         "name": [
             "Diona",
@@ -239,6 +266,15 @@
             "ガイア"
         ]
     },
+    "Kaveh": {
+        "name": [
+            "Kaveh",
+            "卡维"
+        ],
+        "regex": [
+            "カーヴェ"
+        ]
+    },
     "Kazuha": {
         "name": [
             "Kazuha",
@@ -313,6 +349,15 @@
         ],
         "regex": [
             "モナ"
+        ]
+    },
+    "Mika": {
+        "name": [
+            "Mika",
+            "米卡"
+        ],
+        "regex": [
+            "ミカ"
         ]
     },
     "Miko": {
@@ -569,6 +614,15 @@
             "煙緋"
         ]
     },
+    "Yaoyao": [
+        "name": [
+            "Yaoyao",
+            "瑶瑶"
+        ],
+        "regex": [
+            "ヨォーヨ"
+        ]
+    ],
     "Yelan": {
         "name": [
             "Yelan",
