@@ -295,6 +295,15 @@
         "regex": [
         ]
     },
+    "Kirara": {
+        "name": [
+            "Kirara",
+            "绮良良"
+        ],
+        "regex": [
+            "綺良々"
+        ]
+    },
     "Klee": {
         "name": [
             "Klee",
