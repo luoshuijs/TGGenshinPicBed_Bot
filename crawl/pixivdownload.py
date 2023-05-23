@@ -1,20 +1,29 @@
-import re
-import secrets
 import asyncio
+import re
 import time
 from typing import Iterable, Set
-from logger import Log
+
 from crawl.base import SearchResult, ArtworkInfo
 from crawl.repository import Repository
 from crawl.request import BasicRequest
+from logger import Log
+from utils.httprequests import TooManyRequest
 
 
 class Pixiv:
     GENSHIN_REGEX = re.compile(r"(Genshin(Impact)?)|(原神)", re.I)
 
-    def __init__(self, mysql_host: str = "127.0.0.1", mysql_port: int = 3306, mysql_user: str = "root",
-                 mysql_password: str = "", mysql_database: str = "",
-                 pixiv_cookie: str = "", loop=None, *args):
+    def __init__(
+            self,
+            mysql_host: str = "127.0.0.1",
+            mysql_port: int = 3306,
+            mysql_user: str = "root",
+            mysql_password: str = "",
+            mysql_database: str = "",
+            pixiv_cookie: str = "",
+            loop=None,
+            *args,
+    ):
         self.repository = Repository(
             sql_config={
                 "host": mysql_host,
@@ -27,9 +36,8 @@ class Pixiv:
         )
         self.cookie = pixiv_cookie
         self.GetIllustInformationTasks = []
-        self.artid_queue = None
+        self.art_id_queue = None
         self.artwork_list = []
-        self.pixiv_table = "genshin_pixiv"
         self.BasicRequest = BasicRequest(cookie=self.cookie)
 
     async def close(self):
@@ -42,7 +50,7 @@ class Pixiv:
                 return
             self.GetIllustInformationTasks = []
             self.artwork_list = []
-            self.artid_queue = asyncio.Queue()
+            self.art_id_queue = asyncio.Queue()
             Log.info("正在执行Pixiv爬虫任务")
             await self.task()
             # await self.task1()
@@ -56,29 +64,44 @@ class Pixiv:
             else:
                 break
 
-    async def GetIllustInformation(self, TaskId):
+    async def get_illust_information(self, TaskId):
         Log.info("获取作品信息线程%s号：创建完成" % TaskId)
         Log.debug("获取作品信息线程%s号：等待下载任务" % TaskId)
+        index = 0
         while True:
-            remaining_count = self.artid_queue.qsize()
+            index += 1
+            if index % (20 * 10) == 0:
+                Log.info("已经爬取到第 %s 个作品，休息15分钟" % index)
+                await asyncio.sleep(15 * 60)
+            if index % 20 == 0:
+                Log.info("已经爬取到第 %s 个作品，休息6秒" % index)
+                await asyncio.sleep(3 * 2)
+            remaining_count = self.art_id_queue.qsize()
             if remaining_count > 0 and remaining_count % 100 == 0:
                 Log.info("Pixiv爬虫进度：还剩下%s张作品" % remaining_count)
-            id_data = await self.artid_queue.get()
+            id_data = await self.art_id_queue.get()
             if id_data.get("status") == "close":
-                self.artid_queue.put_nowait({"status": "close"})
+                self.art_id_queue.put_nowait({"status": "close"})
                 return
             try:
                 art_id = id_data["id"]
                 artwork_info = await self.BasicRequest.download_artwork_info(art_id)
                 if artwork_info is None:
                     continue
+                if artwork_info.ai_type >= 2:
+                    Log.info("移除该AI作品，作品id：%s" % art_id)
                 Log.info(f"{artwork_info.art_id} {artwork_info.title}")
                 self.artwork_list.append(artwork_info)
                 Log.debug("获取作品信息线程%s号，收到任务，作品id：%s，获取完成" % (TaskId, art_id))
+                await asyncio.sleep(3)
+            except TooManyRequest:
+                Log.error("撞墙，线程退出任务")
+                self.art_id_queue.task_done()
+                return
             except Exception as TError:
                 Log.error("", TError)
             finally:
-                self.artid_queue.task_done()
+                self.art_id_queue.task_done()
 
     async def task(self):
         """
@@ -96,54 +119,67 @@ class Pixiv:
         page = 1
         total = 0
         all_popular_id = set()
+        Log.info("正在获取搜索信息")
         while True:
-            search_result = await self.BasicRequest.search_artwork(search_keyword, page)
+            try:
+                search_result = await self.BasicRequest.search_artwork(search_keyword, page)
+            except TooManyRequest:
+                Log.error("撞墙，线程退出任务")
+                self.art_id_queue.task_done()
+                return
             all_popular_id = all_popular_id.union(
                 search_result.get_all_popular_permanent_id(),
-                search_result.get_all_popular_recent_id())
+                search_result.get_all_popular_recent_id(),
+            )
             for art_id in search_result.get_all_illust_manga_id():
-                self.artid_queue.put_nowait({"id": art_id})
+                self.art_id_queue.put_nowait({"id": art_id})
             total += search_result.get_illust_manga_count()
             if total >= search_result.total:
                 break
             page += 1
-            Log.info("正在进行搜索，当前搜索页数为 %s " % page)
+            Log.info("正在进行搜索，当前搜索页数为 %s，当前已经获取到 %s，还剩下 %s" % (page, total, search_result.total))
+            await asyncio.sleep(3)
 
         for art_id in all_popular_id:
-            self.artid_queue.put_nowait({"id": art_id})
+            self.art_id_queue.put_nowait({"id": art_id})
 
         # 2. Search artwork by recommendation
+        Log.info("正在获取推荐信息")
         all_recommend_id = set()
         for count in range(1):
             for art_id in all_popular_id:
                 recommend_result = await self.BasicRequest.get_recommendation(art_id)
                 recommend_id = recommend_result.get_all_illust_id(
-                    lambda x: self.GENSHIN_REGEX.search(x.get("tags", "")) is not None)
+                    lambda x: self.GENSHIN_REGEX.search(x.get("tags", "")) is not None
+                )
                 all_recommend_id = all_recommend_id.union(recommend_id)
                 all_popular_id = all_recommend_id.difference(all_popular_id)
             Log.info("正在进行搜索，当前搜索深度为 %s " % (count + 1))
+            await asyncio.sleep(3)
 
         for art_id in all_recommend_id:
-            self.artid_queue.put_nowait({"id": art_id})
+            self.art_id_queue.put_nowait({"id": art_id})
 
         # 3. Wait for artwork details
         Log.info(
-            "7天一共有%s个普通作品，%s个热门作品，%s个推荐作品" % (
-                total, len(all_popular_id), len(all_recommend_id))
+            "7天一共有%s个普通作品，%s个热门作品，%s个推荐作品"
+            % (total, len(all_popular_id), len(all_recommend_id))
         )
 
         for i in range(1):
-            task_main = asyncio.ensure_future(self.GetIllustInformation(i))
+            task_main = asyncio.ensure_future(self.get_illust_information(i))
             self.GetIllustInformationTasks.append(task_main)
 
         Log.info("等待作业完成")
-        await self.artid_queue.join()
-        self.artid_queue.put_nowait({"status": "close"})
+        await self.art_id_queue.join()
+        self.art_id_queue.put_nowait({"status": "close"})
         await asyncio.wait(self.GetIllustInformationTasks)
         Log.info("作业完成")
 
         # 4. Filter artwork based on stats
-        artwork_list = sorted(self.artwork_list, key=lambda i: i.love_count, reverse=True)  # 排序
+        artwork_list = sorted(
+            self.artwork_list, key=lambda i: i.love_count, reverse=True
+        )  # 排序
         finalized_artworks = self.filter_artwork(artwork_list)
 
         # 5. Write to database
@@ -167,26 +203,37 @@ class Pixiv:
         self.GetIllustInformationTasks = []
         self.artwork_list = []
 
-        for i in range(6):
-            task_main = asyncio.ensure_future(self.GetIllustInformation(i))
+        for i in range(1):
+            task_main = asyncio.ensure_future(self.get_illust_information(i))
             self.GetIllustInformationTasks.append(task_main)
 
-        popular_artists_all = await self.repository.get_artists_with_multiple_approved_arts(num=3,
-                                                                                            days_ago=3)
+        popular_artists_all = (
+            await self.repository.get_artists_with_multiple_approved_arts(
+                num=3, days_ago=3
+            )
+        )
 
         for popular_artists in popular_artists_all:
-            all_illusts = await self.BasicRequest.get_user_all_illusts(popular_artists.user_id)
+            all_illusts = await self.BasicRequest.get_user_all_illusts(
+                popular_artists.user_id
+            )
             if popular_artists.last_art_id is not None:
-                all_illusts_f = [i for i in all_illusts if i > popular_artists.last_art_id]
+                all_illusts_f = [
+                    i for i in all_illusts if i > popular_artists.last_art_id
+                ]
             else:
                 all_illusts_f = all_illusts
             for art_id in all_illusts_f:
-                self.artid_queue.put_nowait({"id": art_id})
+                temp_artwork_info = await self.repository.get_art_by_art_id(art_id)
+                if temp_artwork_info is None:
+                    self.art_id_queue.put_nowait({"id": art_id})
             if len(all_illusts_f) != 0 and all_illusts_f is not None:
-                await self.repository.save_artist_last_crawl(user_id=popular_artists.user_id,
-                                                             last_art_id=max(all_illusts_f))
+                await self.repository.save_artist_last_crawl(
+                    user_id=popular_artists.user_id, last_art_id=max(all_illusts_f)
+                )
+            await asyncio.sleep(3)
 
-        self.artid_queue.put_nowait({"status": "close"})
+        self.art_id_queue.put_nowait({"status": "close"})
         await asyncio.wait(self.GetIllustInformationTasks)
 
         if len(popular_artists_all) == 0:
@@ -217,9 +264,12 @@ class Pixiv:
         return set().union(
             res.get_all_popular_permanent_id(),
             res.get_all_popular_recent_id(),
-            res.get_all_illust_manga_id())
+            res.get_all_illust_manga_id(),
+        )
 
-    def filter_artwork(self, artwork_list: Iterable[ArtworkInfo]) -> Iterable[ArtworkInfo]:
+    def filter_artwork(
+            self, artwork_list: Iterable[ArtworkInfo]
+    ) -> Iterable[ArtworkInfo]:
         r18_regex = re.compile(r"R.?18", re.I)
         result = []
         for artwork_info in artwork_list:
@@ -227,7 +277,9 @@ class Pixiv:
             if r18_regex.search(tags) is not None:  # 要求提升2倍
                 if artwork_info.love_count < 2000:
                     continue
-            days_hundred_fold = (time.time() - artwork_info.upload_timestamp) / 24 / 60 / 60 * 100
+            days_hundred_fold = (
+                    (time.time() - artwork_info.upload_timestamp) / 24 / 60 / 60 * 100
+            )
             if 10 <= days_hundred_fold <= 300 and artwork_info.love_count >= 700:
                 if artwork_info.love_count < 1000 - days_hundred_fold:
                     continue
@@ -256,18 +308,14 @@ if __name__ == "__main__":
         mysql_password=config.MYSQL["pass"],
         mysql_database=config.MYSQL["database"],
         pixiv_cookie=config.PIXIV["cookie"],
-        loop=loop
+        loop=loop,
     )
 
     run = [pixiv.work(sleep_time=-1)]
     close = [pixiv.close()]
 
-    loop.run_until_complete(
-        asyncio.wait(run)
-    )
+    loop.run_until_complete(asyncio.wait(run))
 
-    loop.run_until_complete(
-        asyncio.wait(close)
-    )
+    loop.run_until_complete(asyncio.wait(close))
 
     loop.close()

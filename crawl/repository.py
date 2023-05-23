@@ -1,12 +1,16 @@
 from typing import Iterable
+
 import aiomysql
 
 from model.artist import ArtistCrawlInfo
-from crawl.base import ArtistCrawlUpdate, CreateArtistCrawlInfoFromSQLResult, ArtworkInfo
+from crawl.base import (
+    ArtistCrawlUpdate,
+    CreateArtistCrawlInfoFromSQLResult,
+    ArtworkInfo,
+)
 
 
 class Repository:
-
     def __init__(self, sql_config=None):
         self.sql_config = sql_config
         self.sql_pool = None
@@ -44,7 +48,9 @@ class Repository:
             await conn.commit()
         return result
 
-    async def get_artists_with_multiple_approved_arts(self, num: int, days_ago: int) -> Iterable[ArtistCrawlInfo]:
+    async def get_artists_with_multiple_approved_arts(
+        self, num: int, days_ago: int
+    ) -> Iterable[ArtistCrawlInfo]:
         """
         Get user_id of artists with multiple approved art
         获取具有多个已通过插画的画师的用户id
@@ -59,7 +65,8 @@ class Repository:
         query_args = (num, days_ago)
         result = await self._execute_and_fetchall(query, query_args)
         return CreateArtistCrawlInfoFromSQLResult(
-            result)  # [ArtistCrawlInfo(user_id=1713, last_art_id=18324, ...), ...]
+            result
+        )  # [ArtistCrawlInfo(user_id=1713, last_art_id=18324, ...), ...]
 
     async def save_artist_last_crawl(self, user_id: int, last_art_id: int):
         """
@@ -78,7 +85,9 @@ class Repository:
         query_args = (user_id, last_art_id)
         return await self._execute_and_fetchall(query, query_args)
 
-    async def save_artist_last_crawl_many(self, last_crawl_list: Iterable[ArtistCrawlUpdate]) -> int:
+    async def save_artist_last_crawl_many(
+        self, last_crawl_list: Iterable[ArtistCrawlUpdate]
+    ) -> int:
         """
         Update artist crawled data. Returns affected rows (not the number of inserted rows)
         更新画师的爬虫数据。
@@ -119,8 +128,29 @@ class Repository:
                 upload_timestamp=VALUES(upload_timestamp);
         """
         query_args = tuple(
-            (a.art_id, a.title, a.tags, a.view_count, a.like_count,
-             a.love_count, a.author_id, a.upload_timestamp)
+            (
+                a.art_id,
+                a.title,
+                a.tags,
+                a.view_count,
+                a.like_count,
+                a.love_count,
+                a.author_id,
+                a.upload_timestamp,
+            )
             for a in artwork_list
         )
         return await self._executemany(query, query_args)
+
+    async def get_art_by_art_id(self, art_id):
+        query = f"""
+            SELECT id, illusts_id, title, tags, view_count,
+                   like_count, love_count, user_id, upload_timestamp
+            FROM `pixiv`
+            WHERE illusts_id=%s;
+        """
+        query_args = (art_id,)
+        data = await self._execute_and_fetchall(query, query_args)
+        if len(data) == 0:
+            return None
+        return data[0]

@@ -5,6 +5,10 @@ import time
 from logger import Log
 
 
+class TooManyRequest(Exception):
+    pass
+
+
 class Rsp:
     def __init__(self, status=True, message=None, data=None):
         self.data = data
@@ -103,9 +107,10 @@ class HttpRequests(object):
                     Rsp.message = "404无效地址"
                     break
                 elif data.status_code == 500:
-                    Log.warning("撞墙，等待60S")
-                    await asyncio.sleep(60)
-                    continue
+                    raise TooManyRequest
+                    # Log.warning("撞墙，等待60S")
+                    # await asyncio.sleep(60)
+                    # continue
                 elif data.status_code == 429:
                     Log.warning("撞墙，等待60S")
                     await asyncio.sleep(60)

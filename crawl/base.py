@@ -10,7 +10,7 @@ from model.artist import ArtistCrawlInfo
 class ArtworkInfo:
 
     def __init__(self, id=0, art_id=0, title="", tags="", view_count=0, like_count=0, love_count=0, author_id=0,
-                 upload_timestamp=0, audit_info=None):
+                 upload_timestamp=0, ai_type=0):
         self.id = id
         self.art_id = art_id
         self.title = title
@@ -20,6 +20,7 @@ class ArtworkInfo:
         self.love_count = love_count
         self.author_id = author_id
         self.upload_timestamp = upload_timestamp
+        self.ai_type = ai_type
 
 
 class SearchResult:
@@ -112,7 +113,8 @@ def CreateArtworkInfoFromAPIResponse(data: dict) -> ArtworkInfo:
         like_count=details["rating_count"],
         love_count=details["bookmark_user_total"],
         author_id=details["user_id"],
-        upload_timestamp=details["upload_timestamp"]
+        upload_timestamp=details["upload_timestamp"],
+        ai_type=details["ai_type"]
     )
 
 
