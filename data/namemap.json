@@ -119,6 +119,15 @@
             "シャルロット"
         ]
     },
+    "Chevreuse": {
+        "name": [
+            "Chevreuse",
+            "夏沃蕾"
+        ],
+        "regex": [
+            "シュヴルーズ"
+        ]
+    },
     "Chongyun": {
         "name": [
             "Chongyun",
@@ -254,6 +263,13 @@
         "regex": [
             "フリーナ"
         ]
+    },
+    "Gaming": {
+        "name": [
+            "Gaming",
+            "嘉明"
+        ],
+        "regex": []
     },
     "Ganyu": {
         "name": [
@@ -618,6 +634,15 @@
             "シニョーラ"
         ]
     },
+    "Skirk": {
+        "name": [
+            "Skirk",
+            "丝柯克"
+        ],
+        "regex": [
+            "スカーク"
+        ]
+    },
     "Sucrose": {
         "name": [
             "Sucrose",
@@ -696,6 +721,18 @@
             "香菱"
         ],
         "regex": [
+        ]
+    },
+    "Xianyun": {
+        "name": [
+            "Xianyun",
+            "闲云"
+        ],
+        "regex": [
+            "閑雲",
+            "留云借风",
+            "留雲借風",
+            "Cloud.?Retainer"
         ]
     },
     "Xiao": {
